@@ -12,7 +12,7 @@ CaddyPilot 是一个用于可视化管理 Caddy 反向代理配置的轻量 Web 
 | 4 | Caddy JSON 生成器及测试 | 已完成 |
 | 5 | Caddy Admin API Client | 已完成 |
 | 6 | 发布、校验、历史、回滚与 Dashboard API | 已完成 |
-| 7 | 前端 API、认证、路由与布局 | 未开始 |
+| 7 | 前端 API、认证、路由与布局 | 已完成 |
 | 8 | 代理站点前端页面 | 未开始 |
 | 9 | 配置版本前端页面 | 未开始 |
 | 10 | Dashboard、Caddy 状态与设置页面 | 未开始 |
