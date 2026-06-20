@@ -1,14 +1,8 @@
-/*
- * @Description: Copyright (c) ydfk. All rights reserved
- * @Author: ydfk
- * @Date: 2025-06-10 11:23:18
- * @LastEditors: ydfk
- * @LastEditTime: 2025-06-10 16:37:23
- */
 package main
 
 import (
 	"go-fiber-starter/internal/api/auth"
+	"go-fiber-starter/internal/api/proxysite"
 	"go-fiber-starter/pkg/config"
 	"go-fiber-starter/pkg/logger"
 
@@ -41,6 +35,7 @@ func api() {
 	humaAPI := humafiber.New(app, humaConfig)
 	humaAPI.UseMiddleware(auth.NewAuthMiddleware(humaAPI))
 	auth.RegisterRoutes(humaAPI)
+	proxysite.RegisterRoutes(humaAPI)
 
 	if err := app.Listen(":" + config.Current.App.Port); err != nil {
 		logger.Fatal("启动服务器失败: %v", err)
