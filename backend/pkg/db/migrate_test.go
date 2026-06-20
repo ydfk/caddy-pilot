@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"go-fiber-starter/internal/model/caddynode"
+	"go-fiber-starter/internal/model/proxysite"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -25,6 +26,11 @@ func TestAutoMigrateCreatesBusinessTablesAndLocalNode(t *testing.T) {
 	for _, table := range []string{"users", "proxy_sites", "config_versions", "caddy_nodes"} {
 		if !database.Migrator().HasTable(table) {
 			t.Fatalf("缺少数据表 %s", table)
+		}
+	}
+	for _, column := range []string{"enable_https", "force_https"} {
+		if !database.Migrator().HasColumn(&proxysite.ProxySite{}, column) {
+			t.Fatalf("proxy_sites 缺少字段 %s", column)
 		}
 	}
 

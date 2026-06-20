@@ -127,6 +127,14 @@ func TestAuthFlowRegisterLoginProfile(t *testing.T) {
 	if registeredUser.Username != "alice" {
 		t.Fatalf("unexpected username: %s", registeredUser.Username)
 	}
+	secondRegisterResp := doJSONRequest(t, app, http.MethodPost, "/api/auth/register", fiber.Map{
+		"username": "bob",
+		"password": "pass123",
+	}, nil)
+	defer secondRegisterResp.Body.Close()
+	if secondRegisterResp.StatusCode != http.StatusConflict {
+		t.Fatalf("second register status: %d", secondRegisterResp.StatusCode)
+	}
 
 	loginResp := doJSONRequest(t, app, http.MethodPost, "/api/auth/login", fiber.Map{
 		"username": "alice",

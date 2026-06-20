@@ -1,10 +1,3 @@
-/*
- * @Description: Copyright (c) ydfk. All rights reserved
- * @Author: ydfk
- * @Date: 2025-06-09 17:48:23
- * @LastEditors: ydfk
- * @LastEditTime: 2025-06-10 16:52:35
- */
 package auth
 
 import (
@@ -23,6 +16,14 @@ import (
 var generateFromPassword = bcrypt.GenerateFromPassword
 
 func Register(_ context.Context, input *CredentialsInput) (*UserOutput, error) {
+	var userCount int64
+	if err := db.DB.Model(&model.User{}).Count(&userCount).Error; err != nil {
+		return nil, huma.Error500InternalServerError("检查管理员状态失败")
+	}
+	if userCount > 0 {
+		return nil, huma.Error409Conflict("管理员已初始化")
+	}
+
 	hash, err := generateFromPassword([]byte(input.Body.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, huma.Error500InternalServerError("密码加密失败")

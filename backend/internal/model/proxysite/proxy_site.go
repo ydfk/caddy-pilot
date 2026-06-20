@@ -12,8 +12,8 @@ type ProxySite struct {
 	Description      string         `gorm:"type:text" json:"description"`
 	Domains          string         `gorm:"type:text;not null" json:"domains"`
 	Upstreams        string         `gorm:"type:text;not null" json:"upstreams"`
-	EnableHTTPS      bool           `gorm:"not null;default:false" json:"enable_https"`
-	ForceHTTPS       bool           `gorm:"not null;default:false" json:"force_https"`
+	EnableHTTPS      bool           `gorm:"column:enable_https;not null;default:false" json:"enable_https"`
+	ForceHTTPS       bool           `gorm:"column:force_https;not null;default:false" json:"force_https"`
 	EnableGzip       bool           `gorm:"not null;default:true" json:"enable_gzip"`
 	EnableLog        bool           `gorm:"not null;default:false" json:"enable_log"`
 	EnableWS         bool           `gorm:"not null;default:true" json:"enable_ws"`
