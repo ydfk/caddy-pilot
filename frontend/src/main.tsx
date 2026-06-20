@@ -14,6 +14,8 @@ const LoginPage = lazy(() => import("./pages/login"));
 const PlaceholderPage = lazy(() => import("./pages/placeholder"));
 const ProxySitesPage = lazy(() => import("./pages/proxy-sites"));
 const ProxySiteFormPage = lazy(() => import("./pages/proxy-sites/form"));
+const ConfigVersionsPage = lazy(() => import("./pages/config-versions"));
+const ConfigVersionDetailPage = lazy(() => import("./pages/config-versions/detail"));
 
 const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
@@ -47,11 +49,11 @@ const router = createBrowserRouter([
           },
           {
             path: "config-versions",
-            element: <PlaceholderPage title="配置版本" description="查看发布历史与执行回滚。" />,
+            element: <ConfigVersionsPage />,
           },
           {
             path: "config-versions/:id",
-            element: <PlaceholderPage title="版本详情" description="检查业务配置与 Caddy JSON。" />,
+            element: <ConfigVersionDetailPage />,
           },
           {
             path: "caddy",
