@@ -13,6 +13,12 @@ import (
 
 const DefaultCaddyAdminAPI = "http://127.0.0.1:2019"
 
+type CaddyAdmin interface {
+	GetConfig(context.Context) ([]byte, error)
+	LoadConfig(context.Context, []byte) error
+	GetStatus(context.Context) error
+}
+
 type CaddyClient struct {
 	AdminAPI   string
 	HTTPClient *http.Client

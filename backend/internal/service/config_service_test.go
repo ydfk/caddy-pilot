@@ -1,0 +1,139 @@
+package service
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"testing"
+
+	"go-fiber-starter/internal/caddygen"
+	"go-fiber-starter/internal/model/configversion"
+	"go-fiber-starter/internal/model/proxysite"
+
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+)
+
+type fakeCaddyAdmin struct {
+	loaded  []byte
+	loadErr error
+}
+
+func (fake *fakeCaddyAdmin) GetConfig(context.Context) ([]byte, error) {
+	return fake.loaded, nil
+}
+
+func (fake *fakeCaddyAdmin) LoadConfig(_ context.Context, payload []byte) error {
+	fake.loaded = append([]byte(nil), payload...)
+	return fake.loadErr
+}
+
+func (fake *fakeCaddyAdmin) GetStatus(context.Context) error {
+	return fake.loadErr
+}
+
+func TestConfigServicePublishAndRollbackKeepManagementEntry(t *testing.T) {
+	database := configServiceTestDB(t)
+	createEnabledTestSite(t, database)
+	fake := &fakeCaddyAdmin{}
+	service := NewConfigService(database, fake)
+
+	published, err := service.Publish(context.Background(), "首次发布")
+	if err != nil {
+		t.Fatalf("发布配置失败: %v", err)
+	}
+	if published.Status != ConfigStatusPublished || !caddygen.HasManagementEntry(fake.loaded) {
+		t.Fatalf("发布状态或管理入口不正确: %+v", published)
+	}
+
+	legacy := configversion.ConfigVersion{
+		Version: 100, Reason: "旧配置", BusinessConfig: "[]",
+		CaddyJSON: `{"apps":{"http":{"servers":{}}}}`, Status: ConfigStatusPublished,
+	}
+	if err := database.Create(&legacy).Error; err != nil {
+		t.Fatalf("创建历史配置失败: %v", err)
+	}
+	rolledBack, err := service.Rollback(context.Background(), legacy.ID)
+	if err != nil {
+		t.Fatalf("回滚配置失败: %v", err)
+	}
+	if rolledBack.Status != ConfigStatusRollback || !caddygen.HasManagementEntry(fake.loaded) {
+		t.Fatalf("回滚状态或管理入口不正确: %+v", rolledBack)
+	}
+}
+
+func TestConfigServicePublishFailureIsRecorded(t *testing.T) {
+	database := configServiceTestDB(t)
+	createEnabledTestSite(t, database)
+	fake := &fakeCaddyAdmin{loadErr: errors.New("连接失败")}
+	service := NewConfigService(database, fake)
+
+	version, err := service.Publish(context.Background(), "失败发布")
+	if err == nil || version.Status != ConfigStatusFailed {
+		t.Fatalf("发布失败未正确返回: %+v, %v", version, err)
+	}
+	var stored configversion.ConfigVersion
+	if err := database.First(&stored, version.ID).Error; err != nil {
+		t.Fatalf("读取失败版本失败: %v", err)
+	}
+	if stored.Status != ConfigStatusFailed || stored.ErrorMessage == "" {
+		t.Fatalf("失败版本未留痕: %+v", stored)
+	}
+}
+
+func TestConfigServiceRollbackFailureIsRecorded(t *testing.T) {
+	database := configServiceTestDB(t)
+	payload, err := caddygen.Generate(nil)
+	if err != nil {
+		t.Fatalf("生成历史配置失败: %v", err)
+	}
+	target := configversion.ConfigVersion{
+		Version: 1, Reason: "历史版本", BusinessConfig: "[]",
+		CaddyJSON: string(payload), Status: ConfigStatusPublished,
+	}
+	if err := database.Create(&target).Error; err != nil {
+		t.Fatalf("创建历史版本失败: %v", err)
+	}
+	service := NewConfigService(database, &fakeCaddyAdmin{loadErr: errors.New("回滚连接失败")})
+
+	failed, err := service.Rollback(context.Background(), target.ID)
+	if err == nil || failed.Status != ConfigStatusFailed {
+		t.Fatalf("回滚失败未正确返回: %+v, %v", failed, err)
+	}
+	var stored configversion.ConfigVersion
+	if err := database.First(&stored, failed.ID).Error; err != nil {
+		t.Fatalf("读取失败回滚记录失败: %v", err)
+	}
+	if stored.Status != ConfigStatusFailed || stored.ErrorMessage == "" {
+		t.Fatalf("回滚失败未留痕: %+v", stored)
+	}
+}
+
+func configServiceTestDB(t *testing.T) *gorm.DB {
+	t.Helper()
+	database, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	if err != nil {
+		t.Fatalf("打开测试数据库失败: %v", err)
+	}
+	if err := database.AutoMigrate(&proxysite.ProxySite{}, &configversion.ConfigVersion{}); err != nil {
+		t.Fatalf("迁移测试数据库失败: %v", err)
+	}
+	return database
+}
+
+func createEnabledTestSite(t *testing.T, database *gorm.DB) {
+	t.Helper()
+	encode := func(value any) string {
+		payload, _ := json.Marshal(value)
+		return string(payload)
+	}
+	site := proxysite.ProxySite{
+		Name: "测试站点", Domains: encode([]string{"example.com"}),
+		Upstreams:      encode([]string{"127.0.0.1:3000"}),
+		RequestHeaders: encode(map[string]string{}), ResponseHeaders: encode(map[string]string{}),
+		BasicAuthUsers: encode(map[string]string{}), AllowedIPs: encode([]string{}), Enabled: true,
+	}
+	if err := database.Create(&site).Error; err != nil {
+		t.Fatalf("创建测试站点失败: %v", err)
+	}
+}
