@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,8 +18,20 @@ type Config struct {
 }
 
 type AppConfig struct {
+	Addr string `mapstructure:"addr"`
 	Port string `mapstructure:"port"`
 	Env  string `mapstructure:"env"`
+}
+
+func (config AppConfig) ListenAddress() string {
+	if address := strings.TrimSpace(os.Getenv("CADDYPILOT_BACKEND_ADDR")); address != "" {
+		return address
+	}
+	host := strings.TrimSpace(config.Addr)
+	if host == "" {
+		host = "127.0.0.1"
+	}
+	return net.JoinHostPort(host, config.Port)
 }
 
 type JwtConfig struct {
@@ -56,9 +69,29 @@ func Init() error {
 	}
 
 	Current = config
+	applyEnvironmentOverrides(&Current)
 	IsProduction = Current.App.Env == "production"
 
 	return nil
+}
+
+func applyEnvironmentOverrides(config *Config) {
+	if value := strings.TrimSpace(os.Getenv("APP_ENV")); value != "" {
+		config.App.Env = value
+	}
+	if value := strings.TrimSpace(os.Getenv("JWT_SECRET")); value != "" {
+		config.Jwt.Secret = value
+	}
+	if value := strings.TrimSpace(os.Getenv("DATABASE_DRIVER")); value != "" {
+		config.Database.Driver = value
+	}
+	if value := strings.TrimSpace(os.Getenv("DATABASE_DSN")); value != "" {
+		if config.Database.DriverName() == "sqlite" {
+			config.Database.Path = value
+		} else {
+			config.Database.DSN = value
+		}
+	}
 }
 
 func loadConfig(configDir string) (Config, error) {

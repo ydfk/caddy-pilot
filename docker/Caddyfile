@@ -1,0 +1,19 @@
+{
+	admin 127.0.0.1:2019
+	persist_config off
+	auto_https disable_redirects
+}
+
+:8080 {
+	root * /app/frontend
+	encode gzip zstd
+
+	handle /api/* {
+		reverse_proxy 127.0.0.1:25610
+	}
+
+	handle {
+		try_files {path} /index.html
+		file_server
+	}
+}

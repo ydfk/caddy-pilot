@@ -1,0 +1,29 @@
+services:
+  caddypilot:
+    image: caddypilot:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: caddypilot
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+      - "80:80"
+      - "443:443"
+    environment:
+      TZ: Asia/Shanghai
+      APP_ENV: production
+      JWT_SECRET: ${JWT_SECRET:-change-this-secret-before-production}
+      DATABASE_DSN: /data/caddypilot.db
+      CADDY_ADMIN_API: http://127.0.0.1:2019
+      CADDYPILOT_FRONTEND_DIR: /app/frontend
+      CADDYPILOT_BACKEND_ADDR: 127.0.0.1:25610
+      CADDYPILOT_MANAGE_ADDR: :8080
+    volumes:
+      - ./data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 10s

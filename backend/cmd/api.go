@@ -19,11 +19,12 @@ import (
 
 func api() {
 	app := newApp()
-	if err := app.Listen(":" + config.Current.App.Port); err != nil {
+	address := config.Current.App.ListenAddress()
+	if err := app.Listen(address); err != nil {
 		logger.Fatal("启动服务器失败: %v", err)
 	} else {
-		logger.Info("服务器启动成功: http://127.0.0.1:%v", config.Current.App.Port)
-		logger.Info("API 文档: http://127.0.0.1:%v/docs", config.Current.App.Port)
+		logger.Info("服务器启动成功: http://%s", address)
+		logger.Info("API 文档: http://%s/docs", address)
 	}
 }
 

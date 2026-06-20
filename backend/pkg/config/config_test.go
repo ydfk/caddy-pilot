@@ -87,6 +87,26 @@ func TestLoadConfigMissingBaseConfig(t *testing.T) {
 	}
 }
 
+func TestEnvironmentOverrides(t *testing.T) {
+	t.Setenv("APP_ENV", "production")
+	t.Setenv("JWT_SECRET", "environment-secret")
+	t.Setenv("DATABASE_DSN", "/data/caddypilot.db")
+	t.Setenv("CADDYPILOT_BACKEND_ADDR", "127.0.0.1:25610")
+	config := Config{Database: DatabaseConfig{Driver: "sqlite", Path: "data/db.sqlite"}}
+
+	applyEnvironmentOverrides(&config)
+
+	if config.App.Env != "production" || config.Jwt.Secret != "environment-secret" {
+		t.Fatalf("环境变量覆盖失败: %+v", config)
+	}
+	if config.Database.Path != "/data/caddypilot.db" {
+		t.Fatalf("数据库路径覆盖失败: %s", config.Database.Path)
+	}
+	if config.App.ListenAddress() != "127.0.0.1:25610" {
+		t.Fatalf("后端监听地址覆盖失败: %s", config.App.ListenAddress())
+	}
+}
+
 func writeConfigFile(t *testing.T, configDir string, fileName string, content string) {
 	t.Helper()
 
