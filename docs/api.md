@@ -8,12 +8,13 @@
 - OpenAPI 3.1：`/openapi.yaml`
 - 交互文档：`/docs`
 
-除 `/api/auth/register` 与 `/api/auth/login` 外，以下接口都需要 JWT。
+除初始化状态、首次注册与登录接口外，以下接口都需要 JWT。
 
 ## 认证
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
+| GET | `/api/auth/setup-status` | 查询是否已创建管理员 |
 | POST | `/api/auth/register` | 首次创建管理员 |
 | POST | `/api/auth/login` | 登录并返回 JWT |
 | GET | `/api/auth/profile` | 当前用户 |

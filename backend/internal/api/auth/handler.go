@@ -15,12 +15,21 @@ import (
 
 var generateFromPassword = bcrypt.GenerateFromPassword
 
-func Register(_ context.Context, input *CredentialsInput) (*UserOutput, error) {
-	var userCount int64
-	if err := db.DB.Model(&model.User{}).Count(&userCount).Error; err != nil {
+func SetupStatus(_ context.Context, _ *struct{}) (*SetupStatusOutput, error) {
+	initialized, err := isInitialized()
+	if err != nil {
 		return nil, huma.Error500InternalServerError("检查管理员状态失败")
 	}
-	if userCount > 0 {
+
+	return &SetupStatusOutput{Body: SetupStatusResponse{Initialized: initialized}}, nil
+}
+
+func Register(_ context.Context, input *CredentialsInput) (*UserOutput, error) {
+	initialized, err := isInitialized()
+	if err != nil {
+		return nil, huma.Error500InternalServerError("检查管理员状态失败")
+	}
+	if initialized {
 		return nil, huma.Error409Conflict("管理员已初始化")
 	}
 
@@ -41,6 +50,14 @@ func Register(_ context.Context, input *CredentialsInput) (*UserOutput, error) {
 	}
 
 	return newUserOutput(user), nil
+}
+
+func isInitialized() (bool, error) {
+	var userCount int64
+	if err := db.DB.Model(&model.User{}).Count(&userCount).Error; err != nil {
+		return false, err
+	}
+	return userCount > 0, nil
 }
 
 func Login(_ context.Context, input *CredentialsInput) (*TokenOutput, error) {

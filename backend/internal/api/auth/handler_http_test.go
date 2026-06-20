@@ -116,6 +116,14 @@ func decodeJSON[T any](t *testing.T, resp *http.Response) T {
 func TestAuthFlowRegisterLoginProfile(t *testing.T) {
 	app := setupTestApp(t)
 
+	setupResp := doJSONRequest(t, app, http.MethodGet, "/api/auth/setup-status", nil, nil)
+	if setupResp.StatusCode != http.StatusOK {
+		t.Fatalf("setup status: %d", setupResp.StatusCode)
+	}
+	if decodeJSON[SetupStatusResponse](t, setupResp).Initialized {
+		t.Fatal("fresh database should not be initialized")
+	}
+
 	registerResp := doJSONRequest(t, app, http.MethodPost, "/api/auth/register", fiber.Map{
 		"username": "alice",
 		"password": "pass123",
@@ -126,6 +134,10 @@ func TestAuthFlowRegisterLoginProfile(t *testing.T) {
 	registeredUser := decodeJSON[UserResponse](t, registerResp)
 	if registeredUser.Username != "alice" {
 		t.Fatalf("unexpected username: %s", registeredUser.Username)
+	}
+	initializedResp := doJSONRequest(t, app, http.MethodGet, "/api/auth/setup-status", nil, nil)
+	if !decodeJSON[SetupStatusResponse](t, initializedResp).Initialized {
+		t.Fatal("registered database should be initialized")
 	}
 	secondRegisterResp := doJSONRequest(t, app, http.MethodPost, "/api/auth/register", fiber.Map{
 		"username": "bob",
@@ -184,6 +196,7 @@ func TestOpenAPI31AndDocs(t *testing.T) {
 	}
 	for _, expected := range []string{
 		"openapi: 3.1.0",
+		"/api/auth/setup-status:",
 		"/api/auth/register:",
 		"/api/auth/login:",
 		"/api/auth/profile:",

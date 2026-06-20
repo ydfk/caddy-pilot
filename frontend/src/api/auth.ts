@@ -2,6 +2,9 @@ import { apiRequest } from "./client";
 
 export type Credentials = { username: string; password: string };
 export type User = { id: string; username: string; createdAt: string; updatedAt: string };
+export type SetupStatus = { initialized: boolean };
+
+export const getSetupStatus = () => apiRequest<SetupStatus>("/api/auth/setup-status");
 
 export const login = (credentials: Credentials) =>
   apiRequest<{ token: string }>("/api/auth/login", {

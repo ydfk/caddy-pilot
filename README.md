@@ -65,7 +65,7 @@ docker compose down
 
 ## 默认访问地址
 
-管理界面默认地址：<http://localhost:8080>。首次启动后在登录页选择“初始化管理员”，创建唯一管理员账户。
+管理界面默认地址：<http://localhost:8080>。首次启动且没有用户数据时，登录页会自动显示初始化界面；创建唯一管理员后，初始化入口会关闭。
 
 ## Caddy Admin API 安全提醒
 
@@ -83,6 +83,22 @@ Compose 将根目录的 `./data` 挂载到容器 `/data`：
 备份时应同时保存 SQLite 文件和 Caddy 数据目录。`data/` 已加入 Git 忽略列表。
 
 ## 开发环境启动
+
+Windows 可直接双击根目录的 `dev.cmd`，或在 PowerShell 中一键启动：
+
+```powershell
+.\dev.cmd
+```
+
+脚本只启动本机 Go 后端与 Vite 前端，不使用 Docker。它会自动安装前端依赖；按 `Ctrl+C` 可同时停止两个进程。管理界面地址为 <http://localhost:3000>，API 会代理到 `http://127.0.0.1:25610`。
+
+仅检查 Go 与 pnpm 启动环境：
+
+```powershell
+.\dev.cmd -Check
+```
+
+如果需要分别启动，也可以使用：
 
 后端：
 

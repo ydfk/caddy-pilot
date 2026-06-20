@@ -1,10 +1,3 @@
-/*
- * @Description: Copyright (c) ydfk. All rights reserved
- * @Author: ydfk
- * @Date: 2025-06-09 17:47:24
- * @LastEditors: ydfk
- * @LastEditTime: 2025-06-09 17:47:38
- */
 package auth
 
 import (
@@ -14,6 +7,15 @@ import (
 )
 
 func RegisterRoutes(api huma.API) {
+	huma.Register(api, huma.Operation{
+		OperationID: "get-setup-status",
+		Method:      http.MethodGet,
+		Path:        "/api/auth/setup-status",
+		Summary:     "获取初始化状态",
+		Tags:        []string{"认证"},
+		Errors:      []int{http.StatusInternalServerError},
+	}, SetupStatus)
+
 	huma.Register(api, huma.Operation{
 		OperationID:   "register-user",
 		Method:        http.MethodPost,

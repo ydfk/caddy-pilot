@@ -36,6 +36,14 @@ type TokenOutput struct {
 	Body TokenResponse
 }
 
+type SetupStatusResponse struct {
+	Initialized bool `json:"initialized" doc:"是否已创建管理员"`
+}
+
+type SetupStatusOutput struct {
+	Body SetupStatusResponse
+}
+
 func newUserOutput(user model.User) *UserOutput {
 	return &UserOutput{
 		Body: UserResponse{
