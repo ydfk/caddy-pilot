@@ -1,0 +1,15 @@
+FROM golang:1.26-alpine
+
+ARG GOPROXY=https://goproxy.cn,direct
+ARG APK_MIRROR=mirrors.aliyun.com
+ENV GOPROXY=$GOPROXY
+
+RUN sed -i "s/dl-cdn.alpinelinux.org/${APK_MIRROR}/g" /etc/apk/repositories && \
+    apk add --no-cache build-base git && \
+    go install github.com/air-verse/air@v1.65.3
+
+WORKDIR /app
+
+ENV CGO_ENABLED=1
+
+CMD ["air", "-c", ".air.toml"]

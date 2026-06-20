@@ -1,0 +1,17 @@
+root = "."
+tmp_dir = "tmp/air"
+
+[build]
+cmd = "go build -o ./tmp/air/go-fiber-starter ./cmd"
+bin = "tmp/air/go-fiber-starter"
+full_bin = "tmp/air/go-fiber-starter"
+include_ext = ["go", "yaml", "yml"]
+exclude_dir = ["tmp", "bin", "log", ".git", ".gocache", ".gomodcache"]
+delay = 500
+stop_on_error = true
+
+[log]
+time = true
+
+[screen]
+clear_on_rebuild = true

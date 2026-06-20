@@ -1,0 +1,19 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: go-fiber-api-dev
+    ports:
+      - "25610:25610"
+    volumes:
+      - .:/app
+      - go-mod-cache:/go/pkg/mod
+      - go-build-cache:/root/.cache/go-build
+    environment:
+      CGO_ENABLED: "1"
+      TZ: Asia/Shanghai
+
+volumes:
+  go-mod-cache:
+  go-build-cache:
