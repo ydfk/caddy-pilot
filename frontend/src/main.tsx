@@ -12,6 +12,8 @@ import "./index.css";
 
 const LoginPage = lazy(() => import("./pages/login"));
 const PlaceholderPage = lazy(() => import("./pages/placeholder"));
+const ProxySitesPage = lazy(() => import("./pages/proxy-sites"));
+const ProxySiteFormPage = lazy(() => import("./pages/proxy-sites/form"));
 
 const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
@@ -29,21 +31,19 @@ const router = createBrowserRouter([
           },
           {
             path: "proxy-sites",
-            element: (
-              <PlaceholderPage title="代理站点" description="管理反向代理站点与发布状态。" />
-            ),
+            element: <ProxySitesPage />,
           },
           {
             path: "proxy-sites/new",
-            element: <PlaceholderPage title="新增站点" description="创建新的反向代理配置。" />,
+            element: <ProxySiteFormPage />,
           },
           {
             path: "proxy-sites/:id/edit",
-            element: <PlaceholderPage title="编辑站点" description="修改现有代理站点。" />,
+            element: <ProxySiteFormPage />,
           },
           {
             path: "proxy-sites/:id/clone",
-            element: <PlaceholderPage title="克隆站点" description="复制站点并保持停用。" />,
+            element: <ProxySiteFormPage />,
           },
           {
             path: "config-versions",
