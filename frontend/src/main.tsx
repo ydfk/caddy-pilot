@@ -11,11 +11,13 @@ import App from "./App";
 import "./index.css";
 
 const LoginPage = lazy(() => import("./pages/login"));
-const PlaceholderPage = lazy(() => import("./pages/placeholder"));
 const ProxySitesPage = lazy(() => import("./pages/proxy-sites"));
 const ProxySiteFormPage = lazy(() => import("./pages/proxy-sites/form"));
 const ConfigVersionsPage = lazy(() => import("./pages/config-versions"));
 const ConfigVersionDetailPage = lazy(() => import("./pages/config-versions/detail"));
+const DashboardPage = lazy(() => import("./pages/dashboard"));
+const CaddyPage = lazy(() => import("./pages/caddy"));
+const SettingsPage = lazy(() => import("./pages/settings"));
 
 const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
@@ -29,7 +31,7 @@ const router = createBrowserRouter([
           { index: true, element: <App /> },
           {
             path: "dashboard",
-            element: <PlaceholderPage title="仪表盘" description="站点与 Caddy 运行状态总览。" />,
+            element: <DashboardPage />,
           },
           {
             path: "proxy-sites",
@@ -57,13 +59,11 @@ const router = createBrowserRouter([
           },
           {
             path: "caddy",
-            element: (
-              <PlaceholderPage title="Caddy 状态" description="检查连接、预览并发布配置。" />
-            ),
+            element: <CaddyPage />,
           },
           {
             path: "settings",
-            element: <PlaceholderPage title="系统设置" description="查看本地节点与部署参数。" />,
+            element: <SettingsPage />,
           },
         ],
       },
