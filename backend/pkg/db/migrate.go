@@ -1,6 +1,7 @@
 package db
 
 import (
+	"go-fiber-starter/internal/model/basicauth"
 	"go-fiber-starter/internal/model/caddynode"
 	"go-fiber-starter/internal/model/configversion"
 	"go-fiber-starter/internal/model/proxysite"
@@ -13,6 +14,7 @@ import (
 func autoMigrate() error {
 	if err := DB.AutoMigrate(
 		&user.User{},
+		&basicauth.Credential{},
 		&proxysite.ProxySite{},
 		&configversion.ConfigVersion{},
 		&caddynode.CaddyNode{},

@@ -131,7 +131,8 @@ func validSitePayload(name string) map[string]any {
 		"enable_ws": true, "request_headers": map[string]string{},
 		"response_headers": map[string]string{}, "basic_auth_enabled": false,
 		"basic_auth_users": map[string]string{}, "allowed_ips": []string{},
-		"advanced_json": "", "enabled": true,
+		"basic_auth_credential_ids": []string{},
+		"advanced_json":             "", "enabled": true,
 	}
 }
 

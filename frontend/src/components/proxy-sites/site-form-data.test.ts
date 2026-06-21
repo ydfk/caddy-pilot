@@ -17,7 +17,6 @@ describe("代理站点表单转换", () => {
       requestHeaders: '{"X-Request":"value"}',
       responseHeaders: '{"X-Response":"value"}',
       allowedIPs: "127.0.0.1\n10.0.0.0/8",
-      basicAuthUsers: '{"admin":"hash"}',
       enabled: true,
     });
 
@@ -48,6 +47,7 @@ function sampleSite(): ProxySite {
     response_headers: {},
     basic_auth_enabled: false,
     basic_auth_users: {},
+    basic_auth_credential_ids: [],
     allowed_ips: [],
     advanced_json: "",
     enabled: true,

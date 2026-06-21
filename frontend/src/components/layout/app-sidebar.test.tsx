@@ -13,7 +13,7 @@ test("展示 CaddyPilot 管理导航", () => {
   );
 
   expect(screen.getByText("CADDYPILOT")).toBeInTheDocument();
-  for (const item of ["仪表盘", "代理站点", "配置版本", "Caddy 状态", "系统设置"]) {
+  for (const item of ["仪表盘", "代理站点", "Basic Auth 密码本", "配置版本", "Caddy 状态", "系统设置"]) {
     expect(screen.getByText(item)).toBeInTheDocument();
   }
 });

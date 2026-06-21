@@ -24,6 +24,7 @@ type ProxySite struct {
 	ResponseHeaders               string         `gorm:"type:text;not null" json:"response_headers"`
 	BasicAuthEnabled              bool           `gorm:"not null;default:false" json:"basic_auth_enabled"`
 	BasicAuthUsers                string         `gorm:"type:text;not null" json:"basic_auth_users"`
+	BasicAuthCredentialIDs        string         `gorm:"type:text;not null;default:'[]'" json:"basic_auth_credential_ids"`
 	AllowedIPs                    string         `gorm:"type:text;not null" json:"allowed_ips"`
 	AdvancedJSON                  string         `gorm:"type:text" json:"advanced_json"`
 	Enabled                       bool           `gorm:"not null;default:false;index" json:"enabled"`

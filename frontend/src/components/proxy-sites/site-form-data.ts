@@ -23,7 +23,7 @@ export const siteFormSchema = z.object({
   responseHeaders: jsonObject,
   allowedIPs: z.string(),
   basicAuthEnabled: z.boolean(),
-  basicAuthUsers: jsonObject,
+  basicAuthCredentialIDs: z.array(z.string()),
   advancedJSON: optionalJSON,
 });
 
@@ -45,7 +45,7 @@ export const defaultSiteValues: SiteFormValues = {
   responseHeaders: "{}",
   allowedIPs: "",
   basicAuthEnabled: false,
-  basicAuthUsers: "{}",
+  basicAuthCredentialIDs: [],
   advancedJSON: "",
 };
 
@@ -66,7 +66,7 @@ export function formValuesFromSite(site: ProxySite, clone: boolean): SiteFormVal
     responseHeaders: JSON.stringify(site.response_headers, null, 2),
     allowedIPs: site.allowed_ips.join("\n"),
     basicAuthEnabled: site.basic_auth_enabled,
-    basicAuthUsers: JSON.stringify(site.basic_auth_users, null, 2),
+    basicAuthCredentialIDs: site.basic_auth_credential_ids ?? [],
     advancedJSON: site.advanced_json,
   };
 }
@@ -90,7 +90,8 @@ export function payloadFromForm(values: SiteFormValues, forceDisabled = false): 
     response_headers: JSON.parse(values.responseHeaders) as Record<string, string>,
     allowed_ips: splitLines(values.allowedIPs),
     basic_auth_enabled: values.basicAuthEnabled,
-    basic_auth_users: JSON.parse(values.basicAuthUsers) as Record<string, string>,
+    basic_auth_users: {},
+    basic_auth_credential_ids: values.basicAuthCredentialIDs,
     advanced_json: values.advancedJSON.trim(),
   };
 }

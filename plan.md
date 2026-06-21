@@ -25,7 +25,7 @@ CaddyPilot 是一个用于可视化管理 Caddy 反向代理配置的轻量 Web 
 ### MVP 后续 TODO
 
 - `advanced_json` 当前只保存，不合并到生成配置。
-- Basic Auth 当前要求输入 bcrypt 哈希，后续补充哈希生成助手。
+- Basic Auth 已改为统一密码本，后端自动生成 bcrypt 哈希且不会通过 API 回传密码或哈希。
 - `enable_log` 当前只保存开关，后续补充精细的站点级访问日志配置。
 - 容器重启后先恢复固定管理入口，后续补充最近成功版本的自动恢复策略。
 
@@ -48,7 +48,7 @@ CaddyPilot 是一个用于可视化管理 Caddy 反向代理配置的轻量 Web 
 - [x] 移除多节点、本地控制平面、内部 Admin API 地址等界面信息。
 - [x] 代理站点以域名和上游为核心，名称与描述退出编辑流程并由首个域名兼容生成。
 - [x] 按 HTTP、HTTPS、h2c、Unix Socket 细化上游配置和 Caddy JSON。
-- [ ] 增加统一 Basic Auth 密码本，站点只引用密码条目。
+- [x] 增加统一 Basic Auth 密码本，站点只引用密码条目。
 - [ ] 增加阿里云 DNS-01，并区分单域名与通配符证书。
 
 > 2026-06-21 托管架构更新优先于下文早期的 supervisor、静态 Caddyfile 和手动启动描述；这些旧章节仅保留原始规划背景。

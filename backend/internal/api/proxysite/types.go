@@ -26,6 +26,7 @@ type SitePayload struct {
 	ResponseHeaders               map[string]string `json:"response_headers" doc:"响应头设置"`
 	BasicAuthEnabled              bool              `json:"basic_auth_enabled" doc:"启用 Basic Auth"`
 	BasicAuthUsers                map[string]string `json:"basic_auth_users" doc:"Basic Auth 用户及密码哈希"`
+	BasicAuthCredentialIDs        []uuid.UUID       `json:"basic_auth_credential_ids" doc:"引用的密码本条目"`
 	AllowedIPs                    []string          `json:"allowed_ips" doc:"允许访问的 IP 或网段"`
 	AdvancedJSON                  string            `json:"advanced_json" doc:"暂存的高级 JSON"`
 	Enabled                       bool              `json:"enabled" doc:"站点是否启用"`
@@ -73,6 +74,7 @@ type SiteResponse struct {
 	ResponseHeaders               map[string]string `json:"response_headers"`
 	BasicAuthEnabled              bool              `json:"basic_auth_enabled"`
 	BasicAuthUsers                map[string]string `json:"basic_auth_users"`
+	BasicAuthCredentialIDs        []uuid.UUID       `json:"basic_auth_credential_ids"`
 	AllowedIPs                    []string          `json:"allowed_ips"`
 	AdvancedJSON                  string            `json:"advanced_json"`
 	Enabled                       bool              `json:"enabled"`
@@ -118,6 +120,7 @@ func newSiteResponse(site model.ProxySite) (SiteResponse, error) {
 		EnableLog:                     site.EnableLog,
 		EnableWS:                      site.EnableWS,
 		BasicAuthEnabled:              site.BasicAuthEnabled,
+		BasicAuthUsers:                map[string]string{},
 		AdvancedJSON:                  site.AdvancedJSON,
 		Enabled:                       site.Enabled,
 		CreatedAt:                     site.CreatedAt,
@@ -136,7 +139,7 @@ func newSiteResponse(site model.ProxySite) (SiteResponse, error) {
 	if err := decodeJSON(site.ResponseHeaders, &response.ResponseHeaders); err != nil {
 		return SiteResponse{}, err
 	}
-	if err := decodeJSON(site.BasicAuthUsers, &response.BasicAuthUsers); err != nil {
+	if err := decodeJSON(site.BasicAuthCredentialIDs, &response.BasicAuthCredentialIDs); err != nil {
 		return SiteResponse{}, err
 	}
 	if err := decodeJSON(site.AllowedIPs, &response.AllowedIPs); err != nil {

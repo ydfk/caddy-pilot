@@ -9,6 +9,7 @@ import (
 
 	"go-fiber-starter/internal/caddygen"
 	model "go-fiber-starter/internal/model/proxysite"
+	"go-fiber-starter/internal/service"
 	"go-fiber-starter/pkg/db"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -117,12 +118,16 @@ func Disable(ctx context.Context, input *SiteIDInput) (*SiteOutput, error) {
 	return setEnabled(ctx, input, false)
 }
 
-func Preview(_ context.Context, input *SiteIDInput) (*PreviewOutput, error) {
+func Preview(ctx context.Context, input *SiteIDInput) (*PreviewOutput, error) {
 	site, err := findSite(input.ID)
 	if err != nil {
 		return nil, err
 	}
-	route, err := caddygen.GenerateSiteRoute(site)
+	sites := []model.ProxySite{site}
+	if err := service.ResolveBasicAuthCredentials(ctx, db.DB, sites); err != nil {
+		return nil, huma.Error400BadRequest(err.Error())
+	}
+	route, err := caddygen.GenerateSiteRoute(sites[0])
 	if err != nil {
 		return nil, huma.Error500InternalServerError("生成站点配置失败")
 	}
@@ -175,7 +180,8 @@ func siteFromPayload(payload SitePayload) (model.ProxySite, error) {
 	encodedUpstreams, _ := marshalJSON(upstreams)
 	requestHeaders, _ := marshalJSON(nonNilMap(payload.RequestHeaders))
 	responseHeaders, _ := marshalJSON(nonNilMap(payload.ResponseHeaders))
-	basicAuthUsers, _ := marshalJSON(nonNilMap(payload.BasicAuthUsers))
+	basicAuthUsers, _ := marshalJSON(map[string]string{})
+	basicAuthCredentialIDs, _ := marshalJSON(payload.BasicAuthCredentialIDs)
 	allowedIPs, _ := marshalJSON(compactStrings(payload.AllowedIPs))
 	return model.ProxySite{
 		Name:                          name,
@@ -194,6 +200,7 @@ func siteFromPayload(payload SitePayload) (model.ProxySite, error) {
 		ResponseHeaders:               responseHeaders,
 		BasicAuthEnabled:              payload.BasicAuthEnabled,
 		BasicAuthUsers:                basicAuthUsers,
+		BasicAuthCredentialIDs:        basicAuthCredentialIDs,
 		AllowedIPs:                    allowedIPs,
 		AdvancedJSON:                  strings.TrimSpace(payload.AdvancedJSON),
 		Enabled:                       payload.Enabled,

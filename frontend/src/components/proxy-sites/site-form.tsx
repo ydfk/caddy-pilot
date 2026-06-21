@@ -4,6 +4,7 @@ import { Controller, useForm, type UseFormRegisterReturn } from "react-hook-form
 import { Link } from "react-router-dom";
 
 import { PageHeader } from "@/components/page-header";
+import type { BasicAuthCredential } from "@/api/basic-auth";
 import {
   Accordion,
   AccordionContent,
@@ -19,16 +20,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { SiteCoreOptions, SiteOptions } from "./site-options";
 import { siteFormSchema, type SiteFormValues } from "./site-form-data";
 import { UpstreamOptions, UpstreamTLSOptions } from "./upstream-options";
+import { CredentialSelector } from "./credential-selector";
 
 type SiteFormProps = {
   mode: "new" | "edit" | "clone";
   values: SiteFormValues;
   pending: boolean;
+  credentials: BasicAuthCredential[];
   onSave: (values: SiteFormValues, publish: boolean) => Promise<void>;
   onPreview: (values: SiteFormValues) => void;
 };
 
-export function SiteForm({ mode, values, pending, onSave, onPreview }: SiteFormProps) {
+export function SiteForm({ mode, values, pending, credentials, onSave, onPreview }: SiteFormProps) {
   const form = useForm<SiteFormValues>({ resolver: zodResolver(siteFormSchema), values });
   const errors = form.formState.errors;
   const cloneMode = mode === "clone";
@@ -125,7 +128,7 @@ export function SiteForm({ mode, values, pending, onSave, onPreview }: SiteFormP
                   <Field orientation="horizontal">
                     <div className="flex-1">
                       <FieldLabel htmlFor="basicAuthEnabled">Basic Auth</FieldLabel>
-                      <FieldDescription>密码必须使用 Caddy 支持的 bcrypt 哈希。</FieldDescription>
+                      <FieldDescription>从统一密码本选择允许登录的账号。</FieldDescription>
                     </div>
                     <Switch
                       id="basicAuthEnabled"
@@ -136,11 +139,16 @@ export function SiteForm({ mode, values, pending, onSave, onPreview }: SiteFormP
                 )}
               />
               {basicAuthEnabled ? (
-                <JSONField
-                  id="basicAuthUsers"
-                  label="认证用户 JSON"
-                  error={errors.basicAuthUsers?.message}
-                  register={form.register("basicAuthUsers")}
+                <Controller
+                  control={form.control}
+                  name="basicAuthCredentialIDs"
+                  render={({ field }) => (
+                    <CredentialSelector
+                      credentials={credentials}
+                      selected={field.value}
+                      onChange={field.onChange}
+                    />
+                  )}
                 />
               ) : null}
             </FieldGroup>

@@ -42,6 +42,9 @@ func (service *ConfigService) Preview(ctx context.Context) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	if err := ResolveBasicAuthCredentials(ctx, service.DB, sites); err != nil {
+		return nil, err
+	}
 	return caddygen.Generate(sites)
 }
 
@@ -80,6 +83,9 @@ func (service *ConfigService) Publish(ctx context.Context, reason string) (confi
 	businessConfig, err := json.Marshal(sites)
 	if err != nil {
 		return configversion.ConfigVersion{}, fmt.Errorf("编码业务配置失败: %w", err)
+	}
+	if err := ResolveBasicAuthCredentials(ctx, service.DB, sites); err != nil {
+		return configversion.ConfigVersion{}, err
 	}
 	caddyJSON, generateErr := caddygen.Generate(sites)
 	version, err := service.createAttempt(ctx, defaultReason(reason, "手动发布"), businessConfig, caddyJSON)

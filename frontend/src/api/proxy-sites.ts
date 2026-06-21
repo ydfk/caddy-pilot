@@ -17,6 +17,7 @@ export type ProxySitePayload = {
   response_headers: Record<string, string>;
   basic_auth_enabled: boolean;
   basic_auth_users: Record<string, string>;
+  basic_auth_credential_ids: string[];
   allowed_ips: string[];
   advanced_json: string;
   enabled: boolean;

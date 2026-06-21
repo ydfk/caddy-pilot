@@ -10,6 +10,7 @@ import {
   type ProxySite,
 } from "@/api/proxy-sites";
 import { publishCaddyConfig } from "@/api/caddy";
+import { listBasicAuthCredentials, type BasicAuthCredential } from "@/api/basic-auth";
 import { JSONDialog } from "@/components/json-dialog";
 import { SiteForm } from "@/components/proxy-sites/site-form";
 import {
@@ -30,6 +31,13 @@ export default function ProxySiteFormPage() {
   const [loading, setLoading] = useState(Boolean(id));
   const [pending, setPending] = useState(false);
   const [preview, setPreview] = useState<unknown>(null);
+  const [credentials, setCredentials] = useState<BasicAuthCredential[]>([]);
+
+  useEffect(() => {
+    listBasicAuthCredentials()
+      .then(setCredentials)
+      .catch((error) => toast.error(error instanceof Error ? error.message : "读取密码本失败"));
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -84,6 +92,7 @@ export default function ProxySiteFormPage() {
         mode={mode}
         values={values}
         pending={pending}
+        credentials={credentials}
         onSave={save}
         onPreview={(data) => setPreview(draftPreview(data))}
       />

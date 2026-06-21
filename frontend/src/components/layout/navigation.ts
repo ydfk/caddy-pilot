@@ -1,11 +1,12 @@
 import type { LucideIcon } from "lucide-react";
-import { Activity, FileClock, Gauge, Route, Settings2 } from "lucide-react";
+import { Activity, FileClock, Gauge, KeyRound, Route, Settings2 } from "lucide-react";
 
 export type NavigationItem = { title: string; url: string; icon: LucideIcon };
 
 export const navigationItems: NavigationItem[] = [
   { title: "仪表盘", url: "/dashboard", icon: Gauge },
   { title: "代理站点", url: "/proxy-sites", icon: Route },
+  { title: "Basic Auth 密码本", url: "/basic-auth", icon: KeyRound },
   { title: "配置版本", url: "/config-versions", icon: FileClock },
   { title: "Caddy 状态", url: "/caddy", icon: Activity },
   { title: "系统设置", url: "/settings", icon: Settings2 },

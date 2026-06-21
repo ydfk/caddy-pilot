@@ -2,6 +2,7 @@ package main
 
 import (
 	"go-fiber-starter/internal/api/auth"
+	"go-fiber-starter/internal/api/basicauth"
 	"go-fiber-starter/internal/api/caddy"
 	"go-fiber-starter/internal/api/configversion"
 	"go-fiber-starter/internal/api/dashboard"
@@ -37,6 +38,7 @@ func newApp() *fiber.App {
 	humaAPI := humafiber.New(app, humaConfig)
 	humaAPI.UseMiddleware(auth.NewAuthMiddleware(humaAPI))
 	auth.RegisterRoutes(humaAPI)
+	basicauth.RegisterRoutes(humaAPI)
 	proxysite.RegisterRoutes(humaAPI)
 	caddy.RegisterRoutes(humaAPI)
 	configversion.RegisterRoutes(humaAPI)
