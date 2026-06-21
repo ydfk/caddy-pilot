@@ -1,4 +1,5 @@
 <p align="center">
+  <img src="frontend/public/caddypilot-logo.png" width="128" alt="CaddyPilot logo">
   <h1 align="center">CaddyPilot</h1>
   <p align="center">
     A lightweight, single-node web dashboard for <a href="https://caddyserver.com">Caddy</a> reverse proxy management.
@@ -30,9 +31,9 @@ All configuration changes are versioned. If a publish fails, your previous worki
 - **Config preview & publish** — see the exact Caddy JSON before it goes live; push to Caddy Admin API in one step
 - **Version history & rollback** — every publish is recorded; diff, inspect, or rollback to any previous version
 - **Dashboard** — at-a-glance status: site counts, Caddy health, last publish time
-- **Caddy version management** — check current vs. latest stable release; rebuild the image with a pinned version
+- **Caddy version management** — the backend downloads, starts, monitors, updates, and stops Caddy automatically
 - **Self-protecting** — the management port (`:8080`) is never removed from generated configs, so the UI always stays reachable
-- **Single image** — everything (Caddy + Go API + React frontend + supervisor) ships in one Docker image
+- **Single system** — Caddy + Go API + React ship together; users never install or start Caddy separately
 
 ### What it does NOT do
 
@@ -50,6 +51,7 @@ Browser -> :8080 Caddy -> /api/* -> 127.0.0.1:25610 Go API
 
 Go API -> SQLite /data/caddypilot.db
 Go API -> Caddy Admin API 127.0.0.1:2019
+Go API -> managed Caddy process lifecycle and binary updates
 ```
 
 Every generated Caddy config automatically includes the management server block on `:8080`. The API validates this invariant before every publish and rollback, so you can't lock yourself out.
@@ -65,7 +67,7 @@ Detailed design: [docs/design.md](docs/design.md)
 | Frontend | React 19, TypeScript, Vite, Tailwind CSS, shadcn/ui, Zustand, React Hook Form, Zod |
 | Backend | Go, Fiber, Huma (OpenAPI), GORM, SQLite |
 | Proxy | Caddy 2 |
-| Container | Docker, supervisord |
+| Runtime | Backend-managed Caddy process; Docker or native Windows |
 
 ---
 
@@ -151,7 +153,7 @@ Double-click `dev.cmd` or run in PowerShell:
 .\dev.cmd
 ```
 
-This starts the Go backend and Vite dev server natively (no Docker). UI at `http://localhost:3000`, API proxied to `127.0.0.1:25610`.
+This starts Vite and the Go backend natively (no Docker). The backend automatically downloads a private Caddy runtime when needed, starts it, and exposes the complete system at `http://localhost:8080`. No system-wide Caddy installation is required.
 
 **Manual start:**
 
@@ -167,14 +169,16 @@ pnpm install
 pnpm dev
 ```
 
-If Caddy is not found on the local machine during development, the backend warns but continues. In production, it refuses to start without Caddy.
+Do not start Caddy manually. The backend owns its lifecycle in both Docker and native environments; if no bundled runtime exists, it downloads the configured version into `data/runtime/`.
 
 Environment variables for development:
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `CADDY_BINARY` | `caddy` | Path to Caddy executable |
+| `CADDY_VERSION` | `2.10.0` | Managed Caddy target version |
 | `CADDY_VERSION_CHECK_URL` | GitHub releases API | Version check endpoint |
+| `CADDY_DOWNLOAD_URL` | GitHub release asset template | Managed binary download URL; supports `{version}`, `{os}`, `{arch}`, `{ext}` |
+| `CADDY_CHECKSUM_URL` | GitHub checksum template | SHA-512 verification for managed downloads |
 | `VITE_PROXY_HOST` | `http://127.0.0.1:25610` | Vite dev proxy target |
 | `JWT_SECRET` | — | JWT signing key (required in production) |
 
@@ -194,7 +198,7 @@ Environment variables for development:
 - Merge `advanced_json` into generated configs via a controlled allowlist (currently saved but not applied)
 - Add a bcrypt hash generator for Basic Auth users (currently requires pre-hashed input)
 - Expand `enable_log` into per-site access log configuration
-- Auto-restore last successful config version on container restart (currently boots with static Caddyfile)
+- Auto-restore the last successful business config on restart (currently boots with a backend-generated protected management config)
 
 ---
 

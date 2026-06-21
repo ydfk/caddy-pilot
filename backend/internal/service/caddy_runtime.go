@@ -14,12 +14,10 @@ type CaddyRuntimeInfo struct {
 }
 
 func CheckCaddyRuntime(ctx context.Context) (CaddyRuntimeInfo, error) {
-	binary := environmentValue("CADDY_BINARY", "caddy")
-	path, err := exec.LookPath(binary)
-	if err != nil {
-		return CaddyRuntimeInfo{}, fmt.Errorf("未找到 Caddy 可执行文件 %q: %w", binary, err)
-	}
+	return NewCaddyInstaller().Ensure(ctx)
+}
 
+func inspectCaddyBinary(ctx context.Context, path string) (CaddyRuntimeInfo, error) {
 	checkContext, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	output, err := exec.CommandContext(checkContext, path, "version").CombinedOutput()

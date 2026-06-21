@@ -1,8 +1,9 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { AlertCircle, ArrowRight, Route, ShieldCheck } from "lucide-react";
+import { AlertCircle, ArrowRight, ShieldCheck } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { getSetupStatus, login, register } from "@/api/auth";
+import { BrandLogo } from "@/components/brand-logo";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -63,9 +64,7 @@ export default function LoginPage() {
           <section className="relative flex flex-col justify-between overflow-hidden border-b bg-sidebar p-6 md:border-r md:border-b-0">
             <div className="absolute inset-0 opacity-50 [background-image:linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] [background-size:34px_34px]" />
             <div className="relative flex items-center gap-3">
-              <div className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <Route className="size-4" />
-              </div>
+              <BrandLogo className="size-10 shadow-md shadow-primary/15" eager />
               <div>
                 <p className="font-mono text-sm font-semibold tracking-[0.16em]">CADDYPILOT</p>
                 <p className="text-xs text-muted-foreground">LOCAL CONTROL PLANE</p>

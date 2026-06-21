@@ -20,9 +20,9 @@ type CaddyVersionInfo struct {
 	UpdateAvailable bool
 	BinaryPath      string
 	VersionCheckURL string
+	DownloadURL     string
 	UpdateURL       string
 	ReleaseURL      string
-	UpdateCommand   string
 	ErrorMessage    string
 }
 
@@ -52,6 +52,7 @@ func (service *CaddyVersionService) Check(ctx context.Context) (CaddyVersionInfo
 	info := CaddyVersionInfo{
 		CurrentVersion:  current,
 		VersionCheckURL: service.ReleaseAPI,
+		DownloadURL:     environmentValue("CADDY_DOWNLOAD_URL", DefaultCaddyDownloadURL),
 		UpdateURL:       strings.TrimSpace(os.Getenv("CADDY_UPDATE_URL")),
 	}
 	if path, lookupErr := exec.LookPath(service.Binary); lookupErr == nil {
@@ -69,7 +70,6 @@ func (service *CaddyVersionService) Check(ctx context.Context) (CaddyVersionInfo
 		info.ReleaseURL = info.UpdateURL
 	}
 	info.UpdateAvailable = normalizeVersion(current) != normalizeVersion(latest)
-	info.UpdateCommand = fmt.Sprintf("$env:CADDY_VERSION='%s'; docker compose up -d --build", normalizeVersion(latest))
 	return info, nil
 }
 

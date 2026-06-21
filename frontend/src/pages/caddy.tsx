@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   Braces,
-  Copy,
+  Download,
   ExternalLink,
   PackageCheck,
   RefreshCw,
@@ -16,6 +16,7 @@ import {
   getCurrentCaddyConfig,
   previewCaddyConfig,
   publishCaddyConfig,
+  updateManagedCaddy,
   validateCaddyConfig,
   type CaddyStatus,
   type CaddyVersion,
@@ -47,6 +48,7 @@ export default function CaddyPage() {
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
   const [checkingVersion, setCheckingVersion] = useState(false);
+  const [updatingVersion, setUpdatingVersion] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -119,13 +121,31 @@ export default function CaddyPage() {
     }
   }
 
-  async function copyUpdateCommand() {
-    if (!version?.update_command) return;
+  async function updateVersion() {
+    if (!version?.latest_version) return;
+    setUpdatingVersion(true);
     try {
-      await navigator.clipboard.writeText(version.update_command);
-      toast.success("更新命令已复制");
-    } catch {
-      toast.error("浏览器拒绝访问剪贴板，请手动复制更新命令");
+      const task = await updateManagedCaddy(version.latest_version);
+      toast.info(`后端正在更新 Caddy 到 ${task.target_version}`);
+      for (let attempt = 0; attempt < 30; attempt += 1) {
+        await new Promise((resolve) => window.setTimeout(resolve, 1000));
+        try {
+          const current = await getCaddyVersion();
+          if (current.current_version === task.target_version) {
+            setVersion(current);
+            toast.success(`Caddy 已更新到 ${task.target_version}`);
+            await refresh();
+            return;
+          }
+        } catch {
+          // Caddy 重启期间管理入口可能短暂不可用，继续等待即可。
+        }
+      }
+      toast.error("等待 Caddy 更新完成超时，请刷新页面确认状态");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "启动 Caddy 更新失败");
+    } finally {
+      setUpdatingVersion(false);
     }
   }
 
@@ -214,7 +234,7 @@ export default function CaddyPage() {
               <CardTitle className="flex items-center gap-2">
                 <PackageCheck className="size-4" /> 版本管理
               </CardTitle>
-              <CardDescription>容器镜像固定版本，更新通过重建完成</CardDescription>
+              <CardDescription>由后端托管下载、切换与重启，无需手动安装</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               <div className="grid grid-cols-2 gap-3">
@@ -259,11 +279,12 @@ export default function CaddyPage() {
               {version?.error_message ? (
                 <p className="text-xs text-muted-foreground">{version.error_message}</p>
               ) : null}
-              {version?.update_available && version.update_command ? (
-                <code className="break-all rounded-md bg-muted p-3 font-mono text-xs">
-                  {version.update_command}
-                </code>
-              ) : null}
+              <div>
+                <p className="text-xs text-muted-foreground">托管下载地址</p>
+                <p className="mt-1 break-all font-mono text-xs">
+                  {version?.download_url ?? "暂不可用"}
+                </p>
+              </div>
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant="outline"
@@ -278,10 +299,33 @@ export default function CaddyPage() {
                   )}
                   检查更新
                 </Button>
-                {version?.update_available && version.update_command ? (
-                  <Button size="sm" onClick={() => void copyUpdateCommand()}>
-                    <Copy data-icon="inline-start" /> 复制更新命令
-                  </Button>
+                {version?.update_available && version.latest_version ? (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button size="sm" disabled={updatingVersion}>
+                        {updatingVersion ? (
+                          <Spinner data-icon="inline-start" />
+                        ) : (
+                          <Download data-icon="inline-start" />
+                        )}
+                        后端更新到 {version.latest_version}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>更新托管 Caddy？</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          后端会下载目标版本、保留当前配置并自动重启 Caddy。管理入口可能短暂重连。
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>取消</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => void updateVersion()}>
+                          确认更新
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 ) : null}
                 {version?.release_url ? (
                   <Button variant="ghost" size="sm" asChild>

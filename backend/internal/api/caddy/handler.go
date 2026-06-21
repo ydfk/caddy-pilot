@@ -2,9 +2,12 @@ package caddy
 
 import (
 	"context"
+	"strings"
+	"time"
 
 	"go-fiber-starter/internal/service"
 	"go-fiber-starter/pkg/db"
+	"go-fiber-starter/pkg/logger"
 
 	"github.com/danielgtaylor/huma/v2"
 )
@@ -36,11 +39,43 @@ func Version(ctx context.Context, _ *struct{}) (*VersionOutput, error) {
 		UpdateAvailable: info.UpdateAvailable,
 		BinaryPath:      info.BinaryPath,
 		VersionCheckURL: info.VersionCheckURL,
+		DownloadURL:     info.DownloadURL,
 		UpdateURL:       info.UpdateURL,
 		ReleaseURL:      info.ReleaseURL,
-		UpdateCommand:   info.UpdateCommand,
-		UpdateStrategy:  "rebuild-container",
+		UpdateStrategy:  "managed",
 		ErrorMessage:    info.ErrorMessage,
+	}}, nil
+}
+
+func Update(ctx context.Context, input *UpdateInput) (*UpdateOutput, error) {
+	manager := service.ManagedCaddy()
+	if manager == nil {
+		return nil, huma.Error503ServiceUnavailable("Caddy 托管服务尚未就绪")
+	}
+	target := strings.TrimSpace(input.Body.Version)
+	if target == "" {
+		info, err := service.NewCaddyVersionService().Check(ctx)
+		if err != nil {
+			return nil, huma.Error500InternalServerError(err.Error())
+		}
+		target = info.LatestVersion
+	}
+	if target == "" {
+		return nil, huma.Error400BadRequest("无法确定 Caddy 目标版本")
+	}
+
+	go func(version string) {
+		updateContext, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+		defer cancel()
+		if _, err := manager.Update(updateContext, version); err != nil {
+			logger.Error("托管 Caddy 更新到 %s 失败: %v", version, err)
+			return
+		}
+		logger.Info("托管 Caddy 已更新到 %s", version)
+	}(target)
+
+	return &UpdateOutput{Body: UpdateResponse{
+		Accepted: true, TargetVersion: target,
 	}}, nil
 }
 

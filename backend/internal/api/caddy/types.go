@@ -26,15 +26,32 @@ type VersionResponse struct {
 	UpdateAvailable bool   `json:"update_available"`
 	BinaryPath      string `json:"binary_path,omitempty"`
 	VersionCheckURL string `json:"version_check_url"`
+	DownloadURL     string `json:"download_url"`
 	UpdateURL       string `json:"update_url,omitempty"`
 	ReleaseURL      string `json:"release_url,omitempty"`
-	UpdateCommand   string `json:"update_command,omitempty"`
 	UpdateStrategy  string `json:"update_strategy"`
 	ErrorMessage    string `json:"error_message,omitempty"`
 }
 
 type VersionOutput struct {
 	Body VersionResponse
+}
+
+type UpdatePayload struct {
+	Version string `json:"version,omitempty" doc:"目标 Caddy 版本，留空使用最新稳定版"`
+}
+
+type UpdateInput struct {
+	Body UpdatePayload
+}
+
+type UpdateResponse struct {
+	Accepted      bool   `json:"accepted"`
+	TargetVersion string `json:"target_version"`
+}
+
+type UpdateOutput struct {
+	Body UpdateResponse
 }
 
 type ValidateResponse struct {

@@ -6,7 +6,6 @@ import (
 	"go-fiber-starter/internal/api/configversion"
 	"go-fiber-starter/internal/api/dashboard"
 	"go-fiber-starter/internal/api/proxysite"
-	"go-fiber-starter/pkg/config"
 	"go-fiber-starter/pkg/logger"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -16,17 +15,6 @@ import (
 	fiberLogger "github.com/gofiber/fiber/v3/middleware/logger"
 	"github.com/gofiber/fiber/v3/middleware/recover"
 )
-
-func api() {
-	app := newApp()
-	address := config.Current.App.ListenAddress()
-	if err := app.Listen(address); err != nil {
-		logger.Fatal("启动服务器失败: %v", err)
-	} else {
-		logger.Info("服务器启动成功: http://%s", address)
-		logger.Info("API 文档: http://%s/docs", address)
-	}
-}
 
 func newApp() *fiber.App {
 	app := fiber.New()

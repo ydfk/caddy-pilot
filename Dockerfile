@@ -17,22 +17,22 @@ COPY backend/ ./
 RUN CGO_ENABLED=1 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/caddypilot ./cmd
 
 FROM caddy:${CADDY_VERSION}-alpine
-RUN apk add --no-cache ca-certificates supervisor tzdata \
-    && mkdir -p /app/backend/config /app/frontend /data /etc/supervisor/conf.d \
+RUN apk add --no-cache ca-certificates tzdata \
+    && mkdir -p /app/backend/config /app/frontend /data/runtime /data/caddy \
     && chmod 0755 /data
 
 WORKDIR /app/backend
 COPY --from=frontend-build /src/frontend/dist/ /app/frontend/
 COPY --from=backend-build /out/caddypilot /app/backend/caddypilot
 COPY backend/config/config.yaml /app/backend/config/config.yaml
-COPY docker/Caddyfile /etc/caddy/Caddyfile
-COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/entrypoint.sh /usr/local/bin/caddypilot-entrypoint
-COPY docker/supervisor_shutdown.py /usr/local/bin/supervisor-shutdown
-RUN chmod 0755 /app/backend/caddypilot /usr/local/bin/caddypilot-entrypoint /usr/local/bin/supervisor-shutdown
+RUN chmod 0755 /app/backend/caddypilot /usr/local/bin/caddypilot-entrypoint
 
 ENV APP_ENV=production \
     CADDY_ADMIN_API=http://127.0.0.1:2019 \
+    CADDY_BINARY=/usr/bin/caddy \
+    CADDY_DATA_DIR=/data/caddy \
+    CADDYPILOT_RUNTIME_DIR=/data/runtime \
     CADDYPILOT_BACKEND_ADDR=127.0.0.1:25610 \
     CADDYPILOT_FRONTEND_DIR=/app/frontend \
     CADDYPILOT_MANAGE_ADDR=:8080 \

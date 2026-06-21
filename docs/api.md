@@ -40,7 +40,8 @@
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
 | GET | `/api/caddy/status` | Admin API 在线状态与地址 |
-| GET | `/api/caddy/version` | 当前版本、最新稳定版与更新命令 |
+| GET | `/api/caddy/version` | 当前版本、最新稳定版与托管下载信息 |
+| POST | `/api/caddy/update` | 由后端异步下载、切换并重启托管 Caddy |
 | GET | `/api/caddy/change-status` | 当前启用站点是否存在未发布变更 |
 | POST | `/api/caddy/preview` | 生成完整 JSON，不发布 |
 | POST | `/api/caddy/validate` | 对生成配置执行 JSON 与管理入口基础校验 |

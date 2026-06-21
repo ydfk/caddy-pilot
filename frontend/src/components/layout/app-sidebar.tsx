@@ -1,7 +1,8 @@
-import { LogOut, Route } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
+import { BrandLogo } from "@/components/brand-logo";
 import {
   Sidebar,
   SidebarContent,
@@ -28,9 +29,7 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r border-sidebar-border/70">
       <SidebarHeader className="p-3">
         <div className="flex items-center gap-3 rounded-lg px-2 py-2">
-          <div className="flex size-9 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-            <Route className="size-4" />
-          </div>
+          <BrandLogo className="size-9 shrink-0 shadow-sm shadow-primary/15" eager />
           <div className="min-w-0 group-data-[collapsible=icon]:hidden">
             <p className="truncate font-mono text-sm font-semibold tracking-[0.12em]">CADDYPILOT</p>
             <p className="truncate text-xs text-muted-foreground">LOCAL CONTROL PLANE</p>

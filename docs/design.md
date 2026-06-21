@@ -64,10 +64,12 @@ CaddyPilot 面向单机、自托管场景，以尽量小的运维面完成反向
 
 ## 进程模型
 
-supervisor 运行 Caddy、Go 后端和退出监听器。监听器订阅关键进程的 `PROCESS_STATE_EXITED` 与 `PROCESS_STATE_FATAL`，任一关键进程退出都会终止 supervisor，使容器由 Compose 整体重启。
+Go 后端是系统主进程，负责准备、启动、监控、更新和关闭 Caddy。Docker 与 Windows 独立开发使用同一套托管逻辑：优先使用已选择的托管版本或镜像内置版本，缺失时下载到私有运行目录。Caddy 意外退出会触发后端整体退出，由 Compose 或上层服务管理器重启完整系统。
+
+初始 Caddy JSON 由后端生成，不依赖静态 Caddyfile。生产环境从 `/app/frontend` 提供静态文件；本地开发环境把前端流量代理到 Vite。两种模式都保留相同的 `:8080` 管理入口与 `127.0.0.1:2019` Admin API 安全边界。
 
 ## 当前限制
 
 - `advanced_json` 仅保存，不参与合并。
 - WebSocket 依赖 Caddy `reverse_proxy` 的原生协议升级能力，不生成额外 handler。
-- Caddy 配置设置 `persist_config off`；容器重启后先加载固定管理入口，需手动再次发布业务站点。
+- Caddy 配置关闭持久化；系统重启后先加载后端生成的固定管理入口，需手动再次发布业务站点。

@@ -29,8 +29,8 @@ func TestCaddyVersionServiceCheck(t *testing.T) {
 	if info.CurrentVersion != "2.10.0" || info.LatestVersion != "2.11.0" || !info.UpdateAvailable {
 		t.Fatalf("版本信息不正确: %+v", info)
 	}
-	if !strings.Contains(info.UpdateCommand, "CADDY_VERSION='2.11.0'") {
-		t.Fatalf("更新命令不正确: %s", info.UpdateCommand)
+	if !strings.Contains(info.DownloadURL, "{version}") {
+		t.Fatalf("下载地址模板不正确: %s", info.DownloadURL)
 	}
 }
 
@@ -66,12 +66,5 @@ func TestCaddyVersionServiceSupportsCustomResponseAndUpdateURL(t *testing.T) {
 	info, err := service.Check(context.Background())
 	if err != nil || info.LatestVersion != "2.12.0" || info.ReleaseURL != "https://download.example/caddy" {
 		t.Fatalf("自定义版本服务结果不正确: %+v, %v", info, err)
-	}
-}
-
-func TestCheckCaddyRuntimeRejectsMissingBinary(t *testing.T) {
-	t.Setenv("CADDY_BINARY", "caddypilot-missing-caddy-binary")
-	if _, err := CheckCaddyRuntime(context.Background()); err == nil {
-		t.Fatal("缺少 Caddy 可执行文件时应返回错误")
 	}
 }

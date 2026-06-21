@@ -3,6 +3,7 @@ package caddygen
 import (
 	"encoding/json"
 	"errors"
+	"os"
 	"strings"
 )
 
@@ -24,7 +25,7 @@ func EnsureManagementEntry(payload []byte) ([]byte, error) {
 	}
 	for name, value := range servers {
 		server, ok := value.(map[string]any)
-		if ok && serverListensOn(server, ManagementListen) {
+		if ok && serverListensOn(server, managementListen()) {
 			delete(servers, name)
 		}
 	}
@@ -44,11 +45,11 @@ func HasManagementEntry(payload []byte) bool {
 	}
 	for _, value := range servers {
 		server, ok := value.(map[string]any)
-		if !ok || !serverListensOn(server, ManagementListen) {
+		if !ok || !serverListensOn(server, managementListen()) {
 			continue
 		}
 		encoded, err := json.Marshal(server)
-		if err == nil && containsAll(encoded, []string{"/api/*", BackendUpstream, FrontendRoot, "file_server"}) {
+		if err == nil && containsAll(encoded, managementMarkers()) {
 			return true
 		}
 	}
@@ -56,43 +57,85 @@ func HasManagementEntry(payload []byte) bool {
 }
 
 func managementServer() map[string]any {
-	return map[string]any{
-		"listen": []string{ManagementListen},
-		"routes": []map[string]any{
-			{
-				"handle": []map[string]any{
-					{"handler": "vars", "root": FrontendRoot},
-					encodeHandler(),
-				},
-			},
-			{
-				"group": "caddypilot-management",
-				"match": []map[string]any{{"path": []string{"/api/*"}}},
-				"handle": []map[string]any{{
-					"handler": "subroute",
-					"routes": []map[string]any{{"handle": []map[string]any{
-						reverseProxyHandler([]string{BackendUpstream}, nil),
-					}}},
-				}},
-			},
-			{
-				"group": "caddypilot-management",
-				"handle": []map[string]any{{
-					"handler": "subroute",
-					"routes": []map[string]any{
-						{
-							"match": []map[string]any{{"file": map[string]any{
-								"try_files": []string{"{http.request.uri.path}", "/index.html"},
-							}}},
-							"handle": []map[string]any{{"handler": "rewrite", "uri": "{http.matchers.file.relative}"}},
-						},
-						{"handle": []map[string]any{{"handler": "file_server"}}},
-					},
-				}},
-			},
+	listen := managementListen()
+	backend := backendUpstream()
+	frontendProxy := normalizeDial(os.Getenv("CADDYPILOT_FRONTEND_PROXY"))
+	routes := []map[string]any{
+		{
+			"group": "caddypilot-management",
+			"match": []map[string]any{{"path": []string{"/api/*"}}},
+			"handle": []map[string]any{{
+				"handler": "subroute",
+				"routes": []map[string]any{{"handle": []map[string]any{
+					reverseProxyHandler([]string{backend}, nil),
+				}}},
+			}},
 		},
+	}
+	if frontendProxy != "" {
+		routes = append(routes, map[string]any{
+			"group":  "caddypilot-management",
+			"handle": []map[string]any{reverseProxyHandler([]string{frontendProxy}, nil)},
+		})
+	} else {
+		routes = append([]map[string]any{{
+			"handle": []map[string]any{
+				{"handler": "vars", "root": frontendRoot()},
+				encodeHandler(),
+			},
+		}}, routes...)
+		routes = append(routes, map[string]any{
+			"group": "caddypilot-management",
+			"handle": []map[string]any{{
+				"handler": "subroute",
+				"routes": []map[string]any{
+					{
+						"match": []map[string]any{{"file": map[string]any{
+							"try_files": []string{"{http.request.uri.path}", "/index.html"},
+						}}},
+						"handle": []map[string]any{{"handler": "rewrite", "uri": "{http.matchers.file.relative}"}},
+					},
+					{"handle": []map[string]any{{"handler": "file_server"}}},
+				},
+			}},
+		})
+	}
+	return map[string]any{
+		"listen":          []string{listen},
+		"routes":          routes,
 		"automatic_https": map[string]any{"disable_redirects": true},
 	}
+}
+
+func managementMarkers() []string {
+	markers := []string{"/api/*", backendUpstream()}
+	if proxy := normalizeDial(os.Getenv("CADDYPILOT_FRONTEND_PROXY")); proxy != "" {
+		return append(markers, proxy)
+	}
+	return append(markers, frontendRoot(), "file_server")
+}
+
+func managementListen() string {
+	return environmentValue("CADDYPILOT_MANAGE_ADDR", ManagementListen)
+}
+
+func backendUpstream() string {
+	return normalizeDial(environmentValue("CADDYPILOT_BACKEND_ADDR", BackendUpstream))
+}
+
+func frontendRoot() string {
+	return environmentValue("CADDYPILOT_FRONTEND_DIR", FrontendRoot)
+}
+
+func normalizeDial(value string) string {
+	return strings.TrimPrefix(strings.TrimPrefix(strings.TrimSpace(value), "http://"), "https://")
+}
+
+func environmentValue(name, fallback string) string {
+	if value := strings.TrimSpace(os.Getenv(name)); value != "" {
+		return value
+	}
+	return fallback
 }
 
 func serverMap(config map[string]any) (map[string]any, error) {

@@ -62,6 +62,17 @@ func TestEnsureManagementEntryInjectsProtectedServer(t *testing.T) {
 	}
 }
 
+func TestGenerateSupportsDevelopmentFrontendProxy(t *testing.T) {
+	t.Setenv("CADDYPILOT_FRONTEND_PROXY", "http://127.0.0.1:3000")
+	payload, err := Generate(nil)
+	if err != nil {
+		t.Fatalf("生成开发入口配置失败: %v", err)
+	}
+	if !bytes.Contains(payload, []byte("127.0.0.1:3000")) || !HasManagementEntry(payload) {
+		t.Fatalf("开发入口未代理到 Vite: %s", payload)
+	}
+}
+
 func testSite(enabled bool, upstreams []string) proxysite.ProxySite {
 	return proxysite.ProxySite{
 		Name:            "测试站点",
