@@ -47,7 +47,7 @@ CaddyPilot 是一个用于可视化管理 Caddy 反向代理配置的轻量 Web 
 
 - [x] 移除多节点、本地控制平面、内部 Admin API 地址等界面信息。
 - [x] 代理站点以域名和上游为核心，名称与描述退出编辑流程并由首个域名兼容生成。
-- [ ] 按 HTTP、HTTPS、h2c、Unix Socket 细化上游配置和 Caddy JSON。
+- [x] 按 HTTP、HTTPS、h2c、Unix Socket 细化上游配置和 Caddy JSON。
 - [ ] 增加统一 Basic Auth 密码本，站点只引用密码条目。
 - [ ] 增加阿里云 DNS-01，并区分单域名与通配符证书。
 

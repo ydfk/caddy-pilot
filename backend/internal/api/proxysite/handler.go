@@ -162,6 +162,10 @@ func siteFromPayload(payload SitePayload) (model.ProxySite, error) {
 	if len(domains) == 0 || len(upstreams) == 0 {
 		return model.ProxySite{}, errors.New("域名和上游不能为空")
 	}
+	upstreamType := normalizedUpstreamType(strings.TrimSpace(payload.UpstreamType))
+	if !validUpstreamType(upstreamType) {
+		return model.ProxySite{}, errors.New("不支持的上游类型")
+	}
 	name := strings.TrimSpace(payload.Name)
 	if name == "" {
 		name = domains[0]
@@ -174,23 +178,35 @@ func siteFromPayload(payload SitePayload) (model.ProxySite, error) {
 	basicAuthUsers, _ := marshalJSON(nonNilMap(payload.BasicAuthUsers))
 	allowedIPs, _ := marshalJSON(compactStrings(payload.AllowedIPs))
 	return model.ProxySite{
-		Name:             name,
-		Description:      strings.TrimSpace(payload.Description),
-		Domains:          encodedDomains,
-		Upstreams:        encodedUpstreams,
-		EnableHTTPS:      payload.EnableHTTPS,
-		ForceHTTPS:       payload.ForceHTTPS,
-		EnableGzip:       payload.EnableGzip,
-		EnableLog:        payload.EnableLog,
-		EnableWS:         payload.EnableWS,
-		RequestHeaders:   requestHeaders,
-		ResponseHeaders:  responseHeaders,
-		BasicAuthEnabled: payload.BasicAuthEnabled,
-		BasicAuthUsers:   basicAuthUsers,
-		AllowedIPs:       allowedIPs,
-		AdvancedJSON:     strings.TrimSpace(payload.AdvancedJSON),
-		Enabled:          payload.Enabled,
+		Name:                          name,
+		Description:                   strings.TrimSpace(payload.Description),
+		Domains:                       encodedDomains,
+		Upstreams:                     encodedUpstreams,
+		UpstreamType:                  upstreamType,
+		UpstreamTLSServerName:         strings.TrimSpace(payload.UpstreamTLSServerName),
+		UpstreamTLSInsecureSkipVerify: payload.UpstreamTLSInsecureSkipVerify,
+		EnableHTTPS:                   payload.EnableHTTPS,
+		ForceHTTPS:                    payload.ForceHTTPS,
+		EnableGzip:                    payload.EnableGzip,
+		EnableLog:                     payload.EnableLog,
+		EnableWS:                      payload.EnableWS,
+		RequestHeaders:                requestHeaders,
+		ResponseHeaders:               responseHeaders,
+		BasicAuthEnabled:              payload.BasicAuthEnabled,
+		BasicAuthUsers:                basicAuthUsers,
+		AllowedIPs:                    allowedIPs,
+		AdvancedJSON:                  strings.TrimSpace(payload.AdvancedJSON),
+		Enabled:                       payload.Enabled,
 	}, nil
+}
+
+func validUpstreamType(value string) bool {
+	switch value {
+	case "http", "https", "h2c", "unix":
+		return true
+	default:
+		return false
+	}
 }
 
 func outputOrServerError(site model.ProxySite) (*SiteOutput, error) {

@@ -52,6 +52,52 @@ func TestGenerateSupportsMultipleUpstreams(t *testing.T) {
 	}
 }
 
+func TestGenerateSupportsTypedUpstreams(t *testing.T) {
+	tests := []struct {
+		name         string
+		upstreamType string
+		upstream     string
+		expected     []string
+	}{
+		{name: "HTTPS", upstreamType: "https", upstream: "10.0.0.8:443", expected: []string{`"tls":{}`, `"protocol":"http"`}},
+		{name: "h2c", upstreamType: "h2c", upstream: "10.0.0.8:50051", expected: []string{`"versions":["h2c"]`}},
+		{name: "Unix Socket", upstreamType: "unix", upstream: "/run/app.sock", expected: []string{`"dial":"unix//run/app.sock"`}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			site := testSite(true, []string{test.upstream})
+			site.UpstreamType = test.upstreamType
+			payload, err := Generate([]proxysite.ProxySite{site})
+			if err != nil {
+				t.Fatalf("生成类型化上游失败: %v", err)
+			}
+			compact := compactJSON(payload)
+			for _, expected := range test.expected {
+				if !bytes.Contains(compact, []byte(expected)) {
+					t.Fatalf("生成配置缺少 %s: %s", expected, payload)
+				}
+			}
+		})
+	}
+}
+
+func TestGenerateSupportsUpstreamTLSOptions(t *testing.T) {
+	site := testSite(true, []string{"10.0.0.8:443"})
+	site.UpstreamType = "https"
+	site.UpstreamTLSServerName = "backend.example.com"
+	site.UpstreamTLSInsecureSkipVerify = true
+	payload, err := Generate([]proxysite.ProxySite{site})
+	if err != nil {
+		t.Fatalf("生成 HTTPS 上游失败: %v", err)
+	}
+	compact := compactJSON(payload)
+	for _, expected := range []string{`"server_name":"backend.example.com"`, `"insecure_skip_verify":true`} {
+		if !bytes.Contains(compact, []byte(expected)) {
+			t.Fatalf("生成配置缺少 %s: %s", expected, payload)
+		}
+	}
+}
+
 func TestEnsureManagementEntryInjectsProtectedServer(t *testing.T) {
 	payload, err := EnsureManagementEntry([]byte(`{"apps":{"http":{"servers":{}}}}`))
 	if err != nil {
@@ -93,4 +139,12 @@ func mustJSON(value any) string {
 		panic(err)
 	}
 	return string(payload)
+}
+
+func compactJSON(payload []byte) []byte {
+	var buffer bytes.Buffer
+	if err := json.Compact(&buffer, payload); err != nil {
+		panic(err)
+	}
+	return buffer.Bytes()
 }

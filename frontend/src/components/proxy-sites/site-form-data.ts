@@ -10,6 +10,9 @@ const optionalJSON = z
 export const siteFormSchema = z.object({
   domains: z.string().refine((value) => splitLines(value).length > 0, "至少填写一个域名"),
   upstreams: z.string().refine((value) => splitLines(value).length > 0, "至少填写一个上游"),
+  upstreamType: z.enum(["http", "https", "h2c", "unix"]),
+  upstreamTLSServerName: z.string().max(253),
+  upstreamTLSInsecureSkipVerify: z.boolean(),
   enabled: z.boolean(),
   enableHTTPS: z.boolean(),
   forceHTTPS: z.boolean(),
@@ -29,6 +32,9 @@ export type SiteFormValues = z.infer<typeof siteFormSchema>;
 export const defaultSiteValues: SiteFormValues = {
   domains: "",
   upstreams: "",
+  upstreamType: "http",
+  upstreamTLSServerName: "",
+  upstreamTLSInsecureSkipVerify: false,
   enabled: false,
   enableHTTPS: true,
   forceHTTPS: true,
@@ -47,6 +53,9 @@ export function formValuesFromSite(site: ProxySite, clone: boolean): SiteFormVal
   return {
     domains: site.domains.join("\n"),
     upstreams: site.upstreams.join("\n"),
+    upstreamType: site.upstream_type || "http",
+    upstreamTLSServerName: site.upstream_tls_server_name,
+    upstreamTLSInsecureSkipVerify: site.upstream_tls_insecure_skip_verify,
     enabled: clone ? false : site.enabled,
     enableHTTPS: site.enable_https,
     forceHTTPS: site.force_https,
@@ -68,6 +77,9 @@ export function payloadFromForm(values: SiteFormValues, forceDisabled = false): 
     description: "",
     domains: splitLines(values.domains),
     upstreams: splitLines(values.upstreams),
+    upstream_type: values.upstreamType,
+    upstream_tls_server_name: values.upstreamTLSServerName.trim(),
+    upstream_tls_insecure_skip_verify: values.upstreamTLSInsecureSkipVerify,
     enabled: forceDisabled ? false : values.enabled,
     enable_https: values.enableHTTPS,
     force_https: values.forceHTTPS,
@@ -84,17 +96,35 @@ export function payloadFromForm(values: SiteFormValues, forceDisabled = false): 
 }
 
 export function draftPreview(values: SiteFormValues) {
+  const transport = draftTransport(values);
   return {
     match: [{ host: splitLines(values.domains) }],
     handle: [
       {
         handler: "reverse_proxy",
         upstreams: splitLines(values.upstreams).map((dial) => ({ dial })),
+        ...(transport ? { transport } : {}),
       },
     ],
     enabled: values.enabled,
     note: "草稿片段；完整配置会在发布前由后端生成并注入管理入口。",
   };
+}
+
+function draftTransport(values: SiteFormValues) {
+  if (values.upstreamType === "https") {
+    return {
+      protocol: "http",
+      tls: {
+        ...(values.upstreamTLSServerName
+          ? { server_name: values.upstreamTLSServerName }
+          : {}),
+        ...(values.upstreamTLSInsecureSkipVerify ? { insecure_skip_verify: true } : {}),
+      },
+    };
+  }
+  if (values.upstreamType === "h2c") return { protocol: "http", versions: ["h2c"] };
+  return null;
 }
 
 function splitLines(value: string) {

@@ -5,6 +5,8 @@ import (
 	"errors"
 	"os"
 	"strings"
+
+	"go-fiber-starter/internal/model/proxysite"
 )
 
 const (
@@ -67,7 +69,7 @@ func managementServer() map[string]any {
 			"handle": []map[string]any{{
 				"handler": "subroute",
 				"routes": []map[string]any{{"handle": []map[string]any{
-					reverseProxyHandler([]string{backend}, nil),
+					reverseProxyHandler(proxysite.ProxySite{}, []string{backend}, nil),
 				}}},
 			}},
 		},
@@ -75,7 +77,7 @@ func managementServer() map[string]any {
 	if frontendProxy != "" {
 		routes = append(routes, map[string]any{
 			"group":  "caddypilot-management",
-			"handle": []map[string]any{reverseProxyHandler([]string{frontendProxy}, nil)},
+			"handle": []map[string]any{reverseProxyHandler(proxysite.ProxySite{}, []string{frontendProxy}, nil)},
 		})
 	} else {
 		routes = append([]map[string]any{{

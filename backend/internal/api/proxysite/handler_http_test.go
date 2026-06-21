@@ -125,7 +125,9 @@ func validSitePayload(name string) map[string]any {
 	return map[string]any{
 		"name": name, "description": "测试", "domains": []string{"example.com"},
 		"upstreams": []string{"127.0.0.1:3000"}, "enable_https": true,
-		"force_https": true, "enable_gzip": true, "enable_log": false,
+		"upstream_type": "http", "upstream_tls_server_name": "",
+		"upstream_tls_insecure_skip_verify": false,
+		"force_https":                       true, "enable_gzip": true, "enable_log": false,
 		"enable_ws": true, "request_headers": map[string]string{},
 		"response_headers": map[string]string{}, "basic_auth_enabled": false,
 		"basic_auth_users": map[string]string{}, "allowed_ips": []string{},

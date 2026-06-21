@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
 
 	"go-fiber-starter/internal/model/proxysite"
 )
@@ -41,7 +42,7 @@ func GenerateSiteRoute(site proxysite.ProxySite) (map[string]any, error) {
 	if site.BasicAuthEnabled && len(basicAuthUsers) > 0 {
 		handlers = append(handlers, basicAuthHandler(basicAuthUsers))
 	}
-	handlers = append(handlers, reverseProxyHandler(upstreamValues, requestHeaders))
+	handlers = append(handlers, reverseProxyHandler(site, upstreamValues, requestHeaders))
 
 	return map[string]any{
 		"match": []map[string]any{matchers},
@@ -75,18 +76,46 @@ func decodeSiteLists(site proxysite.ProxySite) ([]string, []string, []string, er
 	return domains, upstreams, allowedIPs, nil
 }
 
-func reverseProxyHandler(upstreamValues []string, requestHeaders map[string]string) map[string]any {
+func reverseProxyHandler(site proxysite.ProxySite, upstreamValues []string, requestHeaders map[string]string) map[string]any {
 	upstreams := make([]map[string]string, 0, len(upstreamValues))
 	for _, upstream := range upstreamValues {
-		upstreams = append(upstreams, map[string]string{"dial": upstream})
+		upstreams = append(upstreams, map[string]string{"dial": upstreamDial(site.UpstreamType, upstream)})
 	}
 	handler := map[string]any{"handler": "reverse_proxy", "upstreams": upstreams}
+	if transport := upstreamTransport(site); transport != nil {
+		handler["transport"] = transport
+	}
 	if len(requestHeaders) > 0 {
 		handler["headers"] = map[string]any{
 			"request": map[string]any{"set": headerValues(requestHeaders)},
 		}
 	}
 	return handler
+}
+
+func upstreamDial(upstreamType, value string) string {
+	if upstreamType != "unix" || strings.HasPrefix(value, "unix/") {
+		return value
+	}
+	return "unix/" + value
+}
+
+func upstreamTransport(site proxysite.ProxySite) map[string]any {
+	switch site.UpstreamType {
+	case "https":
+		tlsConfig := map[string]any{}
+		if site.UpstreamTLSServerName != "" {
+			tlsConfig["server_name"] = site.UpstreamTLSServerName
+		}
+		if site.UpstreamTLSInsecureSkipVerify {
+			tlsConfig["insecure_skip_verify"] = true
+		}
+		return map[string]any{"protocol": "http", "tls": tlsConfig}
+	case "h2c":
+		return map[string]any{"protocol": "http", "versions": []string{"h2c"}}
+	default:
+		return nil
+	}
 }
 
 func responseHeaderHandler(headers map[string]string) map[string]any {

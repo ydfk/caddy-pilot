@@ -18,6 +18,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { SiteCoreOptions, SiteOptions } from "./site-options";
 import { siteFormSchema, type SiteFormValues } from "./site-form-data";
+import { UpstreamOptions, UpstreamTLSOptions } from "./upstream-options";
 
 type SiteFormProps = {
   mode: "new" | "edit" | "clone";
@@ -32,6 +33,7 @@ export function SiteForm({ mode, values, pending, onSave, onPreview }: SiteFormP
   const errors = form.formState.errors;
   const cloneMode = mode === "clone";
   const basicAuthEnabled = form.watch("basicAuthEnabled");
+  const upstreamType = form.watch("upstreamType");
   const title =
     mode === "new" ? "新增代理站点" : mode === "clone" ? "克隆代理站点" : "编辑代理站点";
   const description = cloneMode
@@ -49,6 +51,7 @@ export function SiteForm({ mode, values, pending, onSave, onPreview }: SiteFormP
         </CardHeader>
         <CardContent>
           <FieldGroup className="gap-5">
+            <UpstreamOptions control={form.control} />
             <div className="grid gap-4 md:grid-cols-2">
               <Field data-invalid={Boolean(errors.domains) || undefined}>
                 <FieldLabel htmlFor="domains">域名</FieldLabel>
@@ -72,10 +75,14 @@ export function SiteForm({ mode, values, pending, onSave, onPreview }: SiteFormP
                   {...form.register("upstreams")}
                   aria-invalid={Boolean(errors.upstreams)}
                 />
-                <FieldDescription>每行一个 host:port 地址。</FieldDescription>
+                <FieldDescription>
+                  {upstreamType === "unix" ? "每行一个套接字绝对路径。" : "每行一个 host:port 地址。"}
+                </FieldDescription>
                 <FieldError errors={[errors.upstreams]} />
               </Field>
             </div>
+
+            {upstreamType === "https" ? <UpstreamTLSOptions control={form.control} /> : null}
 
             <SiteCoreOptions control={form.control} cloneMode={cloneMode} />
           </FieldGroup>

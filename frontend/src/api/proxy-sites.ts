@@ -5,6 +5,9 @@ export type ProxySitePayload = {
   description: string;
   domains: string[];
   upstreams: string[];
+  upstream_type: "http" | "https" | "h2c" | "unix";
+  upstream_tls_server_name: string;
+  upstream_tls_insecure_skip_verify: boolean;
   enable_https: boolean;
   force_https: boolean;
   enable_gzip: boolean;
