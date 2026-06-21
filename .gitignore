@@ -1,1 +1,6 @@
 /data/
+/.agents/
+/.codex/
+plan.md
+*.env
+!.env.example
