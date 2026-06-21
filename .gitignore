@@ -1,6 +1,6 @@
 /data/
-/.agents/
-/.codex/
+.agents/
+.codex/
+.claude/
 plan.md
-*.env
-!.env.example
+.history/
