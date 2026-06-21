@@ -16,6 +16,10 @@ RUN go mod download
 COPY backend/ ./
 RUN CGO_ENABLED=1 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/caddypilot ./cmd
 
+FROM caddy:${CADDY_VERSION}-builder-alpine AS caddy-build
+ARG CADDY_VERSION
+RUN xcaddy build v${CADDY_VERSION} --with github.com/caddy-dns/alidns
+
 FROM caddy:${CADDY_VERSION}-alpine
 RUN apk add --no-cache ca-certificates tzdata \
     && mkdir -p /app/backend/config /app/frontend /data/runtime /data/caddy \
@@ -24,6 +28,7 @@ RUN apk add --no-cache ca-certificates tzdata \
 WORKDIR /app/backend
 COPY --from=frontend-build /src/frontend/dist/ /app/frontend/
 COPY --from=backend-build /out/caddypilot /app/backend/caddypilot
+COPY --from=caddy-build /usr/bin/caddy /usr/bin/caddy
 COPY backend/config/config.yaml /app/backend/config/config.yaml
 COPY docker/entrypoint.sh /usr/local/bin/caddypilot-entrypoint
 RUN chmod 0755 /app/backend/caddypilot /usr/local/bin/caddypilot-entrypoint

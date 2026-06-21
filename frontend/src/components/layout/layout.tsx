@@ -1,8 +1,6 @@
-import { RadioTower } from "lucide-react";
 import { Outlet, useLocation } from "react-router-dom";
 
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -38,9 +36,6 @@ export default function Layout() {
               </BreadcrumbList>
             </Breadcrumb>
             <div className="ml-auto flex items-center gap-2">
-              <Badge variant="outline" className="hidden gap-1.5 font-mono text-[0.65rem] sm:flex">
-                <RadioTower /> LOCAL
-              </Badge>
               <ThemeToggle />
             </div>
           </div>

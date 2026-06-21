@@ -20,8 +20,10 @@ services:
       CADDY_ADMIN_API: http://127.0.0.1:2019
       CADDY_VERSION: ${CADDY_VERSION:-2.10.0}
       CADDY_VERSION_CHECK_URL: ${CADDY_VERSION_CHECK_URL:-https://api.github.com/repos/caddyserver/caddy/releases/latest}
-      CADDY_DOWNLOAD_URL: ${CADDY_DOWNLOAD_URL:-https://github.com/caddyserver/caddy/releases/download/v{version}/caddy_{version}_{os}_{arch}.{ext}}
-      CADDY_CHECKSUM_URL: ${CADDY_CHECKSUM_URL:-https://github.com/caddyserver/caddy/releases/download/v{version}/caddy_{version}_checksums.txt}
+      CADDY_DOWNLOAD_URL: ${CADDY_DOWNLOAD_URL:-https://caddyserver.com/api/download?os={os}&arch={arch}&p=github.com/caddy-dns/alidns&v={version}}
+      CADDY_CHECKSUM_URL: ${CADDY_CHECKSUM_URL:-}
+      ALIYUN_ACCESS_KEY_ID: ${ALIYUN_ACCESS_KEY_ID:-}
+      ALIYUN_ACCESS_KEY_SECRET: ${ALIYUN_ACCESS_KEY_SECRET:-}
       CADDYPILOT_FRONTEND_DIR: /app/frontend
       CADDYPILOT_BACKEND_ADDR: 127.0.0.1:25610
       CADDYPILOT_MANAGE_ADDR: :8080

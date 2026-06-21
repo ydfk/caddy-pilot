@@ -37,8 +37,10 @@ docker compose ps
 | `CADDY_ADMIN_API` | `http://127.0.0.1:2019` | 容器内 Admin API |
 | `CADDY_VERSION` | `2.10.0` | 后端托管的目标版本 |
 | `CADDY_VERSION_CHECK_URL` | GitHub Caddy latest release API | 版本校验地址，支持 GitHub 或 `{version, update_url}` JSON |
-| `CADDY_DOWNLOAD_URL` | GitHub release asset 模板 | 二进制下载地址，支持 `{version}`、`{os}`、`{arch}`、`{ext}` 占位符 |
-| `CADDY_CHECKSUM_URL` | GitHub release checksum 模板 | 下载后用于 SHA-512 完整性校验 |
+| `CADDY_DOWNLOAD_URL` | Caddy 自定义构建 API | 默认下载包含 `caddy-dns/alidns` 的托管版本 |
+| `CADDY_CHECKSUM_URL` | 空 | 自定义下载源可选的 SHA-512 清单地址 |
+| `ALIYUN_ACCESS_KEY_ID` | 空 | 阿里云 DNS-01 AccessKey ID |
+| `ALIYUN_ACCESS_KEY_SECRET` | 空 | 阿里云 DNS-01 AccessKey Secret |
 | `CADDYPILOT_RUNTIME_DIR` | `/data/runtime` | 后端托管 Caddy 版本和启动配置目录 |
 | `CADDY_DATA_DIR` | `/data/caddy` | Caddy 证书与运行数据目录 |
 | `CADDYPILOT_BACKEND_ADDR` | `127.0.0.1:25610` | 后端监听地址 |
@@ -73,6 +75,8 @@ docker compose start
 管理界面的“Caddy 状态 → 版本管理”会显示当前版本与最新稳定版。点击“后端更新”后，后端下载独立版本目录、保护当前管理配置、重启 Caddy，并在失败时尝试恢复旧版本。
 
 用户不需要安装或启动 Caddy。Docker 镜像带有基础版本；Windows 独立环境缺少运行时时，后端会根据 `CADDY_VERSION` 和 `CADDY_DOWNLOAD_URL` 自动下载到项目 `data/runtime/`。
+
+Docker 镜像和默认托管下载都包含 `github.com/caddy-dns/alidns`。使用自定义 `CADDY_DOWNLOAD_URL` 时，必须确保目标 Caddy 同样包含该模块，否则阿里云 DNS-01 配置无法加载。
 
 Windows 无 Docker 开发使用：
 

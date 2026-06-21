@@ -16,6 +16,10 @@ export const siteFormSchema = z.object({
   enabled: z.boolean(),
   enableHTTPS: z.boolean(),
   forceHTTPS: z.boolean(),
+  certificateType: z.enum(["single", "wildcard"]),
+  certificateDomain: z.string().max(253),
+  acmeChallengeType: z.enum(["http", "dns"]),
+  dnsProvider: z.literal("alidns"),
   enableWS: z.boolean(),
   enableGzip: z.boolean(),
   enableLog: z.boolean(),
@@ -25,6 +29,14 @@ export const siteFormSchema = z.object({
   basicAuthEnabled: z.boolean(),
   basicAuthCredentialIDs: z.array(z.string()),
   advancedJSON: optionalJSON,
+}).superRefine((values, context) => {
+  if (values.certificateType === "wildcard" && !values.certificateDomain.startsWith("*.")) {
+    context.addIssue({
+      code: "custom",
+      path: ["certificateDomain"],
+      message: "通配符证书域名必须以 *. 开头",
+    });
+  }
 });
 
 export type SiteFormValues = z.infer<typeof siteFormSchema>;
@@ -38,6 +50,10 @@ export const defaultSiteValues: SiteFormValues = {
   enabled: false,
   enableHTTPS: true,
   forceHTTPS: true,
+  certificateType: "single",
+  certificateDomain: "",
+  acmeChallengeType: "http",
+  dnsProvider: "alidns",
   enableWS: true,
   enableGzip: true,
   enableLog: false,
@@ -59,6 +75,10 @@ export function formValuesFromSite(site: ProxySite, clone: boolean): SiteFormVal
     enabled: clone ? false : site.enabled,
     enableHTTPS: site.enable_https,
     forceHTTPS: site.force_https,
+    certificateType: site.certificate_type || "single",
+    certificateDomain: site.certificate_domain,
+    acmeChallengeType: site.acme_challenge_type || "http",
+    dnsProvider: "alidns",
     enableWS: site.enable_ws,
     enableGzip: site.enable_gzip,
     enableLog: site.enable_log,
@@ -83,6 +103,14 @@ export function payloadFromForm(values: SiteFormValues, forceDisabled = false): 
     enabled: forceDisabled ? false : values.enabled,
     enable_https: values.enableHTTPS,
     force_https: values.forceHTTPS,
+    certificate_type: values.certificateType,
+    certificate_domain: values.certificateDomain.trim(),
+    acme_challenge_type:
+      values.certificateType === "wildcard" ? "dns" : values.acmeChallengeType,
+    dns_provider:
+      values.certificateType === "wildcard" || values.acmeChallengeType === "dns"
+        ? values.dnsProvider
+        : "",
     enable_ws: values.enableWS,
     enable_gzip: values.enableGzip,
     enable_log: values.enableLog,

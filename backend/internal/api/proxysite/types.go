@@ -19,6 +19,10 @@ type SitePayload struct {
 	UpstreamTLSInsecureSkipVerify bool              `json:"upstream_tls_insecure_skip_verify" doc:"跳过 HTTPS 上游证书校验"`
 	EnableHTTPS                   bool              `json:"enable_https" doc:"启用 HTTPS"`
 	ForceHTTPS                    bool              `json:"force_https" doc:"强制 HTTPS"`
+	CertificateType               string            `json:"certificate_type" enum:"single,wildcard" doc:"证书类型"`
+	CertificateDomain             string            `json:"certificate_domain" doc:"通配符证书域名"`
+	ACMEChallengeType             string            `json:"acme_challenge_type" enum:"http,dns" doc:"ACME 验证方式"`
+	DNSProvider                   string            `json:"dns_provider" enum:"alidns" doc:"DNS-01 服务商"`
 	EnableGzip                    bool              `json:"enable_gzip" doc:"启用 gzip 和 zstd"`
 	EnableLog                     bool              `json:"enable_log" doc:"启用访问日志"`
 	EnableWS                      bool              `json:"enable_ws" doc:"启用 WebSocket"`
@@ -67,6 +71,10 @@ type SiteResponse struct {
 	UpstreamTLSInsecureSkipVerify bool              `json:"upstream_tls_insecure_skip_verify"`
 	EnableHTTPS                   bool              `json:"enable_https"`
 	ForceHTTPS                    bool              `json:"force_https"`
+	CertificateType               string            `json:"certificate_type"`
+	CertificateDomain             string            `json:"certificate_domain"`
+	ACMEChallengeType             string            `json:"acme_challenge_type"`
+	DNSProvider                   string            `json:"dns_provider"`
 	EnableGzip                    bool              `json:"enable_gzip"`
 	EnableLog                     bool              `json:"enable_log"`
 	EnableWS                      bool              `json:"enable_ws"`
@@ -116,6 +124,10 @@ func newSiteResponse(site model.ProxySite) (SiteResponse, error) {
 		UpstreamTLSServerName:         site.UpstreamTLSServerName,
 		UpstreamTLSInsecureSkipVerify: site.UpstreamTLSInsecureSkipVerify,
 		ForceHTTPS:                    site.ForceHTTPS,
+		CertificateType:               defaultString(site.CertificateType, "single"),
+		CertificateDomain:             site.CertificateDomain,
+		ACMEChallengeType:             defaultString(site.ACMEChallengeType, "http"),
+		DNSProvider:                   defaultString(site.DNSProvider, "alidns"),
 		EnableGzip:                    site.EnableGzip,
 		EnableLog:                     site.EnableLog,
 		EnableWS:                      site.EnableWS,
@@ -155,6 +167,13 @@ func decodeJSON(value string, target any) error {
 func normalizedUpstreamType(value string) string {
 	if value == "" {
 		return "http"
+	}
+	return value
+}
+
+func defaultString(value, fallback string) string {
+	if value == "" {
+		return fallback
 	}
 	return value
 }

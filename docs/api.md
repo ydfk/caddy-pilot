@@ -28,18 +28,27 @@
 | GET | `/api/proxy-sites/{id}` | 详情 |
 | PUT | `/api/proxy-sites/{id}` | 全量更新 |
 | DELETE | `/api/proxy-sites/{id}` | 软删除 |
-| POST | `/api/proxy-sites/{id}/clone` | 克隆，可覆盖名称、域名和上游 |
+| POST | `/api/proxy-sites/{id}/clone` | 克隆，可覆盖域名和上游 |
 | POST | `/api/proxy-sites/{id}/enable` | 启用 |
 | POST | `/api/proxy-sites/{id}/disable` | 停用 |
 | POST | `/api/proxy-sites/{id}/preview` | 站点路由 JSON 片段 |
 
-数组字段在 API 中使用 JSON 数组，在 SQLite 中编码为 JSON string。Header 和 Basic Auth 用户使用字符串键值对象。克隆接口无论原站点状态如何都会生成 `enabled=false` 的新记录。
+数组字段在 API 中使用 JSON 数组，在 SQLite 中编码为 JSON string。站点名称由首个域名兼容生成。克隆接口无论原站点状态如何都会生成 `enabled=false` 的新记录。
+
+## Basic Auth 密码本
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/api/basic-auth-credentials` | 密码条目列表，不返回密码或哈希 |
+| POST | `/api/basic-auth-credentials` | 新增条目并生成 bcrypt 哈希 |
+| PUT | `/api/basic-auth-credentials/{id}` | 修改名称、用户名或密码 |
+| DELETE | `/api/basic-auth-credentials/{id}` | 删除未被站点引用的条目 |
 
 ## Caddy
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| GET | `/api/caddy/status` | Admin API 在线状态与地址 |
+| GET | `/api/caddy/status` | Caddy 在线状态 |
 | GET | `/api/caddy/version` | 当前版本、最新稳定版与托管下载信息 |
 | POST | `/api/caddy/update` | 由后端异步下载、切换并重启托管 Caddy |
 | GET | `/api/caddy/change-status` | 当前启用站点是否存在未发布变更 |

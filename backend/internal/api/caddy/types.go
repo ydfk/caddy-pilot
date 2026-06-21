@@ -12,7 +12,6 @@ type JSONOutput struct {
 
 type StatusResponse struct {
 	Online       bool   `json:"online"`
-	AdminAPI     string `json:"admin_api"`
 	ErrorMessage string `json:"error_message,omitempty"`
 }
 

@@ -16,10 +16,7 @@ var newCaddyAdmin = func() service.CaddyAdmin { return service.NewCaddyClient() 
 
 func Status(ctx context.Context, _ *struct{}) (*StatusOutput, error) {
 	client := newCaddyAdmin()
-	response := StatusResponse{AdminAPI: service.NewCaddyClient().AdminAPI}
-	if concrete, ok := client.(*service.CaddyClient); ok {
-		response.AdminAPI = concrete.AdminAPI
-	}
+	response := StatusResponse{}
 	if err := client.GetStatus(ctx); err != nil {
 		response.ErrorMessage = err.Error()
 		return &StatusOutput{Body: response}, nil

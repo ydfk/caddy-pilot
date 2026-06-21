@@ -21,6 +21,7 @@ import { SiteCoreOptions, SiteOptions } from "./site-options";
 import { siteFormSchema, type SiteFormValues } from "./site-form-data";
 import { UpstreamOptions, UpstreamTLSOptions } from "./upstream-options";
 import { CredentialSelector } from "./credential-selector";
+import { CertificateOptions, DNSHint } from "./certificate-options";
 
 type SiteFormProps = {
   mode: "new" | "edit" | "clone";
@@ -37,6 +38,9 @@ export function SiteForm({ mode, values, pending, credentials, onSave, onPreview
   const cloneMode = mode === "clone";
   const basicAuthEnabled = form.watch("basicAuthEnabled");
   const upstreamType = form.watch("upstreamType");
+  const enableHTTPS = form.watch("enableHTTPS");
+  const certificateType = form.watch("certificateType");
+  const acmeChallengeType = form.watch("acmeChallengeType");
   const title =
     mode === "new" ? "新增代理站点" : mode === "clone" ? "克隆代理站点" : "编辑代理站点";
   const description = cloneMode
@@ -88,6 +92,14 @@ export function SiteForm({ mode, values, pending, credentials, onSave, onPreview
             {upstreamType === "https" ? <UpstreamTLSOptions control={form.control} /> : null}
 
             <SiteCoreOptions control={form.control} cloneMode={cloneMode} />
+            {enableHTTPS ? (
+              <CertificateOptions
+                control={form.control}
+                errors={errors}
+                certificateType={certificateType}
+              />
+            ) : null}
+            {enableHTTPS && certificateType === "single" && acmeChallengeType === "dns" ? <DNSHint /> : null}
           </FieldGroup>
         </CardContent>
       </Card>

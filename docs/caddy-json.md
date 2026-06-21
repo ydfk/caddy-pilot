@@ -48,11 +48,11 @@
 3. Basic Auth authentication handler
 4. reverse_proxy handler
 
-请求 Header 写入 `reverse_proxy.headers.request.set`。多个上游写为多个 `dial`，由 Caddy 执行负载分配。WebSocket 无需额外配置，Caddy reverse_proxy 会处理协议升级。
+请求 Header 写入 `reverse_proxy.headers.request.set`。多个上游写为多个 `dial`，由 Caddy 执行负载分配。HTTP 使用默认 transport；HTTPS 增加 TLS、SNI 和可选的跳过校验；h2c 使用 `versions: ["h2c"]`；Unix Socket 使用 `unix/` 网络地址。WebSocket 无需额外配置。
 
 ## HTTPS 与证书
 
-HTTPS server 使用 host matcher，Caddy 会补充 TLS connection policy 并执行自动证书管理。全局关闭 Caddy 自动 HTTP 跳转，由生成器按站点的 `force_https` 显式控制。
+HTTPS server 显式生成 TLS connection policy。域名证书默认使用 HTTP/TLS-ALPN 验证，也可以选择阿里云 DNS-01；通配符证书强制使用 DNS-01。阿里云 provider 使用环境变量占位符，AccessKey 不写入数据库和配置版本。全局关闭 Caddy 自动 HTTP 跳转，由生成器按站点的 `force_https` 显式控制。
 
 ## 回滚修复
 
@@ -67,4 +67,4 @@ JSON 无法解析时回滚失败，并创建带错误信息的失败版本。
 
 ## 单元测试
 
-测试至少覆盖空站点、host 与 reverse_proxy、停用过滤、多上游、管理入口注入和历史配置修复。还使用官方 Caddy 镜像对代表性生成结果执行过 `caddy validate`。
+测试覆盖空站点、host 与 reverse_proxy、停用过滤、多上游、类型化 transport、TLS policy、阿里云 DNS-01、管理入口注入和历史配置修复。

@@ -10,6 +10,7 @@ import (
 func Generate(sites []proxysite.ProxySite) ([]byte, error) {
 	httpRoutes := make([]map[string]any, 0)
 	httpsRoutes := make([]map[string]any, 0)
+	tlsPolicies := make([]map[string]any, 0)
 	for _, site := range sites {
 		if !site.Enabled {
 			continue
@@ -30,6 +31,13 @@ func Generate(sites []proxysite.ProxySite) ([]byte, error) {
 		}
 		if site.EnableHTTPS {
 			httpsRoutes = append(httpsRoutes, route)
+			policy, err := siteTLSPolicy(site)
+			if err != nil {
+				return nil, fmt.Errorf("生成站点 %q TLS 配置失败: %w", site.Name, err)
+			}
+			if policy != nil {
+				tlsPolicies = append(tlsPolicies, policy)
+			}
 		}
 	}
 
@@ -40,9 +48,13 @@ func Generate(sites []proxysite.ProxySite) ([]byte, error) {
 	if len(httpsRoutes) > 0 {
 		servers["proxy-https"] = siteServer(":443", httpsRoutes)
 	}
+	apps := map[string]any{"http": map[string]any{"servers": servers}}
+	if len(tlsPolicies) > 0 {
+		apps["tls"] = map[string]any{"automation": map[string]any{"policies": tlsPolicies}}
+	}
 	config := map[string]any{
 		"admin": localAdminConfig(),
-		"apps":  map[string]any{"http": map[string]any{"servers": servers}},
+		"apps":  apps,
 	}
 	return json.MarshalIndent(config, "", "  ")
 }
@@ -67,13 +79,42 @@ func generateRedirectRoute(site proxysite.ProxySite) (map[string]any, error) {
 }
 
 func siteServer(listen string, routes []map[string]any) map[string]any {
-	return map[string]any{
+	server := map[string]any{
 		"listen": []string{listen},
 		"routes": routes,
 		"automatic_https": map[string]any{
 			"disable_redirects": true,
 		},
 	}
+	if listen == ":443" {
+		server["tls_connection_policies"] = []map[string]any{{}}
+	}
+	return server
+}
+
+func siteTLSPolicy(site proxysite.ProxySite) (map[string]any, error) {
+	if site.ACMEChallengeType != "dns" {
+		return nil, nil
+	}
+	domains, err := decodeStringList(site.Domains)
+	if err != nil {
+		return nil, err
+	}
+	subjects := domains
+	if site.CertificateType == "wildcard" {
+		if site.CertificateDomain == "" {
+			return nil, fmt.Errorf("通配符证书域名不能为空")
+		}
+		subjects = []string{site.CertificateDomain}
+	}
+	issuer := map[string]any{
+		"module": "acme",
+		"challenges": map[string]any{"dns": map[string]any{"provider": map[string]any{
+			"name": "alidns", "access_key_id": "{env.ALIYUN_ACCESS_KEY_ID}",
+			"access_key_secret": "{env.ALIYUN_ACCESS_KEY_SECRET}",
+		}}},
+	}
+	return map[string]any{"subjects": subjects, "issuers": []map[string]any{issuer}}, nil
 }
 
 func localAdminConfig() map[string]any {

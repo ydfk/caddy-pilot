@@ -128,6 +128,8 @@ func validSitePayload(name string) map[string]any {
 		"upstream_type": "http", "upstream_tls_server_name": "",
 		"upstream_tls_insecure_skip_verify": false,
 		"force_https":                       true, "enable_gzip": true, "enable_log": false,
+		"certificate_type": "single", "certificate_domain": "",
+		"acme_challenge_type": "http", "dns_provider": "alidns",
 		"enable_ws": true, "request_headers": map[string]string{},
 		"response_headers": map[string]string{}, "basic_auth_enabled": false,
 		"basic_auth_users": map[string]string{}, "allowed_ips": []string{},

@@ -2,7 +2,7 @@
   <img src="frontend/public/caddypilot-logo.png" width="128" alt="CaddyPilot logo">
   <h1 align="center">CaddyPilot</h1>
   <p align="center">
-    A lightweight, single-node web dashboard for <a href="https://caddyserver.com">Caddy</a> reverse proxy management.
+    A lightweight, self-contained web dashboard for managing the <a href="https://caddyserver.com">Caddy</a> bundled with CaddyPilot.
     <br />
     Manage proxy sites, preview configs, publish with one click, and roll back safely — all from a single Docker image.
   </p>
@@ -27,7 +27,8 @@ All configuration changes are versioned. If a publish fails, your previous worki
 ### Feature highlights
 
 - **Proxy site management** — create, edit, clone, soft-delete, enable/disable reverse proxy sites
-- **Rich site options** — multi-domain, multi-upstream, HTTPS redirect, WebSocket, gzip/zstd, custom headers, IP whitelist, Basic Auth
+- **Typed upstreams** — HTTP, HTTPS, h2c, and Unix Socket with type-specific settings
+- **Access & certificates** — reusable Basic Auth password vault plus single-domain or wildcard certificates with Aliyun DNS-01
 - **Config preview & publish** — see the exact Caddy JSON before it goes live; push to Caddy Admin API in one step
 - **Version history & rollback** — every publish is recorded; diff, inspect, or rollback to any previous version
 - **Dashboard** — at-a-glance status: site counts, Caddy health, last publish time
@@ -39,7 +40,7 @@ All configuration changes are versioned. If a publish fails, your previous worki
 
 MVP scope is intentionally narrow. CaddyPilot does **not** handle:
 
-Multi-node clusters, role-based access, Caddyfile import/export, DNS provider management, Layer 4 routing, automatic container discovery, advanced log analytics, or full Caddy config visualization.
+Multi-node clusters, role-based access, Caddyfile import/export, DNS providers other than Aliyun, Layer 4 routing, automatic container discovery, advanced log analytics, or full Caddy config visualization.
 
 ---
 
@@ -177,8 +178,10 @@ Environment variables for development:
 |----------|---------|---------|
 | `CADDY_VERSION` | `2.10.0` | Managed Caddy target version |
 | `CADDY_VERSION_CHECK_URL` | GitHub releases API | Version check endpoint |
-| `CADDY_DOWNLOAD_URL` | GitHub release asset template | Managed binary download URL; supports `{version}`, `{os}`, `{arch}`, `{ext}` |
-| `CADDY_CHECKSUM_URL` | GitHub checksum template | SHA-512 verification for managed downloads |
+| `CADDY_DOWNLOAD_URL` | Caddy custom build API | Managed build with the Aliyun DNS module; supports `{version}`, `{os}`, `{arch}` |
+| `CADDY_CHECKSUM_URL` | empty | Optional SHA-512 manifest URL for a custom download source |
+| `ALIYUN_ACCESS_KEY_ID` | — | Aliyun DNS-01 AccessKey ID |
+| `ALIYUN_ACCESS_KEY_SECRET` | — | Aliyun DNS-01 AccessKey secret |
 | `VITE_PROXY_HOST` | `http://127.0.0.1:25610` | Vite dev proxy target |
 | `JWT_SECRET` | — | JWT signing key (required in production) |
 
@@ -196,7 +199,7 @@ Environment variables for development:
 ## Roadmap
 
 - Merge `advanced_json` into generated configs via a controlled allowlist (currently saved but not applied)
-- Add a bcrypt hash generator for Basic Auth users (currently requires pre-hashed input)
+- Add encrypted in-app management for DNS provider credentials; currently supplied as environment variables
 - Expand `enable_log` into per-site access log configuration
 - Auto-restore the last successful business config on restart (currently boots with a backend-generated protected management config)
 

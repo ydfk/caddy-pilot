@@ -171,6 +171,28 @@ func siteFromPayload(payload SitePayload) (model.ProxySite, error) {
 	if !validUpstreamType(upstreamType) {
 		return model.ProxySite{}, errors.New("不支持的上游类型")
 	}
+	certificateType := defaultString(strings.TrimSpace(payload.CertificateType), "single")
+	challengeType := defaultString(strings.TrimSpace(payload.ACMEChallengeType), "http")
+	certificateDomain := strings.TrimSpace(payload.CertificateDomain)
+	if certificateType != "single" && certificateType != "wildcard" {
+		return model.ProxySite{}, errors.New("不支持的证书类型")
+	}
+	if challengeType != "http" && challengeType != "dns" {
+		return model.ProxySite{}, errors.New("不支持的 ACME 验证方式")
+	}
+	if certificateType == "wildcard" {
+		challengeType = "dns"
+		if !strings.HasPrefix(certificateDomain, "*.") {
+			return model.ProxySite{}, errors.New("通配符证书域名必须以 *. 开头")
+		}
+	}
+	dnsProvider := ""
+	if challengeType == "dns" {
+		dnsProvider = defaultString(strings.TrimSpace(payload.DNSProvider), "alidns")
+		if dnsProvider != "alidns" {
+			return model.ProxySite{}, errors.New("当前只支持阿里云 DNS")
+		}
+	}
 	name := strings.TrimSpace(payload.Name)
 	if name == "" {
 		name = domains[0]
@@ -193,6 +215,10 @@ func siteFromPayload(payload SitePayload) (model.ProxySite, error) {
 		UpstreamTLSInsecureSkipVerify: payload.UpstreamTLSInsecureSkipVerify,
 		EnableHTTPS:                   payload.EnableHTTPS,
 		ForceHTTPS:                    payload.ForceHTTPS,
+		CertificateType:               certificateType,
+		CertificateDomain:             certificateDomain,
+		ACMEChallengeType:             challengeType,
+		DNSProvider:                   dnsProvider,
 		EnableGzip:                    payload.EnableGzip,
 		EnableLog:                     payload.EnableLog,
 		EnableWS:                      payload.EnableWS,

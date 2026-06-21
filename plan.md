@@ -49,9 +49,11 @@ CaddyPilot 是一个用于可视化管理 Caddy 反向代理配置的轻量 Web 
 - [x] 代理站点以域名和上游为核心，名称与描述退出编辑流程并由首个域名兼容生成。
 - [x] 按 HTTP、HTTPS、h2c、Unix Socket 细化上游配置和 Caddy JSON。
 - [x] 增加统一 Basic Auth 密码本，站点只引用密码条目。
-- [ ] 增加阿里云 DNS-01，并区分单域名与通配符证书。
+- [x] 增加阿里云 DNS-01，并区分单域名与通配符证书。
 
 > 2026-06-21 托管架构更新优先于下文早期的 supervisor、静态 Caddyfile 和手动启动描述；这些旧章节仅保留原始规划背景。
+>
+> 2026-06-21 单机管理深化同样优先于下文早期的 CaddyNode、站点名称/描述、站点内 Basic Auth JSON 和“不做 DNS Provider”描述；当前只管理本系统托管的 Caddy，并内置阿里云 DNS-01。
 
 ---
 
@@ -124,7 +126,7 @@ MVP 不做：
 3. 不做插件市场。
 4. 不做 Caddyfile 导入。
 5. 不做 Caddyfile 导出。
-6. 不做 DNS Provider 管理。
+6. 不做阿里云以外的 DNS Provider 管理。
 7. 不做 Layer4。
 8. 不做 Docker 容器自动发现。
 9. 不做复杂日志分析。

@@ -98,6 +98,37 @@ func TestGenerateSupportsUpstreamTLSOptions(t *testing.T) {
 	}
 }
 
+func TestGenerateAddsTLSConnectionPolicy(t *testing.T) {
+	site := testSite(true, []string{"127.0.0.1:3000"})
+	site.EnableHTTPS = true
+	payload, err := Generate([]proxysite.ProxySite{site})
+	if err != nil {
+		t.Fatalf("生成 HTTPS 配置失败: %v", err)
+	}
+	if !bytes.Contains(payload, []byte("tls_connection_policies")) {
+		t.Fatalf("HTTPS 服务缺少 TLS 连接策略: %s", payload)
+	}
+}
+
+func TestGenerateSupportsAliDNSWildcardCertificate(t *testing.T) {
+	site := testSite(true, []string{"127.0.0.1:3000"})
+	site.EnableHTTPS = true
+	site.CertificateType = "wildcard"
+	site.CertificateDomain = "*.example.com"
+	site.ACMEChallengeType = "dns"
+	site.DNSProvider = "alidns"
+	payload, err := Generate([]proxysite.ProxySite{site})
+	if err != nil {
+		t.Fatalf("生成阿里云 DNS-01 配置失败: %v", err)
+	}
+	compact := compactJSON(payload)
+	for _, expected := range []string{`"subjects":["*.example.com"]`, `"name":"alidns"`, `{env.ALIYUN_ACCESS_KEY_ID}`, `{env.ALIYUN_ACCESS_KEY_SECRET}`} {
+		if !bytes.Contains(compact, []byte(expected)) {
+			t.Fatalf("DNS-01 配置缺少 %s: %s", expected, payload)
+		}
+	}
+}
+
 func TestEnsureManagementEntryInjectsProtectedServer(t *testing.T) {
 	payload, err := EnsureManagementEntry([]byte(`{"apps":{"http":{"servers":{}}}}`))
 	if err != nil {

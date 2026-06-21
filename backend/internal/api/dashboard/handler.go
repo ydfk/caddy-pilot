@@ -21,7 +21,6 @@ type SummaryResponse struct {
 	HTTPSSiteCount    int64      `json:"https_site_count"`
 	LastPublishTime   *time.Time `json:"last_publish_time"`
 	CaddyOnline       bool       `json:"caddy_online"`
-	CaddyAdminAPI     string     `json:"caddy_admin_api"`
 }
 
 type SummaryOutput struct {
@@ -49,7 +48,6 @@ func Summary(ctx context.Context, _ *struct{}) (*SummaryOutput, error) {
 		return nil, huma.Error500InternalServerError("查询最近发布时间失败")
 	}
 	client := service.NewCaddyClient()
-	response.CaddyAdminAPI = client.AdminAPI
 	response.CaddyOnline = client.GetStatus(ctx) == nil
 	return &SummaryOutput{Body: response}, nil
 }

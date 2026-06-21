@@ -95,8 +95,8 @@ export default function LoginPage() {
                 {screen === "loading"
                   ? "正在确认此实例是否已创建管理员。"
                   : isSetup
-                    ? "当前没有管理员。创建此实例唯一的本地管理员账户。"
-                    : "使用已有的本地管理员账户继续。"}
+                    ? "当前没有管理员。创建此实例唯一的管理员账户。"
+                    : "使用已有的管理员账户继续。"}
               </CardDescription>
             </CardHeader>
             <CardContent className="p-6 pt-0">

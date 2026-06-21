@@ -28,5 +28,12 @@ func inspectCaddyBinary(ctx context.Context, path string) (CaddyRuntimeInfo, err
 	if len(fields) == 0 {
 		return CaddyRuntimeInfo{}, fmt.Errorf("Caddy 版本输出为空")
 	}
+	modules, err := exec.CommandContext(checkContext, path, "list-modules").CombinedOutput()
+	if err != nil {
+		return CaddyRuntimeInfo{}, fmt.Errorf("检查 Caddy 模块失败: %w", err)
+	}
+	if !strings.Contains(string(modules), "dns.providers.alidns") {
+		return CaddyRuntimeInfo{}, fmt.Errorf("Caddy 缺少阿里云 DNS 模块 dns.providers.alidns")
+	}
 	return CaddyRuntimeInfo{BinaryPath: path, Version: normalizeVersion(fields[0])}, nil
 }

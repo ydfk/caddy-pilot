@@ -7,7 +7,6 @@ export type DashboardSummary = {
   https_site_count: number;
   last_publish_time: string | null;
   caddy_online: boolean;
-  caddy_admin_api: string;
 };
 
 export const getDashboardSummary = () => apiRequest<DashboardSummary>("/api/dashboard/summary");

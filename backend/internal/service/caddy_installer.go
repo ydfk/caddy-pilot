@@ -21,8 +21,8 @@ import (
 
 const (
 	DefaultCaddyVersion     = "2.10.0"
-	DefaultCaddyDownloadURL = "https://github.com/caddyserver/caddy/releases/download/v{version}/caddy_{version}_{os}_{arch}.{ext}"
-	DefaultCaddyChecksumURL = "https://github.com/caddyserver/caddy/releases/download/v{version}/caddy_{version}_checksums.txt"
+	DefaultCaddyDownloadURL = "https://caddyserver.com/api/download?os={os}&arch={arch}&p=github.com/caddy-dns/alidns&v={version}"
+	DefaultCaddyChecksumURL = ""
 )
 
 type CaddyInstaller struct {
@@ -47,14 +47,18 @@ func NewCaddyInstaller() *CaddyInstaller {
 
 func (installer *CaddyInstaller) Ensure(ctx context.Context) (CaddyRuntimeInfo, error) {
 	if selected, ok := installer.selectedBinary(); ok {
-		return inspectCaddyBinary(ctx, selected)
+		if runtimeInfo, err := inspectCaddyBinary(ctx, selected); err == nil {
+			return runtimeInfo, nil
+		}
 	}
 	for _, candidate := range installer.binaryCandidates() {
 		path, err := exec.LookPath(candidate)
 		if err != nil {
 			continue
 		}
-		return inspectCaddyBinary(ctx, path)
+		if runtimeInfo, err := inspectCaddyBinary(ctx, path); err == nil {
+			return runtimeInfo, nil
+		}
 	}
 	return installer.Install(ctx, environmentValue("CADDY_VERSION", DefaultCaddyVersion))
 }
@@ -66,7 +70,12 @@ func (installer *CaddyInstaller) Install(ctx context.Context, version string) (C
 	}
 	target := installer.versionedBinary(version)
 	if _, err := os.Stat(target); err == nil {
-		return inspectCaddyBinary(ctx, target)
+		if runtimeInfo, inspectErr := inspectCaddyBinary(ctx, target); inspectErr == nil {
+			return runtimeInfo, nil
+		}
+		if err := os.Remove(target); err != nil {
+			return CaddyRuntimeInfo{}, fmt.Errorf("替换缺少阿里云 DNS 模块的 Caddy 失败: %w", err)
+		}
 	}
 	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 		return CaddyRuntimeInfo{}, fmt.Errorf("创建 Caddy 运行目录失败: %w", err)
@@ -77,13 +86,30 @@ func (installer *CaddyInstaller) Install(ctx context.Context, version string) (C
 		return CaddyRuntimeInfo{}, err
 	}
 	defer os.Remove(archivePath)
-	if err := installer.verifyChecksum(ctx, version, archivePath); err != nil {
-		return CaddyRuntimeInfo{}, err
+	if installer.ChecksumURL != "" {
+		if err := installer.verifyChecksum(ctx, version, archivePath); err != nil {
+			return CaddyRuntimeInfo{}, err
+		}
+	}
+	if installer.isDirectBinaryDownload() {
+		source, err := os.Open(archivePath)
+		if err != nil {
+			return CaddyRuntimeInfo{}, err
+		}
+		defer source.Close()
+		if err := writeExecutable(target, source); err != nil {
+			return CaddyRuntimeInfo{}, err
+		}
+		return inspectCaddyBinary(ctx, target)
 	}
 	if err := installer.extractBinary(archivePath, target); err != nil {
 		return CaddyRuntimeInfo{}, err
 	}
 	return inspectCaddyBinary(ctx, target)
+}
+
+func (installer *CaddyInstaller) isDirectBinaryDownload() bool {
+	return strings.Contains(installer.DownloadURL, "caddyserver.com/api/download")
 }
 
 func (installer *CaddyInstaller) verifyChecksum(ctx context.Context, version, archivePath string) error {

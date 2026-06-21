@@ -3,14 +3,14 @@ package db
 import (
 	"testing"
 
-	"go-fiber-starter/internal/model/caddynode"
+	"go-fiber-starter/internal/model/basicauth"
 	"go-fiber-starter/internal/model/proxysite"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
-func TestAutoMigrateCreatesBusinessTablesAndLocalNode(t *testing.T) {
+func TestAutoMigrateCreatesBusinessTables(t *testing.T) {
 	previousDB := DB
 	database, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {
@@ -23,7 +23,7 @@ func TestAutoMigrateCreatesBusinessTablesAndLocalNode(t *testing.T) {
 		t.Fatalf("执行数据库迁移失败: %v", err)
 	}
 
-	for _, table := range []string{"users", "proxy_sites", "config_versions", "caddy_nodes"} {
+	for _, table := range []string{"users", "proxy_sites", "config_versions", "credentials"} {
 		if !database.Migrator().HasTable(table) {
 			t.Fatalf("缺少数据表 %s", table)
 		}
@@ -34,11 +34,7 @@ func TestAutoMigrateCreatesBusinessTablesAndLocalNode(t *testing.T) {
 		}
 	}
 
-	var node caddynode.CaddyNode
-	if err := database.Where("name = ?", "local").First(&node).Error; err != nil {
-		t.Fatalf("读取默认 Caddy 节点失败: %v", err)
-	}
-	if node.AdminAPI != "http://127.0.0.1:2019" || !node.Enabled {
-		t.Fatalf("默认 Caddy 节点配置不正确: %+v", node)
+	if !database.Migrator().HasColumn(&basicauth.Credential{}, "password_hash") {
+		t.Fatal("credentials 缺少 password_hash 字段")
 	}
 }

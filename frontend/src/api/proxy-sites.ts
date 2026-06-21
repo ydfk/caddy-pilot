@@ -10,6 +10,10 @@ export type ProxySitePayload = {
   upstream_tls_insecure_skip_verify: boolean;
   enable_https: boolean;
   force_https: boolean;
+  certificate_type: "single" | "wildcard";
+  certificate_domain: string;
+  acme_challenge_type: "http" | "dns";
+  dns_provider: "" | "alidns";
   enable_gzip: boolean;
   enable_log: boolean;
   enable_ws: boolean;
