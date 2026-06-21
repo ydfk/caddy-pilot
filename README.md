@@ -1,137 +1,203 @@
-# CaddyPilot
+<p align="center">
+  <h1 align="center">CaddyPilot</h1>
+  <p align="center">
+    A lightweight, single-node web dashboard for <a href="https://caddyserver.com">Caddy</a> reverse proxy management.
+    <br />
+    Manage proxy sites, preview configs, publish with one click, and roll back safely — all from a single Docker image.
+  </p>
+</p>
 
-## 项目介绍
+<p align="center">
+  <img src="https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go" alt="Go version">
+  <img src="https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react" alt="React version">
+  <img src="https://img.shields.io/badge/Caddy-2.10-00B247?style=flat&logo=caddy" alt="Caddy">
+  <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License">
+  <img src="https://img.shields.io/badge/Docker-Compose-2496ED?style=flat&logo=docker" alt="Docker">
+</p>
 
-CaddyPilot 是一个轻量、单节点的 Caddy 反向代理可视化管理工具。它把 React 管理界面、Go API 和 Caddy 放进同一个 Docker 镜像，通过受保护的 `:8080` 管理入口完成站点维护、配置预览、发布、版本记录与回滚。
+---
 
-## 功能范围
+## What is CaddyPilot?
 
-- 单用户 JWT 登录与首次管理员初始化
-- 代理站点新增、编辑、软删除、克隆、启用和停用
-- 克隆站点默认停用
-- 多域名、多上游、HTTPS 跳转、压缩、Header、IP 白名单和 Basic Auth 配置
-- 单站点 JSON 片段与完整 Caddy JSON 预览
-- 发布配置到本机 Caddy Admin API
-- 发布失败留痕、配置版本列表、详情和受保护回滚
-- Dashboard 与 Caddy 当前配置查看
-- Caddy 当前版本、最新稳定版检查与固定版本重建更新
-- 启动时真实检查 Caddy 可执行文件，并支持自定义版本校验与更新地址
-- 单镜像 Docker Compose 部署
+CaddyPilot wraps your Caddy server with a clean web UI so you never edit JSON configs by hand. It bundles a React frontend, Go API, and Caddy into **one Docker image** — deploy, log in, add sites, and publish.
 
-## 不做什么
+All configuration changes are versioned. If a publish fails, your previous working config stays live. If you need to go back, rollback is one click away.
 
-MVP 不支持多 Caddy 节点、多用户权限、插件市场、Caddyfile 导入导出、DNS Provider 管理、Layer4、Docker 容器自动发现、复杂日志分析和完整 Caddy 配置可视化。
+### Feature highlights
 
-## 架构说明
+- **Proxy site management** — create, edit, clone, soft-delete, enable/disable reverse proxy sites
+- **Rich site options** — multi-domain, multi-upstream, HTTPS redirect, WebSocket, gzip/zstd, custom headers, IP whitelist, Basic Auth
+- **Config preview & publish** — see the exact Caddy JSON before it goes live; push to Caddy Admin API in one step
+- **Version history & rollback** — every publish is recorded; diff, inspect, or rollback to any previous version
+- **Dashboard** — at-a-glance status: site counts, Caddy health, last publish time
+- **Caddy version management** — check current vs. latest stable release; rebuild the image with a pinned version
+- **Self-protecting** — the management port (`:8080`) is never removed from generated configs, so the UI always stays reachable
+- **Single image** — everything (Caddy + Go API + React frontend + supervisor) ships in one Docker image
 
-容器内由 supervisor 同时管理 Caddy 与 Go 后端：
+### What it does NOT do
 
-```text
-浏览器 -> :8080 Caddy -> /api/* -> 127.0.0.1:25610 Go API
-                    \-> React 静态文件 /app/frontend
+MVP scope is intentionally narrow. CaddyPilot does **not** handle:
+
+Multi-node clusters, role-based access, Caddyfile import/export, DNS provider management, Layer 4 routing, automatic container discovery, advanced log analytics, or full Caddy config visualization.
+
+---
+
+## Architecture
+
+```
+Browser -> :8080 Caddy -> /api/* -> 127.0.0.1:25610 Go API
+                    \-> React static files /app/frontend
 
 Go API -> SQLite /data/caddypilot.db
 Go API -> Caddy Admin API 127.0.0.1:2019
 ```
 
-每次发布和回滚都会检查并注入等效的 `:8080` 管理服务器，避免新配置切断 CaddyPilot 自身入口。详细设计见 [docs/design.md](docs/design.md)。
+Every generated Caddy config automatically includes the management server block on `:8080`. The API validates this invariant before every publish and rollback, so you can't lock yourself out.
 
-## 单镜像部署
+Detailed design: [docs/design.md](docs/design.md)
 
-镜像包含：
+---
 
-- Caddy 2.10.0（可通过 `CADDY_VERSION` 固定或更新）
-- CaddyPilot Go 后端
-- React 生产静态文件
-- supervisor 与关键进程退出监听器
-- CA 证书与时区数据
+## Tech stack
 
-后端使用 CGO 构建官方 GORM SQLite 驱动。任一关键进程退出时 supervisor 会结束，Compose 的重启策略随后重启整个容器。
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS, shadcn/ui, Zustand, React Hook Form, Zod |
+| Backend | Go, Fiber, Huma (OpenAPI), GORM, SQLite |
+| Proxy | Caddy 2 |
+| Container | Docker, supervisord |
 
-## Docker Compose 使用方法
+---
 
-建议先设置独立 JWT 密钥：
+## Quick start
 
-```powershell
-$env:JWT_SECRET = "请替换为足够长的随机字符串"
+```bash
+# Clone the repo
+git clone https://github.com/ydfk/caddy-pilot.git
+cd caddy-pilot
+
+# Set a JWT secret (required)
+export JWT_SECRET="replace-with-a-long-random-string"
+
+# Build and start
 docker compose up -d --build
-docker compose ps
-docker compose logs -f
+
+# Open the dashboard
+# http://localhost:8080
 ```
 
-停止服务：
+On first launch, the login page shows an admin initialization form. Create your admin account and you're in.
 
-```powershell
+Stop everything:
+
+```bash
 docker compose down
 ```
 
-## 默认访问地址
+---
 
-管理界面默认地址：<http://localhost:8080>。首次启动且没有用户数据时，登录页会自动显示初始化界面；创建唯一管理员后，初始化入口会关闭。
+## Docker Compose configuration
 
-## Caddy Admin API 安全提醒
+```yaml
+services:
+  caddypilot:
+    image: caddypilot:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: caddypilot
+    restart: unless-stopped
+    ports:
+      - "8080:8080"   # management UI
+      - "80:80"       # proxy traffic
+      - "443:443"     # proxy HTTPS
+    environment:
+      JWT_SECRET: ${JWT_SECRET}
+      DATABASE_DSN: /data/caddypilot.db
+      CADDY_ADMIN_API: http://127.0.0.1:2019
+      CADDYPILOT_MANAGE_ADDR: :8080
+    volumes:
+      - ./data:/data
+```
 
-**不要将 Caddy Admin API 2019 端口暴露到公网。**
+## Security
 
-默认 Compose 没有映射 2019。Admin API 只监听容器内的 `127.0.0.1:2019`，管理界面也不会将它代理给浏览器。
+**Do not expose port 2019 to the host or the internet.** The Caddy Admin API listens on `127.0.0.1:2019` inside the container only. The default compose file does not map it. The UI never proxies it to the browser.
 
-## 数据目录
+Change `JWT_SECRET` before deploying. The default value is a placeholder and produces a warning at startup.
 
-Compose 将根目录的 `./data` 挂载到容器 `/data`：
+---
 
-- `/data/caddypilot.db`：用户、代理站点和配置版本
-- `/data/caddy`：Caddy 证书与运行数据
+## Data
 
-备份时应同时保存 SQLite 文件和 Caddy 数据目录。`data/` 已加入 Git 忽略列表。
+All persistent data lives under `./data/`:
 
-## 开发环境启动
+| Path | Content |
+|------|---------|
+| `/data/caddypilot.db` | Users, proxy sites, config versions |
+| `/data/caddy/` | Caddy certificates and runtime state |
 
-Windows 可直接双击根目录的 `dev.cmd`，或在 PowerShell 中一键启动：
+Back up both when migrating or upgrading. The `data/` directory is git-ignored.
+
+---
+
+## Development
+
+**One-click start (Windows):**
+
+Double-click `dev.cmd` or run in PowerShell:
 
 ```powershell
 .\dev.cmd
 ```
 
-脚本只启动本机 Go 后端与 Vite 前端，不使用 Docker。它会自动安装前端依赖；按 `Ctrl+C` 可同时停止两个进程。管理界面地址为 <http://localhost:3000>，API 会代理到 `http://127.0.0.1:25610`。
+This starts the Go backend and Vite dev server natively (no Docker). UI at `http://localhost:3000`, API proxied to `127.0.0.1:25610`.
 
-仅检查 Go 与 pnpm 启动环境：
+**Manual start:**
 
-```powershell
-.\dev.cmd -Check
-```
-
-如果需要分别启动，也可以使用：
-
-后端：
-
-```powershell
+```bash
+# Backend (terminal 1)
 cd backend
 go test ./...
 go run ./cmd
-```
 
-前端：
-
-```powershell
+# Frontend (terminal 2)
 cd frontend
 pnpm install
 pnpm dev
 ```
 
-Vite 默认在 `http://localhost:3000` 启动，并将 `/api` 原样代理到 `http://127.0.0.1:25610`。
+If Caddy is not found on the local machine during development, the backend warns but continues. In production, it refuses to start without Caddy.
 
-本地开发环境找不到 Caddy 时后端会明确警告但继续启动；生产环境会终止启动。可用 `CADDY_BINARY` 指定 Caddy 可执行文件。
+Environment variables for development:
 
-## 文档
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `CADDY_BINARY` | `caddy` | Path to Caddy executable |
+| `CADDY_VERSION_CHECK_URL` | GitHub releases API | Version check endpoint |
+| `VITE_PROXY_HOST` | `http://127.0.0.1:25610` | Vite dev proxy target |
+| `JWT_SECRET` | — | JWT signing key (required in production) |
 
-- [设计与安全边界](docs/design.md)
-- [API 说明](docs/api.md)
-- [Caddy JSON 生成规则](docs/caddy-json.md)
-- [部署与运维](docs/deployment.md)
+---
 
-## 后续计划
+## Documentation
 
-- TODO：将 `advanced_json` 按受控白名单合并到生成配置；当前仅保存
-- TODO：提供 Basic Auth bcrypt 哈希生成助手；当前表单要求输入哈希
-- TODO：把 `enable_log` 从已保存开关扩展为精细的站点级访问日志配置
-- TODO：支持容器重启后按策略自动恢复最近成功版本；当前重启后由初始 Caddyfile 保证管理入口可用
+- [Design & security boundaries](docs/design.md)
+- [API reference](docs/api.md)
+- [Caddy JSON generation](docs/caddy-json.md)
+- [Deployment guide](docs/deployment.md)
+
+---
+
+## Roadmap
+
+- Merge `advanced_json` into generated configs via a controlled allowlist (currently saved but not applied)
+- Add a bcrypt hash generator for Basic Auth users (currently requires pre-hashed input)
+- Expand `enable_log` into per-site access log configuration
+- Auto-restore last successful config version on container restart (currently boots with static Caddyfile)
+
+---
+
+## License
+
+MIT — see [backend/LICENSE](backend/LICENSE)
