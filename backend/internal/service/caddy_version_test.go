@@ -50,3 +50,28 @@ func TestCaddyVersionServiceKeepsCurrentWhenReleaseUnavailable(t *testing.T) {
 		t.Fatalf("离线版本信息不正确: %+v, %v", info, err)
 	}
 }
+
+func TestCaddyVersionServiceSupportsCustomResponseAndUpdateURL(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		_, _ = writer.Write([]byte(`{"version":"v2.12.0","update_url":"https://mirror.example/caddy"}`))
+	}))
+	defer server.Close()
+	t.Setenv("CADDY_UPDATE_URL", "https://download.example/caddy")
+
+	service := NewCaddyVersionService()
+	service.ReleaseAPI = server.URL
+	service.HTTPClient = server.Client()
+	service.currentVersion = func(context.Context) (string, error) { return "2.10.0", nil }
+
+	info, err := service.Check(context.Background())
+	if err != nil || info.LatestVersion != "2.12.0" || info.ReleaseURL != "https://download.example/caddy" {
+		t.Fatalf("自定义版本服务结果不正确: %+v, %v", info, err)
+	}
+}
+
+func TestCheckCaddyRuntimeRejectsMissingBinary(t *testing.T) {
+	t.Setenv("CADDY_BINARY", "caddypilot-missing-caddy-binary")
+	if _, err := CheckCaddyRuntime(context.Background()); err == nil {
+		t.Fatal("缺少 Caddy 可执行文件时应返回错误")
+	}
+}

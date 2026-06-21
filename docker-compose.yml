@@ -18,6 +18,9 @@ services:
       JWT_SECRET: ${JWT_SECRET:-change-this-secret-before-production}
       DATABASE_DSN: /data/caddypilot.db
       CADDY_ADMIN_API: http://127.0.0.1:2019
+      CADDY_BINARY: ${CADDY_BINARY:-caddy}
+      CADDY_VERSION_CHECK_URL: ${CADDY_VERSION_CHECK_URL:-https://api.github.com/repos/caddyserver/caddy/releases/latest}
+      CADDY_UPDATE_URL: ${CADDY_UPDATE_URL:-}
       CADDYPILOT_FRONTEND_DIR: /app/frontend
       CADDYPILOT_BACKEND_ADDR: 127.0.0.1:25610
       CADDYPILOT_MANAGE_ADDR: :8080

@@ -35,6 +35,9 @@ docker compose ps
 | `JWT_SECRET` | Compose 开发默认值 | 生产环境必须覆盖 |
 | `DATABASE_DSN` | `/data/caddypilot.db` | SQLite 路径 |
 | `CADDY_ADMIN_API` | `http://127.0.0.1:2019` | 容器内 Admin API |
+| `CADDY_BINARY` | `caddy` | 启动检查和版本读取使用的 Caddy 可执行文件 |
+| `CADDY_VERSION_CHECK_URL` | GitHub Caddy latest release API | 版本校验地址，支持 GitHub 或 `{version, update_url}` JSON |
+| `CADDY_UPDATE_URL` | 空 | 可选的自定义更新地址，设置后覆盖版本服务返回地址 |
 | `CADDYPILOT_BACKEND_ADDR` | `127.0.0.1:25610` | 后端监听地址 |
 | `CADDYPILOT_FRONTEND_DIR` | `/app/frontend` | 前端静态目录 |
 | `CADDYPILOT_MANAGE_ADDR` | `:8080` | 管理入口标识 |
@@ -65,6 +68,8 @@ docker compose start
 ## 更新
 
 管理界面的“Caddy 状态 → 版本管理”会显示当前版本与 GitHub 最新稳定版。CaddyPilot 不在运行中的容器内替换 Caddy 二进制，因为该修改在容器重建后会丢失，也可能中断管理入口。
+
+后端启动时会通过 PATH 或 `CADDY_BINARY` 定位真实可执行文件，并执行 `caddy version`。生产环境检查失败会终止启动；开发环境会输出警告并继续，以便只调试管理界面。
 
 固定或更新 Caddy 版本时使用镜像重建：
 

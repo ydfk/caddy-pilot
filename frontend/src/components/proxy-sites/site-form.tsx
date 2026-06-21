@@ -4,29 +4,20 @@ import { Controller, useForm, type UseFormRegisterReturn } from "react-hook-form
 import { Link } from "react-router-dom";
 
 import { PageHeader } from "@/components/page-header";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-  FieldLegend,
-  FieldSet,
-} from "@/components/ui/field";
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { SiteOptions } from "./site-options";
+import { SiteCoreOptions, SiteOptions } from "./site-options";
 import { siteFormSchema, type SiteFormValues } from "./site-form-data";
 
 type SiteFormProps = {
@@ -42,84 +33,134 @@ export function SiteForm({ mode, values, pending, onSave, onPreview }: SiteFormP
   const errors = form.formState.errors;
   const cloneMode = mode === "clone";
   const basicAuthEnabled = form.watch("basicAuthEnabled");
-
   const title =
     mode === "new" ? "新增代理站点" : mode === "clone" ? "克隆代理站点" : "编辑代理站点";
   const description = cloneMode
     ? "克隆结果固定为停用状态，确认后再手动启用。"
-    : "配置只保存在业务数据库中，除非选择保存并发布。";
+    : "先完成核心配置，其余选项按需调整。保存不会自动发布。";
 
   return (
-    <form className="flex flex-col gap-4">
+    <form className="mx-auto flex w-full max-w-6xl flex-col gap-4">
       <PageHeader eyebrow="ROUTES / EDITOR" title={title} description={description} />
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(18rem,0.5fr)]">
-        <div className="flex flex-col gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>基础信息</CardTitle>
-              <CardDescription>用于识别站点，不会写入 Caddy 匹配器。</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <FieldGroup>
-                <Field data-invalid={Boolean(errors.name) || undefined}>
-                  <FieldLabel htmlFor="name">名称</FieldLabel>
-                  <Input id="name" {...form.register("name")} aria-invalid={Boolean(errors.name)} />
-                  <FieldError errors={[errors.name]} />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="description">描述</FieldLabel>
-                  <Textarea id="description" rows={2} {...form.register("description")} />
-                </Field>
-              </FieldGroup>
-            </CardContent>
-          </Card>
+      <Card className="border-primary/20 shadow-sm">
+        <CardHeader>
+          <CardTitle>核心配置</CardTitle>
+          <CardDescription>名称、域名、上游和运行模式是每个站点最常调整的内容。</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FieldGroup className="gap-5">
+            <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+              <Field data-invalid={Boolean(errors.name) || undefined}>
+                <FieldLabel htmlFor="name">名称</FieldLabel>
+                <Input id="name" {...form.register("name")} aria-invalid={Boolean(errors.name)} />
+                <FieldError errors={[errors.name]} />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="description">描述</FieldLabel>
+                <Input id="description" {...form.register("description")} />
+              </Field>
+            </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>路由目标</CardTitle>
-              <CardDescription>
-                每行一个值；上游使用 host:port，例如 127.0.0.1:3000。
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <FieldGroup>
-                <Field data-invalid={Boolean(errors.domains) || undefined}>
-                  <FieldLabel htmlFor="domains">域名</FieldLabel>
-                  <Textarea
-                    id="domains"
-                    rows={3}
-                    className="font-mono"
-                    placeholder={"example.com\nwww.example.com"}
-                    {...form.register("domains")}
-                    aria-invalid={Boolean(errors.domains)}
-                  />
-                  <FieldError errors={[errors.domains]} />
-                </Field>
-                <Field data-invalid={Boolean(errors.upstreams) || undefined}>
-                  <FieldLabel htmlFor="upstreams">上游</FieldLabel>
-                  <Textarea
-                    id="upstreams"
-                    rows={3}
-                    className="font-mono"
-                    placeholder={"127.0.0.1:3000\n10.0.0.8:8080"}
-                    {...form.register("upstreams")}
-                    aria-invalid={Boolean(errors.upstreams)}
-                  />
-                  <FieldError errors={[errors.upstreams]} />
-                </Field>
-              </FieldGroup>
-            </CardContent>
-          </Card>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field data-invalid={Boolean(errors.domains) || undefined}>
+                <FieldLabel htmlFor="domains">域名</FieldLabel>
+                <Textarea
+                  id="domains"
+                  rows={3}
+                  className="font-mono"
+                  placeholder={"example.com\nwww.example.com"}
+                  {...form.register("domains")}
+                  aria-invalid={Boolean(errors.domains)}
+                />
+                <FieldError errors={[errors.domains]} />
+              </Field>
+              <Field data-invalid={Boolean(errors.upstreams) || undefined}>
+                <FieldLabel htmlFor="upstreams">上游</FieldLabel>
+                <Textarea
+                  id="upstreams"
+                  rows={3}
+                  className="font-mono"
+                  placeholder={"127.0.0.1:3000\n10.0.0.8:8080"}
+                  {...form.register("upstreams")}
+                  aria-invalid={Boolean(errors.upstreams)}
+                />
+                <FieldDescription>每行一个 host:port 地址。</FieldDescription>
+                <FieldError errors={[errors.upstreams]} />
+              </Field>
+            </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>请求与访问控制</CardTitle>
-              <CardDescription>Header 与 Basic Auth 用户使用 JSON 对象。</CardDescription>
-            </CardHeader>
-            <CardContent>
+            <SiteCoreOptions control={form.control} cloneMode={cloneMode} />
+          </FieldGroup>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>传输与日志</CardTitle>
+            <CardDescription>直接开关常用代理能力。</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SiteOptions control={form.control} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>访问控制</CardTitle>
+            <CardDescription>限制来源地址或为站点添加基础认证。</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor="allowedIPs">IP 白名单</FieldLabel>
+                <Textarea
+                  id="allowedIPs"
+                  rows={3}
+                  className="font-mono"
+                  placeholder={"127.0.0.1\n10.0.0.0/8"}
+                  {...form.register("allowedIPs")}
+                />
+                <FieldDescription>留空表示不限制来源地址。</FieldDescription>
+              </Field>
+              <Controller
+                control={form.control}
+                name="basicAuthEnabled"
+                render={({ field }) => (
+                  <Field orientation="horizontal">
+                    <div className="flex-1">
+                      <FieldLabel htmlFor="basicAuthEnabled">Basic Auth</FieldLabel>
+                      <FieldDescription>密码必须使用 Caddy 支持的 bcrypt 哈希。</FieldDescription>
+                    </div>
+                    <Switch
+                      id="basicAuthEnabled"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </Field>
+                )}
+              />
+              {basicAuthEnabled ? (
+                <JSONField
+                  id="basicAuthUsers"
+                  label="认证用户 JSON"
+                  error={errors.basicAuthUsers?.message}
+                  register={form.register("basicAuthUsers")}
+                />
+              ) : null}
+            </FieldGroup>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <Accordion type="single" collapsible>
+          <AccordionItem value="advanced" className="border-0 px-6">
+            <AccordionTrigger>高级配置 · Header 与扩展 JSON</AccordionTrigger>
+            <AccordionContent>
               <FieldGroup>
-                <FieldGroup className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4 md:grid-cols-2">
                   <JSONField
                     id="requestHeaders"
                     label="请求头 JSON"
@@ -132,81 +173,19 @@ export function SiteForm({ mode, values, pending, onSave, onPreview }: SiteFormP
                     error={errors.responseHeaders?.message}
                     register={form.register("responseHeaders")}
                   />
-                </FieldGroup>
-                <Field>
-                  <FieldLabel htmlFor="allowedIPs">IP 白名单</FieldLabel>
-                  <Textarea
-                    id="allowedIPs"
-                    rows={3}
-                    className="font-mono"
-                    placeholder={"127.0.0.1\n10.0.0.0/8"}
-                    {...form.register("allowedIPs")}
-                  />
-                  <FieldDescription>留空表示不限制来源地址。</FieldDescription>
-                </Field>
-                <FieldSet>
-                  <FieldLegend>Basic Auth</FieldLegend>
-                  <Controller
-                    control={form.control}
-                    name="basicAuthEnabled"
-                    render={({ field }) => (
-                      <Field>
-                        <FieldLabel htmlFor="basicAuthEnabled">认证模式</FieldLabel>
-                        <Select
-                          value={field.value ? "basic" : "none"}
-                          onValueChange={(value) => field.onChange(value === "basic")}
-                        >
-                          <SelectTrigger id="basicAuthEnabled">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectGroup>
-                              <SelectItem value="none">不启用认证</SelectItem>
-                              <SelectItem value="basic">启用 Basic Auth</SelectItem>
-                            </SelectGroup>
-                          </SelectContent>
-                        </Select>
-                        <FieldDescription>密码值必须是 Caddy 支持的 bcrypt 哈希。</FieldDescription>
-                      </Field>
-                    )}
-                  />
-                  {basicAuthEnabled ? (
-                    <JSONField
-                      id="basicAuthUsers"
-                      label="用户 JSON"
-                      error={errors.basicAuthUsers?.message}
-                      register={form.register("basicAuthUsers")}
-                    />
-                  ) : null}
-                </FieldSet>
-                <Field data-invalid={Boolean(errors.advancedJSON) || undefined}>
-                  <FieldLabel htmlFor="advancedJSON">advanced_json</FieldLabel>
-                  <Textarea
-                    id="advancedJSON"
-                    rows={4}
-                    className="font-mono"
-                    placeholder="{}"
-                    {...form.register("advancedJSON")}
-                    aria-invalid={Boolean(errors.advancedJSON)}
-                  />
-                  <FieldDescription>MVP 仅保存此字段，不合并到生成配置。</FieldDescription>
-                  <FieldError errors={[errors.advancedJSON]} />
-                </Field>
+                </div>
+                <JSONField
+                  id="advancedJSON"
+                  label="扩展 JSON"
+                  error={errors.advancedJSON?.message}
+                  register={form.register("advancedJSON")}
+                />
+                <FieldDescription>扩展 JSON 当前仅保存，不合并到生成配置。</FieldDescription>
               </FieldGroup>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card className="h-fit xl:sticky xl:top-18">
-          <CardHeader>
-            <CardTitle>运行行为</CardTitle>
-            <CardDescription>控制站点进入发布配置后的行为。</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <SiteOptions control={form.control} cloneMode={cloneMode} />
-          </CardContent>
-        </Card>
-      </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      </Card>
 
       <div className="sticky bottom-2 flex flex-wrap justify-end gap-2 rounded-xl border bg-background/95 p-2 shadow-lg backdrop-blur">
         <Button type="button" variant="ghost" asChild>

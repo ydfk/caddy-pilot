@@ -24,6 +24,9 @@ type VersionResponse struct {
 	CurrentVersion  string `json:"current_version"`
 	LatestVersion   string `json:"latest_version,omitempty"`
 	UpdateAvailable bool   `json:"update_available"`
+	BinaryPath      string `json:"binary_path,omitempty"`
+	VersionCheckURL string `json:"version_check_url"`
+	UpdateURL       string `json:"update_url,omitempty"`
 	ReleaseURL      string `json:"release_url,omitempty"`
 	UpdateCommand   string `json:"update_command,omitempty"`
 	UpdateStrategy  string `json:"update_strategy"`
@@ -40,6 +43,15 @@ type ValidateResponse struct {
 
 type ValidateOutput struct {
 	Body ValidateResponse
+}
+
+type ChangeStatusResponse struct {
+	Dirty         bool `json:"dirty"`
+	LatestVersion uint `json:"latest_version,omitempty"`
+}
+
+type ChangeStatusOutput struct {
+	Body ChangeStatusResponse
 }
 
 type PublishPayload struct {

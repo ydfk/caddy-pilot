@@ -20,7 +20,7 @@ import {
   setProxySiteEnabled,
   type ProxySite,
 } from "@/api/proxy-sites";
-import { publishCaddyConfig, validateCaddyConfig } from "@/api/caddy";
+import { getCaddyChangeStatus, publishCaddyConfig, validateCaddyConfig } from "@/api/caddy";
 import { JSONDialog } from "@/components/json-dialog";
 import { PageHeader } from "@/components/page-header";
 import {
@@ -72,19 +72,28 @@ export default function ProxySitesPage() {
   const [deleteTarget, setDeleteTarget] = useState<ProxySite | null>(null);
   const [preview, setPreview] = useState<{ name: string; value: unknown } | null>(null);
   const [validated, setValidated] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
   const [validating, setValidating] = useState(false);
   const [publishing, setPublishing] = useState(false);
 
   const loadSites = useCallback(async () => {
     setLoading(true);
     try {
-      setSites(await listProxySites());
+      const [nextSites, status] = await Promise.all([listProxySites(), getCaddyChangeStatus()]);
+      setSites(nextSites);
+      setHasChanges(status.dirty);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "读取代理站点失败");
     } finally {
       setLoading(false);
     }
   }, []);
+
+  async function refreshChangeStatus() {
+    const status = await getCaddyChangeStatus();
+    setHasChanges(status.dirty);
+    if (!status.dirty) setValidated(false);
+  }
 
   useEffect(() => {
     void loadSites();
@@ -96,6 +105,7 @@ export default function ProxySitesPage() {
       const updated = await setProxySiteEnabled(site.id, enabled);
       setSites((current) => current.map((item) => (item.id === updated.id ? updated : item)));
       setValidated(false);
+      await refreshChangeStatus();
       toast.success(enabled ? "站点已启用" : "站点已停用");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "更新站点状态失败");
@@ -125,6 +135,7 @@ export default function ProxySitesPage() {
       await deleteProxySite(target.id);
       setSites((current) => current.filter((item) => item.id !== target.id));
       setValidated(false);
+      await refreshChangeStatus();
       toast.success("代理站点已删除");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "删除代理站点失败");
@@ -152,6 +163,7 @@ export default function ProxySitesPage() {
     try {
       const version = await publishCaddyConfig("从代理站点页面发布");
       setValidated(false);
+      setHasChanges(false);
       toast.success(`配置 v${version.version} 已发布`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "发布配置失败");
@@ -168,40 +180,48 @@ export default function ProxySitesPage() {
         description="维护域名、上游与发布状态。修改不会自动推送到 Caddy。"
         actions={
           <>
-            <Button variant="outline" onClick={() => void validateConfig()} disabled={validating}>
-              {validating ? (
-                <Spinner data-icon="inline-start" />
-              ) : (
-                <ShieldCheck data-icon="inline-start" />
-              )}
-              1. 校验配置
-            </Button>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button disabled={!validated || publishing}>
-                  {publishing ? (
+            {hasChanges ? (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => void validateConfig()}
+                  disabled={validating}
+                >
+                  {validating ? (
                     <Spinner data-icon="inline-start" />
                   ) : (
-                    <Rocket data-icon="inline-start" />
+                    <ShieldCheck data-icon="inline-start" />
                   )}
-                  2. 发布
+                  1. 校验配置
                 </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>发布已校验的站点配置？</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    后端会重新生成完整配置、保留 :8080 管理入口并发布到本地 Caddy。
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>取消</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => void publishConfig()}>
-                    确认发布
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button disabled={!validated || publishing}>
+                      {publishing ? (
+                        <Spinner data-icon="inline-start" />
+                      ) : (
+                        <Rocket data-icon="inline-start" />
+                      )}
+                      2. 发布
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>发布已校验的站点配置？</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        后端会重新生成完整配置、保留 :8080 管理入口并发布到本地 Caddy。
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>取消</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => void publishConfig()}>
+                        确认发布
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
+            ) : null}
             <Button variant="secondary" asChild>
               <Link to="/proxy-sites/new">
                 <Plus data-icon="inline-start" /> 新增站点
@@ -211,15 +231,17 @@ export default function ProxySitesPage() {
         }
       />
 
-      <div className="flex items-center justify-between gap-3 rounded-lg border bg-card px-4 py-3 text-sm">
-        <div>
-          <p className="font-medium">推荐流程：编辑站点 → 校验配置 → 发布</p>
-          <p className="text-xs text-muted-foreground">任何站点状态变更后都需要重新校验。</p>
+      {hasChanges ? (
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-primary/25 bg-primary/5 px-4 py-3 text-sm">
+          <div>
+            <p className="font-medium">检测到未发布的站点变更</p>
+            <p className="text-xs text-muted-foreground">先校验完整配置，再确认发布到 Caddy。</p>
+          </div>
+          <Badge variant={validated ? "default" : "outline"}>
+            {validated ? "校验通过" : "需要校验"}
+          </Badge>
         </div>
-        <Badge variant={validated ? "default" : "outline"}>
-          {validated ? "校验通过" : "等待校验"}
-        </Badge>
-      </div>
+      ) : null}
 
       <Card>
         <CardHeader>

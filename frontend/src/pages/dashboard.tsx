@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Activity, FileClock, Globe2, LockKeyhole, Plus, Power, Route } from "lucide-react";
+import { Activity, FileClock, Globe2, LockKeyhole, Power, Route } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -32,13 +32,6 @@ export default function DashboardPage() {
         eyebrow="CONTROL / OVERVIEW"
         title="仪表盘"
         description="本地代理站点与配置发布状态的即时概览。"
-        actions={
-          <Button asChild>
-            <Link to="/proxy-sites/new">
-              <Plus data-icon="inline-start" /> 新增站点
-            </Link>
-          </Button>
-        }
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

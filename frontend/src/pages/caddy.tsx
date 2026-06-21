@@ -229,6 +229,26 @@ export default function CaddyPage() {
                   <p className="mt-1 font-mono text-sm">{version?.latest_version ?? "暂不可用"}</p>
                 </div>
               </div>
+              <div className="grid gap-2 rounded-md border bg-muted/30 p-3 text-xs">
+                <div>
+                  <p className="text-muted-foreground">Caddy 可执行文件</p>
+                  <p className="mt-1 break-all font-mono">
+                    {version?.binary_path ?? "由 PATH 解析"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">版本校验地址</p>
+                  <p className="mt-1 break-all font-mono">
+                    {version?.version_check_url ?? "暂不可用"}
+                  </p>
+                </div>
+                {version?.update_url ? (
+                  <div>
+                    <p className="text-muted-foreground">自定义更新地址</p>
+                    <p className="mt-1 break-all font-mono">{version.update_url}</p>
+                  </div>
+                ) : null}
+              </div>
               <Badge variant={version?.update_available ? "secondary" : "outline"}>
                 {!version?.latest_version
                   ? "尚未获取最新版本"

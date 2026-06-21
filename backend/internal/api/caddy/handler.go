@@ -34,6 +34,9 @@ func Version(ctx context.Context, _ *struct{}) (*VersionOutput, error) {
 		CurrentVersion:  info.CurrentVersion,
 		LatestVersion:   info.LatestVersion,
 		UpdateAvailable: info.UpdateAvailable,
+		BinaryPath:      info.BinaryPath,
+		VersionCheckURL: info.VersionCheckURL,
+		UpdateURL:       info.UpdateURL,
 		ReleaseURL:      info.ReleaseURL,
 		UpdateCommand:   info.UpdateCommand,
 		UpdateStrategy:  "rebuild-container",
@@ -47,6 +50,16 @@ func Preview(ctx context.Context, _ *struct{}) (*JSONOutput, error) {
 		return nil, huma.Error500InternalServerError(err.Error())
 	}
 	return &JSONOutput{Body: JSONResponse{CaddyJSON: payload}}, nil
+}
+
+func ChangeStatus(ctx context.Context, _ *struct{}) (*ChangeStatusOutput, error) {
+	status, err := service.NewConfigService(db.DB, nil).ChangeStatus(ctx)
+	if err != nil {
+		return nil, huma.Error500InternalServerError(err.Error())
+	}
+	return &ChangeStatusOutput{Body: ChangeStatusResponse{
+		Dirty: status.Dirty, LatestVersion: status.LatestVersion,
+	}}, nil
 }
 
 func Validate(ctx context.Context, _ *struct{}) (*ValidateOutput, error) {

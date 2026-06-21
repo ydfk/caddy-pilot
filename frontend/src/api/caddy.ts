@@ -5,15 +5,20 @@ export type CaddyVersion = {
   current_version: string;
   latest_version?: string;
   update_available: boolean;
+  binary_path?: string;
+  version_check_url: string;
+  update_url?: string;
   release_url?: string;
   update_command?: string;
   update_strategy: "rebuild-container";
   error_message?: string;
 };
 export type CaddyJSONResponse = { caddy_json: unknown };
+export type CaddyChangeStatus = { dirty: boolean; latest_version?: number };
 
 export const getCaddyStatus = () => apiRequest<CaddyStatus>("/api/caddy/status");
 export const getCaddyVersion = () => apiRequest<CaddyVersion>("/api/caddy/version");
+export const getCaddyChangeStatus = () => apiRequest<CaddyChangeStatus>("/api/caddy/change-status");
 export const previewCaddyConfig = () =>
   apiRequest<CaddyJSONResponse>("/api/caddy/preview", { method: "POST" });
 export const validateCaddyConfig = () =>

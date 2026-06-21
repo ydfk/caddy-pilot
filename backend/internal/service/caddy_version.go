@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -17,6 +18,9 @@ type CaddyVersionInfo struct {
 	CurrentVersion  string
 	LatestVersion   string
 	UpdateAvailable bool
+	BinaryPath      string
+	VersionCheckURL string
+	UpdateURL       string
 	ReleaseURL      string
 	UpdateCommand   string
 	ErrorMessage    string
@@ -31,8 +35,8 @@ type CaddyVersionService struct {
 
 func NewCaddyVersionService() *CaddyVersionService {
 	service := &CaddyVersionService{
-		Binary:     "caddy",
-		ReleaseAPI: CaddyLatestReleaseAPI,
+		Binary:     environmentValue("CADDY_BINARY", "caddy"),
+		ReleaseAPI: environmentValue("CADDY_VERSION_CHECK_URL", CaddyLatestReleaseAPI),
 		HTTPClient: &http.Client{Timeout: 5 * time.Second},
 	}
 	service.currentVersion = service.readCurrentVersion
@@ -45,7 +49,14 @@ func (service *CaddyVersionService) Check(ctx context.Context) (CaddyVersionInfo
 		return CaddyVersionInfo{}, err
 	}
 
-	info := CaddyVersionInfo{CurrentVersion: current}
+	info := CaddyVersionInfo{
+		CurrentVersion:  current,
+		VersionCheckURL: service.ReleaseAPI,
+		UpdateURL:       strings.TrimSpace(os.Getenv("CADDY_UPDATE_URL")),
+	}
+	if path, lookupErr := exec.LookPath(service.Binary); lookupErr == nil {
+		info.BinaryPath = path
+	}
 	latest, releaseURL, err := service.readLatestRelease(ctx)
 	if err != nil {
 		info.ErrorMessage = err.Error()
@@ -54,6 +65,9 @@ func (service *CaddyVersionService) Check(ctx context.Context) (CaddyVersionInfo
 
 	info.LatestVersion = latest
 	info.ReleaseURL = releaseURL
+	if info.UpdateURL != "" {
+		info.ReleaseURL = info.UpdateURL
+	}
 	info.UpdateAvailable = normalizeVersion(current) != normalizeVersion(latest)
 	info.UpdateCommand = fmt.Sprintf("$env:CADDY_VERSION='%s'; docker compose up -d --build", normalizeVersion(latest))
 	return info, nil
@@ -85,7 +99,7 @@ func (service *CaddyVersionService) readLatestRelease(ctx context.Context) (stri
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
-		return "", "", fmt.Errorf("检查 Caddy 更新失败: GitHub 返回 %d", response.StatusCode)
+		return "", "", fmt.Errorf("检查 Caddy 更新失败: 版本服务返回 %d", response.StatusCode)
 	}
 
 	body, err := io.ReadAll(io.LimitReader(response.Body, 1<<20))
@@ -93,18 +107,35 @@ func (service *CaddyVersionService) readLatestRelease(ctx context.Context) (stri
 		return "", "", fmt.Errorf("读取 Caddy 版本响应失败: %w", err)
 	}
 	var release struct {
-		TagName string `json:"tag_name"`
-		HTMLURL string `json:"html_url"`
+		TagName   string `json:"tag_name"`
+		HTMLURL   string `json:"html_url"`
+		Version   string `json:"version"`
+		UpdateURL string `json:"update_url"`
 	}
 	if err := json.Unmarshal(body, &release); err != nil {
 		return "", "", fmt.Errorf("解析 Caddy 版本响应失败: %w", err)
 	}
-	if strings.TrimSpace(release.TagName) == "" {
+	version := release.TagName
+	if strings.TrimSpace(version) == "" {
+		version = release.Version
+	}
+	updateURL := release.HTMLURL
+	if strings.TrimSpace(updateURL) == "" {
+		updateURL = release.UpdateURL
+	}
+	if strings.TrimSpace(version) == "" {
 		return "", "", fmt.Errorf("Caddy 最新版本为空")
 	}
-	return normalizeVersion(release.TagName), release.HTMLURL, nil
+	return normalizeVersion(version), updateURL, nil
 }
 
 func normalizeVersion(version string) string {
 	return strings.TrimPrefix(strings.TrimSpace(version), "v")
+}
+
+func environmentValue(name, fallback string) string {
+	if value := strings.TrimSpace(os.Getenv(name)); value != "" {
+		return value
+	}
+	return fallback
 }

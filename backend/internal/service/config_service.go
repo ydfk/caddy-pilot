@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -27,6 +28,11 @@ type ConfigService struct {
 	Caddy CaddyAdmin
 }
 
+type ConfigChangeStatus struct {
+	Dirty         bool
+	LatestVersion uint
+}
+
 func NewConfigService(database *gorm.DB, caddy CaddyAdmin) *ConfigService {
 	return &ConfigService{DB: database, Caddy: caddy}
 }
@@ -37,6 +43,33 @@ func (service *ConfigService) Preview(ctx context.Context) ([]byte, error) {
 		return nil, err
 	}
 	return caddygen.Generate(sites)
+}
+
+func (service *ConfigService) ChangeStatus(ctx context.Context) (ConfigChangeStatus, error) {
+	sites, err := service.enabledSites(ctx)
+	if err != nil {
+		return ConfigChangeStatus{}, err
+	}
+	current, err := json.Marshal(sites)
+	if err != nil {
+		return ConfigChangeStatus{}, fmt.Errorf("编码业务配置失败: %w", err)
+	}
+
+	var latest configversion.ConfigVersion
+	err = service.DB.WithContext(ctx).
+		Where("status IN ?", []string{ConfigStatusPublished, ConfigStatusRollback}).
+		Order("version DESC").First(&latest).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return ConfigChangeStatus{Dirty: len(sites) > 0}, nil
+	}
+	if err != nil {
+		return ConfigChangeStatus{}, fmt.Errorf("读取最近发布配置失败: %w", err)
+	}
+
+	return ConfigChangeStatus{
+		Dirty:         !sameJSON(current, []byte(latest.BusinessConfig)),
+		LatestVersion: latest.Version,
+	}, nil
 }
 
 func (service *ConfigService) Publish(ctx context.Context, reason string) (configversion.ConfigVersion, error) {
@@ -168,4 +201,14 @@ func defaultReason(value, fallback string) string {
 		return trimmed
 	}
 	return fallback
+}
+
+func sameJSON(left, right []byte) bool {
+	var leftValue, rightValue any
+	if json.Unmarshal(left, &leftValue) != nil || json.Unmarshal(right, &rightValue) != nil {
+		return bytes.Equal(bytes.TrimSpace(left), bytes.TrimSpace(right))
+	}
+	leftNormalized, _ := json.Marshal(leftValue)
+	rightNormalized, _ := json.Marshal(rightValue)
+	return bytes.Equal(leftNormalized, rightNormalized)
 }

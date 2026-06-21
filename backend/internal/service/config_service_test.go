@@ -109,6 +109,39 @@ func TestConfigServiceRollbackFailureIsRecorded(t *testing.T) {
 	}
 }
 
+func TestConfigServiceChangeStatus(t *testing.T) {
+	database := configServiceTestDB(t)
+	service := NewConfigService(database, &fakeCaddyAdmin{})
+
+	status, err := service.ChangeStatus(context.Background())
+	if err != nil || status.Dirty {
+		t.Fatalf("空配置不应标记为未发布: %+v, %v", status, err)
+	}
+
+	createEnabledTestSite(t, database)
+	status, err = service.ChangeStatus(context.Background())
+	if err != nil || !status.Dirty {
+		t.Fatalf("新增启用站点后应标记为未发布: %+v, %v", status, err)
+	}
+
+	published, err := service.Publish(context.Background(), "状态测试")
+	if err != nil {
+		t.Fatalf("发布配置失败: %v", err)
+	}
+	status, err = service.ChangeStatus(context.Background())
+	if err != nil || status.Dirty || status.LatestVersion != published.Version {
+		t.Fatalf("发布后不应存在未发布变更: %+v, %v", status, err)
+	}
+
+	if err := database.Model(&proxysite.ProxySite{}).Where("enabled = ?", true).Update("description", "已修改").Error; err != nil {
+		t.Fatalf("修改站点失败: %v", err)
+	}
+	status, err = service.ChangeStatus(context.Background())
+	if err != nil || !status.Dirty {
+		t.Fatalf("修改启用站点后应标记为未发布: %+v, %v", status, err)
+	}
+}
+
 func configServiceTestDB(t *testing.T) *gorm.DB {
 	t.Helper()
 	database, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
