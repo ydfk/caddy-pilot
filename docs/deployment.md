@@ -64,12 +64,17 @@ docker compose start
 
 ## 更新
 
+管理界面的“Caddy 状态 → 版本管理”会显示当前版本与 GitHub 最新稳定版。CaddyPilot 不在运行中的容器内替换 Caddy 二进制，因为该修改在容器重建后会丢失，也可能中断管理入口。
+
+固定或更新 Caddy 版本时使用镜像重建：
+
 ```powershell
 git pull
+$env:CADDY_VERSION = "2.10.0"
 docker compose up -d --build
 ```
 
-镜像重建不会删除挂载的 `./data`。
+版本管理卡片可以根据最新稳定版生成并复制同类命令。镜像重建不会删除挂载的 `./data`。
 
 ## 故障排查
 

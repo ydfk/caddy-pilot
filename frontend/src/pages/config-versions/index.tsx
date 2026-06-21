@@ -73,7 +73,7 @@ export default function ConfigVersionsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <PageHeader
         eyebrow="CONFIG / HISTORY"
         title="配置版本"

@@ -23,7 +23,7 @@ export default function Layout() {
       <AppSidebar />
       <SidebarInset className="min-h-svh bg-transparent">
         <header className="sticky top-0 z-20 border-b bg-background/90 backdrop-blur-xl">
-          <div className="flex h-16 items-center gap-3 px-4 md:px-6">
+          <div className="flex h-14 items-center gap-3 px-4 md:px-5">
             <SidebarTrigger />
             <Separator orientation="vertical" className="hidden h-4 md:block" />
             <Breadcrumb>
@@ -45,8 +45,10 @@ export default function Layout() {
             </div>
           </div>
         </header>
-        <div className="flex flex-1 flex-col p-4 md:p-6">
-          <Outlet />
+        <div className="flex flex-1 flex-col p-4 md:p-5">
+          <div className="mx-auto w-full max-w-7xl">
+            <Outlet />
+          </div>
         </div>
       </SidebarInset>
     </SidebarProvider>

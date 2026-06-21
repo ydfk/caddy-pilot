@@ -20,6 +20,20 @@ type StatusOutput struct {
 	Body StatusResponse
 }
 
+type VersionResponse struct {
+	CurrentVersion  string `json:"current_version"`
+	LatestVersion   string `json:"latest_version,omitempty"`
+	UpdateAvailable bool   `json:"update_available"`
+	ReleaseURL      string `json:"release_url,omitempty"`
+	UpdateCommand   string `json:"update_command,omitempty"`
+	UpdateStrategy  string `json:"update_strategy"`
+	ErrorMessage    string `json:"error_message,omitempty"`
+}
+
+type VersionOutput struct {
+	Body VersionResponse
+}
+
 type ValidateResponse struct {
 	Valid bool `json:"valid"`
 }

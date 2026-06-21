@@ -16,8 +16,15 @@ import {
   FieldSet,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { SiteOptions } from "./site-options";
 import { siteFormSchema, type SiteFormValues } from "./site-form-data";
@@ -34,6 +41,7 @@ export function SiteForm({ mode, values, pending, onSave, onPreview }: SiteFormP
   const form = useForm<SiteFormValues>({ resolver: zodResolver(siteFormSchema), values });
   const errors = form.formState.errors;
   const cloneMode = mode === "clone";
+  const basicAuthEnabled = form.watch("basicAuthEnabled");
 
   const title =
     mode === "new" ? "新增代理站点" : mode === "clone" ? "克隆代理站点" : "编辑代理站点";
@@ -42,11 +50,11 @@ export function SiteForm({ mode, values, pending, onSave, onPreview }: SiteFormP
     : "配置只保存在业务数据库中，除非选择保存并发布。";
 
   return (
-    <form className="flex flex-col gap-6">
+    <form className="flex flex-col gap-4">
       <PageHeader eyebrow="ROUTES / EDITOR" title={title} description={description} />
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(20rem,0.65fr)]">
-        <div className="flex flex-col gap-6">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(18rem,0.5fr)]">
+        <div className="flex flex-col gap-4">
           <Card>
             <CardHeader>
               <CardTitle>基础信息</CardTitle>
@@ -61,7 +69,7 @@ export function SiteForm({ mode, values, pending, onSave, onPreview }: SiteFormP
                 </Field>
                 <Field>
                   <FieldLabel htmlFor="description">描述</FieldLabel>
-                  <Textarea id="description" rows={3} {...form.register("description")} />
+                  <Textarea id="description" rows={2} {...form.register("description")} />
                 </Field>
               </FieldGroup>
             </CardContent>
@@ -80,7 +88,7 @@ export function SiteForm({ mode, values, pending, onSave, onPreview }: SiteFormP
                   <FieldLabel htmlFor="domains">域名</FieldLabel>
                   <Textarea
                     id="domains"
-                    rows={5}
+                    rows={3}
                     className="font-mono"
                     placeholder={"example.com\nwww.example.com"}
                     {...form.register("domains")}
@@ -92,7 +100,7 @@ export function SiteForm({ mode, values, pending, onSave, onPreview }: SiteFormP
                   <FieldLabel htmlFor="upstreams">上游</FieldLabel>
                   <Textarea
                     id="upstreams"
-                    rows={5}
+                    rows={3}
                     className="font-mono"
                     placeholder={"127.0.0.1:3000\n10.0.0.8:8080"}
                     {...form.register("upstreams")}
@@ -111,7 +119,7 @@ export function SiteForm({ mode, values, pending, onSave, onPreview }: SiteFormP
             </CardHeader>
             <CardContent>
               <FieldGroup>
-                <div className="grid gap-5 md:grid-cols-2">
+                <FieldGroup className="grid gap-4 md:grid-cols-2">
                   <JSONField
                     id="requestHeaders"
                     label="请求头 JSON"
@@ -124,12 +132,12 @@ export function SiteForm({ mode, values, pending, onSave, onPreview }: SiteFormP
                     error={errors.responseHeaders?.message}
                     register={form.register("responseHeaders")}
                   />
-                </div>
+                </FieldGroup>
                 <Field>
                   <FieldLabel htmlFor="allowedIPs">IP 白名单</FieldLabel>
                   <Textarea
                     id="allowedIPs"
-                    rows={4}
+                    rows={3}
                     className="font-mono"
                     placeholder={"127.0.0.1\n10.0.0.0/8"}
                     {...form.register("allowedIPs")}
@@ -142,33 +150,40 @@ export function SiteForm({ mode, values, pending, onSave, onPreview }: SiteFormP
                     control={form.control}
                     name="basicAuthEnabled"
                     render={({ field }) => (
-                      <Field orientation="horizontal">
-                        <div className="flex-1">
-                          <FieldLabel htmlFor="basicAuthEnabled">启用 Basic Auth</FieldLabel>
-                          <FieldDescription>
-                            密码值必须是 Caddy 支持的 bcrypt 哈希。
-                          </FieldDescription>
-                        </div>
-                        <Switch
-                          id="basicAuthEnabled"
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
+                      <Field>
+                        <FieldLabel htmlFor="basicAuthEnabled">认证模式</FieldLabel>
+                        <Select
+                          value={field.value ? "basic" : "none"}
+                          onValueChange={(value) => field.onChange(value === "basic")}
+                        >
+                          <SelectTrigger id="basicAuthEnabled">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectGroup>
+                              <SelectItem value="none">不启用认证</SelectItem>
+                              <SelectItem value="basic">启用 Basic Auth</SelectItem>
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                        <FieldDescription>密码值必须是 Caddy 支持的 bcrypt 哈希。</FieldDescription>
                       </Field>
                     )}
                   />
-                  <JSONField
-                    id="basicAuthUsers"
-                    label="用户 JSON"
-                    error={errors.basicAuthUsers?.message}
-                    register={form.register("basicAuthUsers")}
-                  />
+                  {basicAuthEnabled ? (
+                    <JSONField
+                      id="basicAuthUsers"
+                      label="用户 JSON"
+                      error={errors.basicAuthUsers?.message}
+                      register={form.register("basicAuthUsers")}
+                    />
+                  ) : null}
                 </FieldSet>
                 <Field data-invalid={Boolean(errors.advancedJSON) || undefined}>
                   <FieldLabel htmlFor="advancedJSON">advanced_json</FieldLabel>
                   <Textarea
                     id="advancedJSON"
-                    rows={6}
+                    rows={4}
                     className="font-mono"
                     placeholder="{}"
                     {...form.register("advancedJSON")}
@@ -182,7 +197,7 @@ export function SiteForm({ mode, values, pending, onSave, onPreview }: SiteFormP
           </Card>
         </div>
 
-        <Card className="h-fit xl:sticky xl:top-20">
+        <Card className="h-fit xl:sticky xl:top-18">
           <CardHeader>
             <CardTitle>运行行为</CardTitle>
             <CardDescription>控制站点进入发布配置后的行为。</CardDescription>
@@ -193,7 +208,7 @@ export function SiteForm({ mode, values, pending, onSave, onPreview }: SiteFormP
         </Card>
       </div>
 
-      <div className="sticky bottom-3 flex flex-wrap justify-end gap-2 rounded-xl border bg-background/95 p-3 shadow-lg backdrop-blur">
+      <div className="sticky bottom-2 flex flex-wrap justify-end gap-2 rounded-xl border bg-background/95 p-2 shadow-lg backdrop-blur">
         <Button type="button" variant="ghost" asChild>
           <Link to="/proxy-sites">
             <X data-icon="inline-start" /> 取消
@@ -240,7 +255,7 @@ function JSONField({
       <FieldLabel htmlFor={id}>{label}</FieldLabel>
       <Textarea
         id={id}
-        rows={6}
+        rows={4}
         className="font-mono"
         {...register}
         aria-invalid={Boolean(error)}

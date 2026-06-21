@@ -49,7 +49,7 @@ export default function ConfigVersionDetailPage() {
   if (!version) return <Skeleton className="h-96 w-full" />;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <PageHeader
         eyebrow="CONFIG / SNAPSHOT"
         title={`配置版本 v${version.version}`}

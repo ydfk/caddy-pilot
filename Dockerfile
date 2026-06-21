@@ -1,3 +1,5 @@
+ARG CADDY_VERSION=2.10.0
+
 FROM node:22-alpine AS frontend-build
 WORKDIR /src/frontend
 RUN corepack enable && corepack prepare pnpm@10.6.2 --activate
@@ -14,7 +16,7 @@ RUN go mod download
 COPY backend/ ./
 RUN CGO_ENABLED=1 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/caddypilot ./cmd
 
-FROM caddy:2.10-alpine
+FROM caddy:${CADDY_VERSION}-alpine
 RUN apk add --no-cache ca-certificates supervisor tzdata \
     && mkdir -p /app/backend/config /app/frontend /data /etc/supervisor/conf.d \
     && chmod 0755 /data

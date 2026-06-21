@@ -1,4 +1,4 @@
-import { Controller, type Control } from "react-hook-form";
+import { Controller, type Control, useController } from "react-hook-form";
 
 import {
   Field,
@@ -8,58 +8,106 @@ import {
   FieldLegend,
   FieldSet,
 } from "@/components/ui/field";
-import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { SiteFormValues } from "./site-form-data";
 
 type SiteOptionsProps = { control: Control<SiteFormValues>; cloneMode: boolean };
 
-const options: Array<{
-  name: keyof Pick<
-    SiteFormValues,
-    "enabled" | "enableHTTPS" | "forceHTTPS" | "enableWS" | "enableGzip" | "enableLog"
-  >;
-  label: string;
-  description: string;
-}> = [
-  { name: "enabled", label: "启用站点", description: "只有启用的站点会进入下一次发布。" },
-  { name: "enableHTTPS", label: "启用 HTTPS", description: "在 :443 提供站点并启用自动证书。" },
-  { name: "forceHTTPS", label: "强制 HTTPS", description: "将 HTTP 请求永久跳转到 HTTPS。" },
-  {
-    name: "enableWS",
-    label: "启用 WebSocket",
-    description: "Caddy reverse_proxy 默认支持协议升级。",
-  },
-  { name: "enableGzip", label: "启用 gzip / zstd", description: "对可压缩响应启用内容编码。" },
-  { name: "enableLog", label: "启用访问日志", description: "保留站点日志开关供运行配置使用。" },
-];
+const options = [
+  { name: "enableWS", label: "WebSocket", on: "启用协议升级", off: "关闭协议升级" },
+  { name: "enableGzip", label: "响应压缩", on: "gzip + zstd", off: "不压缩" },
+  { name: "enableLog", label: "访问日志", on: "记录访问日志", off: "不记录" },
+] as const;
 
 export function SiteOptions({ control, cloneMode }: SiteOptionsProps) {
+  const https = useController({ control, name: "enableHTTPS" });
+  const forceHTTPS = useController({ control, name: "forceHTTPS" });
+  const httpsMode = !https.field.value ? "off" : forceHTTPS.field.value ? "redirect" : "on";
+
+  function setHTTPSMode(value: string) {
+    https.field.onChange(value !== "off");
+    forceHTTPS.field.onChange(value === "redirect");
+  }
+
   return (
     <FieldSet>
       <FieldLegend>运行选项</FieldLegend>
-      <FieldGroup className="gap-3">
+      <FieldGroup className="gap-4">
+        <Controller
+          control={control}
+          name="enabled"
+          render={({ field }) => (
+            <Field data-disabled={cloneMode || undefined}>
+              <FieldLabel htmlFor="enabled">站点状态</FieldLabel>
+              <Select
+                value={field.value ? "enabled" : "disabled"}
+                disabled={cloneMode}
+                onValueChange={(value) => field.onChange(value === "enabled")}
+              >
+                <SelectTrigger id="enabled">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="enabled">启用并进入下次发布</SelectItem>
+                    <SelectItem value="disabled">停用，不进入配置</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              <FieldDescription>
+                {cloneMode ? "克隆站点固定为停用。" : "保存后仍需发布才会生效。"}
+              </FieldDescription>
+            </Field>
+          )}
+        />
+
+        <Field>
+          <FieldLabel htmlFor="httpsMode">HTTPS 模式</FieldLabel>
+          <Select value={httpsMode} onValueChange={setHTTPSMode}>
+            <SelectTrigger id="httpsMode">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value="redirect">HTTPS + HTTP 强制跳转</SelectItem>
+                <SelectItem value="on">仅启用 HTTPS</SelectItem>
+                <SelectItem value="off">关闭 HTTPS</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </Field>
+
         {options.map((option) => (
           <Controller
             key={option.name}
             control={control}
             name={option.name}
-            render={({ field }) => {
-              const disabled = cloneMode && option.name === "enabled";
-              return (
-                <Field orientation="horizontal" data-disabled={disabled || undefined}>
-                  <div className="flex-1">
-                    <FieldLabel htmlFor={option.name}>{option.label}</FieldLabel>
-                    <FieldDescription>{option.description}</FieldDescription>
-                  </div>
-                  <Switch
-                    id={option.name}
-                    checked={field.value}
-                    disabled={disabled}
-                    onCheckedChange={field.onChange}
-                  />
-                </Field>
-              );
-            }}
+            render={({ field }) => (
+              <Field>
+                <FieldLabel htmlFor={option.name}>{option.label}</FieldLabel>
+                <Select
+                  value={field.value ? "on" : "off"}
+                  onValueChange={(value) => field.onChange(value === "on")}
+                >
+                  <SelectTrigger id={option.name}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="on">{option.on}</SelectItem>
+                      <SelectItem value="off">{option.off}</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </Field>
+            )}
           />
         ))}
       </FieldGroup>

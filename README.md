@@ -14,6 +14,7 @@ CaddyPilot 是一个轻量、单节点的 Caddy 反向代理可视化管理工�
 - 发布配置到本机 Caddy Admin API
 - 发布失败留痕、配置版本列表、详情和受保护回滚
 - Dashboard 与 Caddy 当前配置查看
+- Caddy 当前版本、最新稳定版检查与固定版本重建更新
 - 单镜像 Docker Compose 部署
 
 ## 不做什么
@@ -38,7 +39,7 @@ Go API -> Caddy Admin API 127.0.0.1:2019
 
 镜像包含：
 
-- Caddy 2.10
+- Caddy 2.10.0（可通过 `CADDY_VERSION` 固定或更新）
 - CaddyPilot Go 后端
 - React 生产静态文件
 - supervisor 与关键进程退出监听器

@@ -1,14 +1,24 @@
 import { useCallback, useEffect, useState } from "react";
-import { Braces, RefreshCw, Rocket, ShieldCheck } from "lucide-react";
+import {
+  Braces,
+  Copy,
+  ExternalLink,
+  PackageCheck,
+  RefreshCw,
+  Rocket,
+  ShieldCheck,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import {
   getCaddyStatus,
+  getCaddyVersion,
   getCurrentCaddyConfig,
   previewCaddyConfig,
   publishCaddyConfig,
   validateCaddyConfig,
   type CaddyStatus,
+  type CaddyVersion,
 } from "@/api/caddy";
 import { JSONDialog } from "@/components/json-dialog";
 import { PageHeader } from "@/components/page-header";
@@ -33,14 +43,17 @@ export default function CaddyPage() {
   const [status, setStatus] = useState<CaddyStatus | null>(null);
   const [currentConfig, setCurrentConfig] = useState<unknown>(null);
   const [preview, setPreview] = useState<unknown>(null);
+  const [version, setVersion] = useState<CaddyVersion | null>(null);
   const [loading, setLoading] = useState(true);
   const [publishing, setPublishing] = useState(false);
+  const [checkingVersion, setCheckingVersion] = useState(false);
 
   const refresh = useCallback(async () => {
     setLoading(true);
-    const [statusResult, configResult] = await Promise.allSettled([
+    const [statusResult, configResult, versionResult] = await Promise.allSettled([
       getCaddyStatus(),
       getCurrentCaddyConfig(),
+      getCaddyVersion(),
     ]);
     if (statusResult.status === "fulfilled") setStatus(statusResult.value);
     else
@@ -49,6 +62,13 @@ export default function CaddyPage() {
       );
     if (configResult.status === "fulfilled") setCurrentConfig(configResult.value.caddy_json);
     else setCurrentConfig(null);
+    if (versionResult.status === "fulfilled") setVersion(versionResult.value);
+    else {
+      setVersion(null);
+      toast.error(
+        versionResult.reason instanceof Error ? versionResult.reason.message : "读取 Caddy 版本失败"
+      );
+    }
     setLoading(false);
   }, []);
 
@@ -87,8 +107,30 @@ export default function CaddyPage() {
     }
   }
 
+  async function checkVersion() {
+    setCheckingVersion(true);
+    try {
+      setVersion(await getCaddyVersion());
+      toast.success("Caddy 版本信息已刷新");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "检查 Caddy 版本失败");
+    } finally {
+      setCheckingVersion(false);
+    }
+  }
+
+  async function copyUpdateCommand() {
+    if (!version?.update_command) return;
+    try {
+      await navigator.clipboard.writeText(version.update_command);
+      toast.success("更新命令已复制");
+    } catch {
+      toast.error("浏览器拒绝访问剪贴板，请手动复制更新命令");
+    }
+  }
+
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <PageHeader
         eyebrow="CADDY / RUNTIME"
         title="Caddy 状态"
@@ -141,28 +183,97 @@ export default function CaddyPage() {
         </Alert>
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,0.65fr)_minmax(0,1.35fr)]">
-        <Card className="h-fit">
-          <CardHeader>
-            <CardTitle>连接信息</CardTitle>
-            <CardDescription>Admin API 不应暴露到宿主机</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-5">
-            <div>
-              <p className="text-xs text-muted-foreground">Admin API 地址</p>
-              <p className="mt-1 break-all font-mono text-sm">{status?.admin_api ?? "正在读取…"}</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">连接状态</p>
-              <Badge className="mt-2" variant={status?.online ? "default" : "destructive"}>
-                {status?.online ? "在线" : "离线"}
+      <div className="grid gap-4 lg:grid-cols-[minmax(18rem,0.7fr)_minmax(0,1.3fr)]">
+        <div className="flex flex-col gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>连接信息</CardTitle>
+              <CardDescription>Admin API 不应暴露到宿主机</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <div>
+                <p className="text-xs text-muted-foreground">Admin API 地址</p>
+                <p className="mt-1 break-all font-mono text-sm">
+                  {status?.admin_api ?? "正在读取…"}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">连接状态</p>
+                <Badge className="mt-2" variant={status?.online ? "default" : "destructive"}>
+                  {status?.online ? "在线" : "离线"}
+                </Badge>
+              </div>
+              <Button variant="secondary" onClick={() => void validate()}>
+                <ShieldCheck data-icon="inline-start" /> 校验生成配置
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <PackageCheck className="size-4" /> 版本管理
+              </CardTitle>
+              <CardDescription>容器镜像固定版本，更新通过重建完成</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-muted-foreground">当前版本</p>
+                  <p className="mt-1 font-mono text-sm">
+                    {version?.current_version ?? (loading ? "读取中…" : "不可用")}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">最新稳定版</p>
+                  <p className="mt-1 font-mono text-sm">{version?.latest_version ?? "暂不可用"}</p>
+                </div>
+              </div>
+              <Badge variant={version?.update_available ? "secondary" : "outline"}>
+                {!version?.latest_version
+                  ? "尚未获取最新版本"
+                  : version.update_available
+                    ? "有可用更新"
+                    : "当前已是目标版本"}
               </Badge>
-            </div>
-            <Button variant="secondary" onClick={() => void validate()}>
-              <ShieldCheck data-icon="inline-start" /> 校验生成配置
-            </Button>
-          </CardContent>
-        </Card>
+              {version?.error_message ? (
+                <p className="text-xs text-muted-foreground">{version.error_message}</p>
+              ) : null}
+              {version?.update_available && version.update_command ? (
+                <code className="break-all rounded-md bg-muted p-3 font-mono text-xs">
+                  {version.update_command}
+                </code>
+              ) : null}
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void checkVersion()}
+                  disabled={checkingVersion}
+                >
+                  {checkingVersion ? (
+                    <Spinner data-icon="inline-start" />
+                  ) : (
+                    <RefreshCw data-icon="inline-start" />
+                  )}
+                  检查更新
+                </Button>
+                {version?.update_available && version.update_command ? (
+                  <Button size="sm" onClick={() => void copyUpdateCommand()}>
+                    <Copy data-icon="inline-start" /> 复制更新命令
+                  </Button>
+                ) : null}
+                {version?.release_url ? (
+                  <Button variant="ghost" size="sm" asChild>
+                    <a href={version.release_url} target="_blank" rel="noreferrer">
+                      <ExternalLink data-icon="inline-start" /> 发布说明
+                    </a>
+                  </Button>
+                ) : null}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         <Card>
           <CardHeader>

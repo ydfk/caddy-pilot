@@ -6,18 +6,18 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
 function FieldSet({ className, ...props }: React.ComponentProps<"fieldset">) {
-  return <fieldset className={cn("flex flex-col gap-6", className)} {...props} />;
+  return <fieldset className={cn("flex flex-col gap-4", className)} {...props} />;
 }
 
 function FieldLegend({ className, ...props }: React.ComponentProps<"legend">) {
-  return <legend className={cn("mb-3 text-base font-medium", className)} {...props} />;
+  return <legend className={cn("mb-2 text-sm font-medium", className)} {...props} />;
 }
 
 function FieldGroup({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="field-group"
-      className={cn("group/field-group flex w-full flex-col gap-5", className)}
+      className={cn("group/field-group flex w-full flex-col gap-4", className)}
       {...props}
     />
   );

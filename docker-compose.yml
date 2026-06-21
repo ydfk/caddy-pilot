@@ -4,6 +4,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        CADDY_VERSION: ${CADDY_VERSION:-2.10.0}
     container_name: caddypilot
     restart: unless-stopped
     ports:

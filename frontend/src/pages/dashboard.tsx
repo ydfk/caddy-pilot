@@ -27,7 +27,7 @@ export default function DashboardPage() {
   }, []);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       <PageHeader
         eyebrow="CONTROL / OVERVIEW"
         title="仪表盘"

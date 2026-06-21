@@ -25,6 +25,22 @@ func Status(ctx context.Context, _ *struct{}) (*StatusOutput, error) {
 	return &StatusOutput{Body: response}, nil
 }
 
+func Version(ctx context.Context, _ *struct{}) (*VersionOutput, error) {
+	info, err := service.NewCaddyVersionService().Check(ctx)
+	if err != nil {
+		return nil, huma.Error500InternalServerError(err.Error())
+	}
+	return &VersionOutput{Body: VersionResponse{
+		CurrentVersion:  info.CurrentVersion,
+		LatestVersion:   info.LatestVersion,
+		UpdateAvailable: info.UpdateAvailable,
+		ReleaseURL:      info.ReleaseURL,
+		UpdateCommand:   info.UpdateCommand,
+		UpdateStrategy:  "rebuild-container",
+		ErrorMessage:    info.ErrorMessage,
+	}}, nil
+}
+
 func Preview(ctx context.Context, _ *struct{}) (*JSONOutput, error) {
 	payload, err := service.NewConfigService(db.DB, nil).Preview(ctx)
 	if err != nil {
