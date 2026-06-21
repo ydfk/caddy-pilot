@@ -154,7 +154,7 @@ export default function CaddyPage() {
       <PageHeader
         eyebrow="CADDY / RUNTIME"
         title="Caddy 状态"
-        description="检查本地 Admin API、预览生成结果并显式发布。"
+        description="检查运行状态、预览生成结果并显式发布。"
         actions={
           <>
             <Button variant="outline" onClick={() => void refresh()} disabled={loading}>
@@ -183,7 +183,7 @@ export default function CaddyPage() {
                 <AlertDialogHeader>
                   <AlertDialogTitle>发布当前业务配置？</AlertDialogTitle>
                   <AlertDialogDescription>
-                    后端会重新生成完整 JSON、注入 :8080 管理入口并调用本地 Caddy /load。
+                    后端会重新生成完整 JSON，并安全发布到托管的 Caddy。
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -198,7 +198,7 @@ export default function CaddyPage() {
 
       {status?.error_message ? (
         <Alert variant="destructive">
-          <AlertTitle>Caddy Admin API 不可用</AlertTitle>
+          <AlertTitle>Caddy 服务不可用</AlertTitle>
           <AlertDescription>{status.error_message}</AlertDescription>
         </Alert>
       ) : null}
@@ -207,18 +207,12 @@ export default function CaddyPage() {
         <div className="flex flex-col gap-4">
           <Card>
             <CardHeader>
-              <CardTitle>连接信息</CardTitle>
-              <CardDescription>Admin API 不应暴露到宿主机</CardDescription>
+              <CardTitle>运行状态</CardTitle>
+              <CardDescription>Caddy 由后端统一启动和维护</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               <div>
-                <p className="text-xs text-muted-foreground">Admin API 地址</p>
-                <p className="mt-1 break-all font-mono text-sm">
-                  {status?.admin_api ?? "正在读取…"}
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">连接状态</p>
+                <p className="text-xs text-muted-foreground">服务状态</p>
                 <Badge className="mt-2" variant={status?.online ? "default" : "destructive"}>
                   {status?.online ? "在线" : "离线"}
                 </Badge>

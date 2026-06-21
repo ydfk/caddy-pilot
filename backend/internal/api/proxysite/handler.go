@@ -157,14 +157,14 @@ func findSite(id string) (model.ProxySite, error) {
 }
 
 func siteFromPayload(payload SitePayload) (model.ProxySite, error) {
-	name := strings.TrimSpace(payload.Name)
-	if name == "" {
-		return model.ProxySite{}, errors.New("站点名称不能为空")
-	}
 	domains := compactStrings(payload.Domains)
 	upstreams := compactStrings(payload.Upstreams)
 	if len(domains) == 0 || len(upstreams) == 0 {
 		return model.ProxySite{}, errors.New("域名和上游不能为空")
+	}
+	name := strings.TrimSpace(payload.Name)
+	if name == "" {
+		name = domains[0]
 	}
 
 	encodedDomains, _ := marshalJSON(domains)

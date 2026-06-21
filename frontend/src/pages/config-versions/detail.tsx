@@ -71,7 +71,7 @@ export default function ConfigVersionDetailPage() {
                 <AlertDialogHeader>
                   <AlertDialogTitle>回滚到 v{version.version}？</AlertDialogTitle>
                   <AlertDialogDescription>
-                    该操作会立即调用本地 Caddy Admin API，并创建一条新的回滚记录。
+                    该操作会立即恢复该版本，并创建一条新的回滚记录。
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

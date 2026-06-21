@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { AlertCircle, ArrowRight, ShieldCheck } from "lucide-react";
+import { AlertCircle, ArrowRight } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { getSetupStatus, login, register } from "@/api/auth";
@@ -67,7 +67,6 @@ export default function LoginPage() {
               <BrandLogo className="size-10 shadow-md shadow-primary/15" eager />
               <div>
                 <p className="font-mono text-sm font-semibold tracking-[0.16em]">CADDYPILOT</p>
-                <p className="text-xs text-muted-foreground">LOCAL CONTROL PLANE</p>
               </div>
             </div>
             <div className="relative mt-8 md:mt-20">
@@ -75,15 +74,11 @@ export default function LoginPage() {
                 {isSetup ? "FIRST RUN / SETUP" : "ROUTE / LOAD / ROLLBACK"}
               </p>
               <h1 className="mt-2 text-2xl font-semibold leading-tight tracking-tight">
-                {isSetup ? "创建唯一管理员" : "本地 Caddy 控制台"}
+                {isSetup ? "创建唯一管理员" : "Caddy 管理控制台"}
               </h1>
               <p className="mt-2 text-sm text-muted-foreground">
                 {isSetup ? "初始化完成后注册入口会自动关闭。" : "配置、校验、发布与回滚集中管理。"}
               </p>
-            </div>
-            <div className="relative mt-6 flex items-center gap-2 text-xs text-muted-foreground">
-              <ShieldCheck className="size-4 text-primary" />
-              管理入口固定保护在 :8080
             </div>
           </section>
 

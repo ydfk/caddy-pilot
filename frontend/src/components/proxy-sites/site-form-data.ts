@@ -8,8 +8,6 @@ const optionalJSON = z
   .refine((value) => !value.trim() || isJSON(value), "请输入有效 JSON");
 
 export const siteFormSchema = z.object({
-  name: z.string().trim().min(1, "请输入站点名称").max(128),
-  description: z.string().max(2000),
   domains: z.string().refine((value) => splitLines(value).length > 0, "至少填写一个域名"),
   upstreams: z.string().refine((value) => splitLines(value).length > 0, "至少填写一个上游"),
   enabled: z.boolean(),
@@ -29,8 +27,6 @@ export const siteFormSchema = z.object({
 export type SiteFormValues = z.infer<typeof siteFormSchema>;
 
 export const defaultSiteValues: SiteFormValues = {
-  name: "",
-  description: "",
   domains: "",
   upstreams: "",
   enabled: false,
@@ -49,8 +45,6 @@ export const defaultSiteValues: SiteFormValues = {
 
 export function formValuesFromSite(site: ProxySite, clone: boolean): SiteFormValues {
   return {
-    name: clone ? `${site.name} 副本` : site.name,
-    description: site.description,
     domains: site.domains.join("\n"),
     upstreams: site.upstreams.join("\n"),
     enabled: clone ? false : site.enabled,
@@ -70,8 +64,8 @@ export function formValuesFromSite(site: ProxySite, clone: boolean): SiteFormVal
 
 export function payloadFromForm(values: SiteFormValues, forceDisabled = false): ProxySitePayload {
   return {
-    name: values.name.trim(),
-    description: values.description.trim(),
+    name: "",
+    description: "",
     domains: splitLines(values.domains),
     upstreams: splitLines(values.upstreams),
     enabled: forceDisabled ? false : values.enabled,

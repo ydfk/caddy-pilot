@@ -32,7 +32,6 @@ export function AppSidebar() {
           <BrandLogo className="size-9 shrink-0 shadow-sm shadow-primary/15" eager />
           <div className="min-w-0 group-data-[collapsible=icon]:hidden">
             <p className="truncate font-mono text-sm font-semibold tracking-[0.12em]">CADDYPILOT</p>
-            <p className="truncate text-xs text-muted-foreground">LOCAL CONTROL PLANE</p>
           </div>
         </div>
       </SidebarHeader>
@@ -62,18 +61,6 @@ export function AppSidebar() {
       </SidebarContent>
       <SidebarSeparator />
       <SidebarFooter className="p-3">
-        <div className="flex items-center gap-3 px-2 py-2 group-data-[collapsible=icon]:hidden">
-          <span className="relative flex size-2">
-            <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary opacity-40" />
-            <span className="relative inline-flex size-2 rounded-full bg-primary" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-medium">本地节点</p>
-            <p className="truncate font-mono text-[0.65rem] text-muted-foreground">
-              127.0.0.1:2019
-            </p>
-          </div>
-        </div>
         <Button
           variant="ghost"
           size="sm"

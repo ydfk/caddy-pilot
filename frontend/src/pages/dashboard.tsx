@@ -31,7 +31,7 @@ export default function DashboardPage() {
       <PageHeader
         eyebrow="CONTROL / OVERVIEW"
         title="仪表盘"
-        description="本地代理站点与配置发布状态的即时概览。"
+        description="代理站点与配置发布状态的即时概览。"
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -58,14 +58,15 @@ export default function DashboardPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Globe2 className="size-5" /> 本地 Caddy
+              <Globe2 className="size-5" /> Caddy 运行状态
             </CardTitle>
-            <CardDescription>Admin API 仅用于容器内部通信</CardDescription>
+            <CardDescription>由 CaddyPilot 后端统一托管</CardDescription>
           </CardHeader>
           <CardContent className="flex items-center justify-between gap-4">
             <div>
-              <p className="font-mono text-sm">{summary?.caddy_admin_api ?? "正在读取…"}</p>
-              <p className="mt-1 text-xs text-muted-foreground">固定管理入口 :8080</p>
+              <p className="text-sm font-medium">
+                {summary?.caddy_online ? "服务运行正常" : "服务暂不可用"}
+              </p>
             </div>
             <Badge variant={summary?.caddy_online ? "default" : "destructive"}>
               {summary?.caddy_online ? "在线" : "离线"}

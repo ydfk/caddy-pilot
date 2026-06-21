@@ -118,7 +118,7 @@ export default function ProxySitesPage() {
     setBusyID(site.id);
     try {
       const result = await previewProxySite(site.id);
-      setPreview({ name: site.name, value: result.caddy_json });
+      setPreview({ name: site.domains[0] ?? "站点", value: result.caddy_json });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "生成预览失败");
     } finally {
@@ -209,7 +209,7 @@ export default function ProxySitesPage() {
                     <AlertDialogHeader>
                       <AlertDialogTitle>发布已校验的站点配置？</AlertDialogTitle>
                       <AlertDialogDescription>
-                        后端会重新生成完整配置、保留 :8080 管理入口并发布到本地 Caddy。
+                        后端会重新生成完整配置，并安全发布到托管的 Caddy。
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -275,7 +275,6 @@ export default function ProxySitesPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>名称</TableHead>
                     <TableHead>域名</TableHead>
                     <TableHead>上游</TableHead>
                     <TableHead>HTTPS</TableHead>
@@ -287,7 +286,6 @@ export default function ProxySitesPage() {
                 <TableBody>
                   {sites.map((site) => (
                     <TableRow key={site.id}>
-                      <TableCell className="font-medium">{site.name}</TableCell>
                       <TableCell className="max-w-56">
                         <span className="block truncate font-mono text-xs">
                           {site.domains.join(", ")}
@@ -306,7 +304,7 @@ export default function ProxySitesPage() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Switch
-                            aria-label={`${site.enabled ? "停用" : "启用"}${site.name}`}
+                            aria-label={`${site.enabled ? "停用" : "启用"}${site.domains[0]}`}
                             checked={site.enabled}
                             disabled={busyID === site.id}
                             onCheckedChange={(enabled) => void toggleSite(site, enabled)}
@@ -327,7 +325,7 @@ export default function ProxySitesPage() {
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" aria-label={`${site.name} 操作`}>
+                            <Button variant="ghost" size="icon" aria-label={`${site.domains[0]} 操作`}>
                               <MoreHorizontal />
                             </Button>
                           </DropdownMenuTrigger>
@@ -376,7 +374,7 @@ export default function ProxySitesPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>删除代理站点？</AlertDialogTitle>
             <AlertDialogDescription>
-              “{deleteTarget?.name}”将被软删除。已发布配置不会自动改变，需要另行发布。
+              “{deleteTarget?.domains[0]}”将被软删除。已发布配置不会自动改变，需要另行发布。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

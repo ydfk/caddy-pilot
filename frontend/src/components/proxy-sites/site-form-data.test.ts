@@ -7,13 +7,11 @@ describe("代理站点表单转换", () => {
   test("克隆表单始终默认停用", () => {
     const values = formValuesFromSite(sampleSite(), true);
     expect(values.enabled).toBe(false);
-    expect(values.name).toBe("示例站点 副本");
   });
 
   test("多行字段和 JSON 字段转换为 API 载荷", () => {
     const payload = payloadFromForm({
       ...defaultSiteValues,
-      name: "  示例站点  ",
       domains: "example.com\nwww.example.com\n",
       upstreams: "127.0.0.1:3000\n127.0.0.1:3001",
       requestHeaders: '{"X-Request":"value"}',
@@ -23,7 +21,7 @@ describe("代理站点表单转换", () => {
       enabled: true,
     });
 
-    expect(payload.name).toBe("示例站点");
+    expect(payload.name).toBe("");
     expect(payload.domains).toEqual(["example.com", "www.example.com"]);
     expect(payload.upstreams).toHaveLength(2);
     expect(payload.request_headers).toEqual({ "X-Request": "value" });

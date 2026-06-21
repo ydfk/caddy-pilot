@@ -13,7 +13,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -46,22 +45,10 @@ export function SiteForm({ mode, values, pending, onSave, onPreview }: SiteFormP
       <Card className="border-primary/20 shadow-sm">
         <CardHeader>
           <CardTitle>核心配置</CardTitle>
-          <CardDescription>名称、域名、上游和运行模式是每个站点最常调整的内容。</CardDescription>
+          <CardDescription>域名和上游是代理站点的核心配置。</CardDescription>
         </CardHeader>
         <CardContent>
           <FieldGroup className="gap-5">
-            <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
-              <Field data-invalid={Boolean(errors.name) || undefined}>
-                <FieldLabel htmlFor="name">名称</FieldLabel>
-                <Input id="name" {...form.register("name")} aria-invalid={Boolean(errors.name)} />
-                <FieldError errors={[errors.name]} />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="description">描述</FieldLabel>
-                <Input id="description" {...form.register("description")} />
-              </Field>
-            </div>
-
             <div className="grid gap-4 md:grid-cols-2">
               <Field data-invalid={Boolean(errors.domains) || undefined}>
                 <FieldLabel htmlFor="domains">域名</FieldLabel>

@@ -159,7 +159,7 @@ export default function ConfigVersionsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>回滚到 v{rollbackTarget?.version}？</AlertDialogTitle>
             <AlertDialogDescription>
-              历史 Caddy JSON 会先补齐受保护管理入口，再发布到本地节点，并创建一个新的回滚版本。
+              历史 Caddy JSON 会先补齐受保护管理入口，再恢复到托管的 Caddy，并创建新的回滚版本。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

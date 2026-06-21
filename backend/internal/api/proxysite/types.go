@@ -10,7 +10,7 @@ import (
 )
 
 type SitePayload struct {
-	Name             string            `json:"name" minLength:"1" maxLength:"128" doc:"站点名称"`
+	Name             string            `json:"name,omitempty" maxLength:"128" doc:"兼容字段，留空时使用首个域名"`
 	Description      string            `json:"description" maxLength:"2000" doc:"站点描述"`
 	Domains          []string          `json:"domains" minItems:"1" doc:"域名列表"`
 	Upstreams        []string          `json:"upstreams" minItems:"1" doc:"上游地址列表"`
