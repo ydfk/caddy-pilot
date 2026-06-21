@@ -2,9 +2,9 @@ root = "."
 tmp_dir = "tmp/air"
 
 [build]
-cmd = "go build -o ./tmp/air/go-fiber-starter ./cmd"
-bin = "tmp/air/go-fiber-starter"
-full_bin = "tmp/air/go-fiber-starter"
+cmd = "go build -o ./tmp/air/go-fiber-starter.exe ./cmd"
+bin = "tmp\\air\\go-fiber-starter.exe"
+full_bin = "tmp\\air\\go-fiber-starter.exe"
 include_ext = ["go", "yaml", "yml"]
 exclude_dir = ["tmp", "bin", "log", ".git", ".gocache", ".gomodcache"]
 delay = 500
