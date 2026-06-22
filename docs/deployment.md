@@ -17,6 +17,14 @@ docker compose ps
 
 默认 `docker-compose.yml` 可直接用于生产单机部署。用户只需要确认端口可用并持久化 `./data`，不需要声明容器内部地址、Admin API、数据库路径或密钥。
 
+若生产服务器直接从 Docker Hub 拉取镜像，使用：
+
+```powershell
+docker compose -f docker-compose.prod.yml up -d
+```
+
+默认镜像为 `ydfk/caddy-pilot:latest`。可通过 `CADDYPILOT_VERSION` 固定版本，例如 `1.2.3`；生产环境建议固定版本后再升级。
+
 ## 端口
 
 | 宿主机 | 容器 | 用途 |
@@ -36,7 +44,15 @@ docker compose ps
 
 密钥保存到 `/data/.caddypilot-secrets`，文件权限为 `0600`。容器重建和镜像升级会继续使用原密钥，Compose 不需要也不应该重复声明这些内部配置。
 
-只有开发、排障或接入自定义下载源时，才需要临时覆盖 `CADDY_VERSION_CHECK_URL`、`CADDY_DOWNLOAD_URL` 或 `CADDY_CHECKSUM_URL`。普通生产部署无需关注。
+`CADDY_VERSION_CHECK_URL` 和 `CADDY_DOWNLOAD_URL` 不参与容器正常启动：镜像已经包含带阿里云 DNS 模块的 Caddy。国内网络无法访问 GitHub 或 Caddy 官方服务时，只会影响“检查更新”和“后端更新”，不会影响已有站点运行。
+
+`docker-compose.prod.yml` 保留这三个可选覆盖项：
+
+- `CADDY_VERSION_CHECK_URL`：返回 `tag_name`，或返回 `version` 与 `update_url` 的 JSON 地址。
+- `CADDY_DOWNLOAD_URL`：支持 `{version}`、`{os}`、`{arch}`、`{ext}` 占位符的可信下载源。
+- `CADDY_CHECKSUM_URL`：自定义下载源对应的 SHA-512 清单，生产环境使用镜像源时建议同时配置。
+
+普通部署无需填写。国内部署更推荐直接更新 CaddyPilot Docker 镜像；只有确实需要界面内热更新 Caddy 时，再配置可信的国内镜像地址。
 
 ## 检查
 
@@ -74,10 +90,19 @@ Docker 镜像和默认托管下载都包含 `github.com/caddy-dns/alidns`。使�
 Windows 无 Docker 开发使用：
 
 ```powershell
-.\dev.cmd
+.\scripts\dev.cmd
 ```
 
 完整管理界面统一访问 <http://localhost:8080>；Vite 的 3000 端口只是内部开发上游。
+
+## Docker Hub 自动发布
+
+GitHub Actions 仅响应 `v1.2.3` 或 `v1.2.3-rc.1` 格式的 Tag，并发布 `linux/amd64`、`linux/arm64` 镜像。仓库需要配置：
+
+- `DOCKERHUB_USERNAME`：Docker Hub 用户名。
+- `DOCKERHUB_TOKEN`：仅授予仓库写入权限的 Access Token。
+
+稳定版本会生成完整版本、主次版本、主版本和 `latest` 标签；预发布版本不会覆盖 `latest`。
 
 ## 故障排查
 

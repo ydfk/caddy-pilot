@@ -94,6 +94,12 @@ Stop everything:
 docker compose down
 ```
 
+For a production host that pulls the published Docker Hub image:
+
+```bash
+docker compose -f docker-compose.prod.yml up -d
+```
+
 ---
 
 ## Docker Compose configuration
@@ -143,10 +149,10 @@ Back up the entire directory when migrating or upgrading. Losing `.caddypilot-se
 
 **One-click start (Windows):**
 
-Double-click `dev.cmd` or run in PowerShell:
+Double-click `scripts\dev.cmd` or run in PowerShell:
 
 ```powershell
-.\dev.cmd
+.\scripts\dev.cmd
 ```
 
 This starts Vite and the Go backend natively (no Docker). The backend automatically downloads a private Caddy runtime when needed, starts it, and exposes the complete system at `http://localhost:8080`. No system-wide Caddy installation is required.
@@ -176,6 +182,20 @@ Environment variables for development:
 | `CADDY_DOWNLOAD_URL` | Caddy custom build API | Managed build with the Aliyun DNS module; supports `{version}`, `{os}`, `{arch}` |
 | `CADDY_CHECKSUM_URL` | empty | Optional SHA-512 manifest URL for a custom download source |
 | `VITE_PROXY_HOST` | `http://127.0.0.1:25610` | Vite dev proxy target |
+
+Project-level Windows commands are centralized under `scripts/`:
+
+| Command | Purpose |
+| --- | --- |
+| `scripts\dev.cmd` | Start frontend, backend, and managed Caddy |
+| `scripts\dev-web.cmd` | Start only the Vite frontend |
+| `scripts\dev-server.cmd` | Start backend and managed Caddy with Air |
+| `scripts\build.cmd` | Build frontend and backend |
+| `scripts\test.cmd` | Run frontend and backend tests |
+
+## Docker image releases
+
+Pushing a semantic version tag such as `v1.2.3` publishes multi-architecture images to Docker Hub. Configure repository secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` first. Stable tags also update `latest`; prerelease tags such as `v1.2.3-rc.1` do not.
 
 ---
 

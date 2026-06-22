@@ -66,6 +66,13 @@ CaddyPilot 是一个用于可视化管理 Caddy 反向代理配置的轻量 Web 
 - [x] 首次启动自动生成 JWT 与凭据加密密钥，并随 `/data` 持久化。
 - [x] 验证生产镜像重建、健康检查和密钥跨重启保持不变。
 
+### 2026-06-22 发布与脚本整理
+
+- [x] 增加拉取 Docker Hub 镜像的 `docker-compose.prod.yml`。
+- [x] 明确国内环境的版本检查与 Caddy 下载地址为可选更新能力。
+- [x] 将跨模块开发、构建和测试脚本统一归档到根目录 `scripts/`。
+- [x] 增加语义化 Tag 触发的多架构 Docker Hub 发布工作流。
+
 > 2026-06-21 托管架构更新优先于下文早期的 supervisor、静态 Caddyfile 和手动启动描述；这些旧章节仅保留原始规划背景。
 >
 > 2026-06-21 单机管理深化同样优先于下文早期的 CaddyNode、站点名称/描述、站点内 Basic Auth JSON 和“不做 DNS Provider”描述；当前只管理本系统托管的 Caddy，并内置阿里云 DNS-01。

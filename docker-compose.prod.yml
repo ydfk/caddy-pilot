@@ -1,0 +1,30 @@
+name: caddy-pilot
+
+services:
+  caddypilot:
+    image: ${CADDYPILOT_IMAGE:-ydfk/caddy-pilot}:${CADDYPILOT_VERSION:-latest}
+    pull_policy: always
+    container_name: caddypilot
+    restart: unless-stopped
+    ports:
+      - "${CADDYPILOT_MANAGE_PORT:-8080}:8080"
+      - "${CADDYPILOT_HTTP_PORT:-80}:80"
+      - "${CADDYPILOT_HTTPS_PORT:-443}:443"
+    environment:
+      CADDY_VERSION_CHECK_URL: ${CADDY_VERSION_CHECK_URL:-}
+      CADDY_DOWNLOAD_URL: ${CADDY_DOWNLOAD_URL:-}
+      CADDY_CHECKSUM_URL: ${CADDY_CHECKSUM_URL:-}
+    volumes:
+      - ./data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 10s
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
