@@ -60,6 +60,12 @@
 | GET | `/api/caddy/settings` | 获取数据库中保存的版本校验、下载与校验和地址 |
 | PUT | `/api/caddy/settings` | 更新 Caddy 更新源设置 |
 
+## 系统信息
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/api/system/info` | 获取独立于 Caddy 运行时的 CaddyPilot 系统版本 |
+
 ## Caddy
 
 | 方法 | 路径 | 说明 |

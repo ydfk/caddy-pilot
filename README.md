@@ -32,7 +32,8 @@ All configuration changes are versioned. If a publish fails, your previous worki
 - **Config preview & publish** — see the exact Caddy JSON before it goes live; push to Caddy Admin API in one step
 - **Version history & rollback** — every publish is recorded; diff, inspect, or rollback to any previous version
 - **Dashboard** — at-a-glance status: site counts, Caddy health, last publish time
-- **Unified Caddy workbench** — runtime health, validate/publish flow, config history, system version, and Caddy updates in one place
+- **Unified Caddy workbench** — runtime health, validate/publish flow, config history, and Caddy updates in one place
+- **System identity** — the global sidebar shows the CaddyPilot version embedded from the release Tag
 - **Self-protecting** — the management port (`:8080`) is never removed from generated configs, so the UI always stays reachable
 - **Single system** — Caddy + Go API + React ship together; users never install or start Caddy separately
 

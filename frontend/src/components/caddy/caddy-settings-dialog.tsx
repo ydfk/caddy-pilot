@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { Save } from "lucide-react";
+import { ShieldCheck, Save } from "lucide-react";
 
 import type { CaddySettings } from "@/api/caddy";
 import { Button } from "@/components/ui/button";
@@ -62,6 +62,16 @@ export function CaddySettingsDialog({ settings, trigger, onSave }: Props) {
             </DialogDescription>
           </DialogHeader>
           <FieldGroup className="py-5">
+            <div className="flex gap-3 rounded-lg border border-primary/20 bg-primary/[0.035] p-3 text-sm">
+              <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
+              <p>
+                <span className="font-medium">SHA-512 用于校验下载文件完整性。</span>
+                <span className="mt-1 block text-xs text-muted-foreground">
+                  系统下载 Caddy
+                  后计算文件摘要，并与清单中的摘要对比，可发现下载损坏或文件被替换。使用自定义下载源时建议同时配置。
+                </span>
+              </p>
+            </div>
             <Field>
               <FieldLabel htmlFor="version-check-url">版本校验地址</FieldLabel>
               <Input
@@ -97,6 +107,9 @@ export function CaddySettingsDialog({ settings, trigger, onSave }: Props) {
                 onChange={(event) => update("checksum_url", event.target.value)}
                 placeholder="可选"
               />
+              <FieldDescription>
+                可选。填写提供 SHA-512 文件摘要列表的地址；官方动态构建地址未提供兼容清单时可留空。
+              </FieldDescription>
             </Field>
           </FieldGroup>
           <DialogFooter>
