@@ -1,15 +1,13 @@
-name: caddy-pilot
-
 services:
-  caddypilot:
-    image: ${CADDYPILOT_IMAGE:-ydfk/caddy-pilot}:${CADDYPILOT_VERSION:-latest}
+  caddy-pilot:
+    image: ydfk/caddy-pilot:latest
     pull_policy: always
-    container_name: caddypilot
+    container_name: caddy-pilot
     restart: unless-stopped
     ports:
-      - "${CADDYPILOT_MANAGE_PORT:-8080}:8080"
-      - "${CADDYPILOT_HTTP_PORT:-80}:80"
-      - "${CADDYPILOT_HTTPS_PORT:-443}:443"
+      - "8080:8080"
+      - "80:80"
+      - "443:443"
     volumes:
       - ./data:/data
     healthcheck:
