@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.7
+
 ARG CADDY_VERSION=2.10.0
 ARG APP_VERSION=dev
 
@@ -5,7 +7,8 @@ FROM node:22-alpine AS frontend-build
 WORKDIR /src/frontend
 RUN corepack enable && corepack prepare pnpm@10.6.2 --activate
 COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./
-RUN pnpm install --frozen-lockfile
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
 COPY frontend/ ./
 RUN pnpm build
 
@@ -14,13 +17,17 @@ ARG APP_VERSION
 RUN apk add --no-cache build-base
 WORKDIR /src/backend
 COPY backend/go.mod backend/go.sum ./
-RUN go mod download
+RUN --mount=type=cache,target=/go/pkg/mod go mod download
 COPY backend/ ./
-RUN CGO_ENABLED=1 GOOS=linux go build -trimpath -ldflags="-s -w -X go-fiber-starter/pkg/version.Current=${APP_VERSION}" -o /out/caddypilot ./cmd
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=1 GOOS=linux go build -trimpath -ldflags="-s -w -X go-fiber-starter/pkg/version.Current=${APP_VERSION}" -o /out/caddypilot ./cmd
 
 FROM caddy:${CADDY_VERSION}-builder-alpine AS caddy-build
 ARG CADDY_VERSION
-RUN xcaddy build v${CADDY_VERSION} --with github.com/caddy-dns/alidns
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    xcaddy build v${CADDY_VERSION} --with github.com/caddy-dns/alidns
 
 FROM caddy:${CADDY_VERSION}-alpine
 RUN apk add --no-cache ca-certificates tzdata \

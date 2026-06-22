@@ -92,7 +92,7 @@ CaddyPilot 是一个用于可视化管理 Caddy 反向代理配置的轻量 Web 
 
 ### 2026-06-22 Caddy 持久化、证书与日志完善
 
-- [ ] 发布构建仅保留 linux/amd64，移除 QEMU、SBOM 和高开销 provenance，并强化 BuildKit 缓存。
+- [x] 发布构建仅保留 linux/amd64，移除 QEMU、SBOM 和高开销 provenance，并强化 BuildKit 缓存。
 - [ ] Caddy 二进制、当前版本、活动配置、原生数据与日志统一持久化到 `/data`。
 - [ ] 修复慢速下载超时，增加可轮询的更新任务状态与失败原因。
 - [ ] 支持上传 Caddy 可执行文件、ZIP 和 tar.gz，并校验平台、版本及阿里云 DNS 模块。
