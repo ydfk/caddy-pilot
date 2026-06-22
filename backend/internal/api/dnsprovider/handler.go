@@ -65,7 +65,9 @@ func Update(ctx context.Context, input *DNSProviderUpdateInput) (*DNSProviderOut
 	if err != nil {
 		return nil, huma.Error500InternalServerError("解密 DNS Provider 失败")
 	}
-	config.AccessKeyID = strings.TrimSpace(input.Body.AccessKeyID)
+	if value := strings.TrimSpace(input.Body.AccessKeyID); value != "" {
+		config.AccessKeyID = value
+	}
 	config.RegionID = defaultRegion(input.Body.RegionID)
 	if input.Body.AccessKeySecret != "" {
 		config.AccessKeySecret = input.Body.AccessKeySecret

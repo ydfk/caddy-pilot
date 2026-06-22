@@ -19,7 +19,7 @@ type DNSProviderCreatePayload struct {
 
 type DNSProviderUpdatePayload struct {
 	Name            string `json:"name" minLength:"1" maxLength:"128"`
-	AccessKeyID     string `json:"access_key_id" minLength:"1" maxLength:"256"`
+	AccessKeyID     string `json:"access_key_id,omitempty" maxLength:"256" doc:"留空时保留原 AccessKey ID"`
 	AccessKeySecret string `json:"access_key_secret,omitempty" maxLength:"256" doc:"留空时保留原密钥"`
 	RegionID        string `json:"region_id,omitempty" maxLength:"64"`
 	Enabled         bool   `json:"enabled"`

@@ -14,11 +14,14 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarRail,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { useAuthStore } from "@/store/auth-store";
-import { navigationItems } from "./navigation";
+import { navigationGroups, primaryNavigation } from "./navigation";
 
 export function AppSidebar() {
   const location = useLocation();
@@ -41,7 +44,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>管理</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navigationItems.map((item) => (
+              {primaryNavigation.slice(0, 2).map((item) => (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton
                     asChild
@@ -52,6 +55,30 @@ export function AppSidebar() {
                       <item.icon />
                       <span>{item.title}</span>
                     </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+              {navigationGroups.map((group) => (
+                <SidebarMenuItem key={group.title}>
+                  <SidebarMenuButton tooltip={group.title} isActive={group.children.some((item) => location.pathname.startsWith(item.url))}>
+                    <group.icon />
+                    <span>{group.title}</span>
+                  </SidebarMenuButton>
+                  <SidebarMenuSub>
+                    {group.children.map((item) => (
+                      <SidebarMenuSubItem key={item.url}>
+                        <SidebarMenuSubButton asChild isActive={location.pathname.startsWith(item.url)}>
+                          <NavLink to={item.url}><item.icon /><span>{item.title}</span></NavLink>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    ))}
+                  </SidebarMenuSub>
+                </SidebarMenuItem>
+              ))}
+              {primaryNavigation.slice(2).map((item) => (
+                <SidebarMenuItem key={item.url}>
+                  <SidebarMenuButton asChild isActive={location.pathname.startsWith(item.url)} tooltip={item.title}>
+                    <NavLink to={item.url}><item.icon /><span>{item.title}</span></NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

@@ -19,6 +19,8 @@ const DashboardPage = lazy(() => import("./pages/dashboard"));
 const CaddyPage = lazy(() => import("./pages/caddy"));
 const SettingsPage = lazy(() => import("./pages/settings"));
 const BasicAuthPage = lazy(() => import("./pages/basic-auth"));
+const CertificatesPage = lazy(() => import("./pages/certificates"));
+const DNSProvidersPage = lazy(() => import("./pages/dns-providers"));
 
 const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
@@ -49,6 +51,14 @@ const router = createBrowserRouter([
           {
             path: "proxy-sites/:id/clone",
             element: <ProxySiteFormPage />,
+          },
+          {
+            path: "certificates",
+            element: <CertificatesPage />,
+          },
+          {
+            path: "dns-providers",
+            element: <DNSProvidersPage />,
           },
           {
             path: "basic-auth",
