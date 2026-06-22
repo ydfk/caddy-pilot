@@ -44,6 +44,15 @@
 | PUT | `/api/basic-auth-credentials/{id}` | 修改名称、用户名或密码 |
 | DELETE | `/api/basic-auth-credentials/{id}` | 删除未被站点引用的条目 |
 
+## DNS Provider 与证书
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET/POST | `/api/dns-providers` | 查询或新增系统 DNS Provider |
+| PUT/DELETE | `/api/dns-providers/{id}` | 编辑或删除未被引用的 Provider |
+| GET/POST | `/api/certificates` | 查询或新增可复用证书配置 |
+| PUT/DELETE | `/api/certificates/{id}` | 编辑或删除未被站点引用的证书配置 |
+
 ## Caddy
 
 | 方法 | 路径 | 说明 |

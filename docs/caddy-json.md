@@ -52,7 +52,7 @@
 
 ## HTTPS 与证书
 
-HTTPS server 显式生成 TLS connection policy。域名证书默认使用 HTTP/TLS-ALPN 验证，也可以选择阿里云 DNS-01；通配符证书强制使用 DNS-01。阿里云 provider 使用环境变量占位符，AccessKey 不写入数据库和配置版本。全局关闭 Caddy 自动 HTTP 跳转，由生成器按站点的 `force_https` 显式控制。
+HTTPS server 显式生成 TLS connection policy。域名证书默认使用 HTTP/TLS-ALPN 验证，也可以选择 DNS-01；通配符证书引用系统证书配置并强制使用 DNS-01。阿里云凭据在数据库中加密保存，生成 JSON 只写入按 Provider ID 隔离的环境变量占位符，因此 AccessKey 不会进入配置版本。全局关闭 Caddy 自动 HTTP 跳转，由生成器按站点的 `force_https` 显式控制。
 
 ## 回滚修复
 

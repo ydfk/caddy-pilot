@@ -180,8 +180,7 @@ Environment variables for development:
 | `CADDY_VERSION_CHECK_URL` | GitHub releases API | Version check endpoint |
 | `CADDY_DOWNLOAD_URL` | Caddy custom build API | Managed build with the Aliyun DNS module; supports `{version}`, `{os}`, `{arch}` |
 | `CADDY_CHECKSUM_URL` | empty | Optional SHA-512 manifest URL for a custom download source |
-| `ALIYUN_ACCESS_KEY_ID` | — | Aliyun DNS-01 AccessKey ID |
-| `ALIYUN_ACCESS_KEY_SECRET` | — | Aliyun DNS-01 AccessKey secret |
+| `CADDYPILOT_SECRET_KEY` | falls back to `JWT_SECRET` | AES-GCM key used to encrypt DNS credentials; do not rotate without re-entering credentials |
 | `VITE_PROXY_HOST` | `http://127.0.0.1:25610` | Vite dev proxy target |
 | `JWT_SECRET` | — | JWT signing key (required in production) |
 
@@ -199,7 +198,7 @@ Environment variables for development:
 ## Roadmap
 
 - Merge `advanced_json` into generated configs via a controlled allowlist (currently saved but not applied)
-- Add encrypted in-app management for DNS provider credentials; currently supplied as environment variables
+- Add DNS providers beyond Aliyun
 - Expand `enable_log` into per-site access log configuration
 - Auto-restore the last successful business config on restart (currently boots with a backend-generated protected management config)
 

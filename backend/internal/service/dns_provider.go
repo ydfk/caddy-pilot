@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 
 	"go-fiber-starter/internal/model/dnsprovider"
+	"go-fiber-starter/pkg/logger"
 
 	"gorm.io/gorm"
 )
@@ -47,10 +49,17 @@ func DecryptAliDNSConfig(value string) (AliDNSConfig, error) {
 
 func LoadDNSProviderEnvironment(ctx context.Context, database *gorm.DB) error {
 	var providers []dnsprovider.DNSProvider
-	if err := database.WithContext(ctx).Where("enabled = ?", true).Find(&providers).Error; err != nil {
+	if err := database.WithContext(ctx).Unscoped().Find(&providers).Error; err != nil {
 		return fmt.Errorf("读取 DNS Provider 失败: %w", err)
 	}
 	for _, provider := range providers {
+		idName, secretName, regionName := dnsprovider.EnvNames(provider.Id)
+		_ = os.Unsetenv(idName)
+		_ = os.Unsetenv(secretName)
+		_ = os.Unsetenv(regionName)
+		if !provider.Enabled || provider.DeletedAt.Valid {
+			continue
+		}
 		if provider.ProviderType != "alidns" {
 			continue
 		}
@@ -58,7 +67,6 @@ func LoadDNSProviderEnvironment(ctx context.Context, database *gorm.DB) error {
 		if err != nil {
 			return fmt.Errorf("解密 DNS Provider %s 失败: %w", provider.Name, err)
 		}
-		idName, secretName, regionName := dnsprovider.EnvNames(provider.Id)
 		if err := os.Setenv(idName, config.AccessKeyID); err != nil {
 			return err
 		}
@@ -80,8 +88,13 @@ func ApplyDNSProviderRuntime(ctx context.Context, database *gorm.DB) error {
 	if manager == nil {
 		return nil
 	}
-	if err := manager.Restart(ctx); err != nil {
-		return fmt.Errorf("重启托管 Caddy 失败: %w", err)
-	}
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		restartContext, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		if err := manager.Restart(restartContext); err != nil {
+			logger.Error("应用 DNS Provider 后重启 Caddy 失败: %v", err)
+		}
+	}()
 	return nil
 }
