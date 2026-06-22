@@ -4,9 +4,9 @@ import { Controller, useForm, type UseFormRegisterReturn } from "react-hook-form
 import { Link } from "react-router-dom";
 
 import { PageHeader } from "@/components/page-header";
-import type { BasicAuthCredential } from "@/api/basic-auth";
+import type { BasicAuthCredential, BasicAuthCredentialPayload } from "@/api/basic-auth";
 import type { CertificateProfile, CertificateProfilePayload } from "@/api/certificates";
-import type { DNSProvider } from "@/api/dns-providers";
+import type { DNSProvider, DNSProviderPayload } from "@/api/dns-providers";
 import {
   Accordion,
   AccordionContent,
@@ -34,11 +34,25 @@ type SiteFormProps = {
   certificates: CertificateProfile[];
   dnsProviders: DNSProvider[];
   onCreateCertificate: (payload: CertificateProfilePayload) => Promise<CertificateProfile>;
+  onCreateDNSProvider: (payload: DNSProviderPayload) => Promise<DNSProvider>;
+  onCreateCredential: (payload: BasicAuthCredentialPayload) => Promise<BasicAuthCredential>;
   onSave: (values: SiteFormValues, publish: boolean) => Promise<void>;
   onPreview: (values: SiteFormValues) => void;
 };
 
-export function SiteForm({ mode, values, pending, credentials, certificates, dnsProviders, onCreateCertificate, onSave, onPreview }: SiteFormProps) {
+export function SiteForm({
+  mode,
+  values,
+  pending,
+  credentials,
+  certificates,
+  dnsProviders,
+  onCreateCertificate,
+  onCreateDNSProvider,
+  onCreateCredential,
+  onSave,
+  onPreview,
+}: SiteFormProps) {
   const form = useForm<SiteFormValues>({ resolver: zodResolver(siteFormSchema), values });
   const errors = form.formState.errors;
   const cloneMode = mode === "clone";
@@ -66,8 +80,42 @@ export function SiteForm({ mode, values, pending, credentials, certificates, dns
           <FieldGroup className="gap-5">
             <UpstreamOptions control={form.control} />
             <div className="grid gap-4 md:grid-cols-2">
-              <Controller control={form.control} name="domains" render={({ field }) => <StringListField id="domains" label="域名" value={field.value} onChange={field.onChange} placeholder="example.com" addLabel="添加域名" description="多个域名共用这一套代理和访问控制配置。" error={errors.domains?.message} />} />
-              <Controller control={form.control} name="upstreams" render={({ field }) => <StringListField id="upstreams" label="上游地址" value={field.value} onChange={field.onChange} placeholder={upstreamType === "unix" ? "/run/app.sock" : "127.0.0.1:3000"} addLabel="添加上游" description={upstreamType === "unix" ? "每项一个套接字路径。" : "多个上游由 Caddy 自动负载分配。每项填写 host:port。"} error={errors.upstreams?.message} />} />
+              <Controller
+                control={form.control}
+                name="domains"
+                render={({ field }) => (
+                  <StringListField
+                    id="domains"
+                    label="域名"
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="example.com"
+                    addLabel="添加域名"
+                    description="多个域名共用这一套代理和访问控制配置。"
+                    error={errors.domains?.message}
+                  />
+                )}
+              />
+              <Controller
+                control={form.control}
+                name="upstreams"
+                render={({ field }) => (
+                  <StringListField
+                    id="upstreams"
+                    label="上游地址"
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder={upstreamType === "unix" ? "/run/app.sock" : "127.0.0.1:3000"}
+                    addLabel="添加上游"
+                    description={
+                      upstreamType === "unix"
+                        ? "每项一个套接字路径。"
+                        : "多个上游由 Caddy 自动负载分配。每项填写 host:port。"
+                    }
+                    error={errors.upstreams?.message}
+                  />
+                )}
+              />
             </div>
 
             {upstreamType === "https" ? <UpstreamTLSOptions control={form.control} /> : null}
@@ -86,6 +134,7 @@ export function SiteForm({ mode, values, pending, credentials, certificates, dns
                   form.setValue("certificateProfileID", created.id, { shouldValidate: true });
                   return created;
                 }}
+                onCreateDNSProvider={onCreateDNSProvider}
               />
             ) : null}
           </FieldGroup>
@@ -147,6 +196,7 @@ export function SiteForm({ mode, values, pending, credentials, certificates, dns
                       credentials={credentials}
                       selected={field.value}
                       onChange={field.onChange}
+                      onCreate={onCreateCredential}
                     />
                   )}
                 />

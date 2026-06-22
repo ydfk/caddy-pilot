@@ -2,6 +2,7 @@ import { apiRequest } from "./client";
 
 export type CaddyStatus = { online: boolean; error_message?: string };
 export type CaddyVersion = {
+  system_version: string;
   current_version: string;
   latest_version?: string;
   update_available: boolean;
@@ -13,11 +14,22 @@ export type CaddyVersion = {
   update_strategy: "managed";
   error_message?: string;
 };
+export type CaddySettings = {
+  version_check_url: string;
+  download_url: string;
+  checksum_url: string;
+};
 export type CaddyJSONResponse = { caddy_json: unknown };
 export type CaddyChangeStatus = { dirty: boolean; latest_version?: number };
 
 export const getCaddyStatus = () => apiRequest<CaddyStatus>("/api/caddy/status");
 export const getCaddyVersion = () => apiRequest<CaddyVersion>("/api/caddy/version");
+export const getCaddySettings = () => apiRequest<CaddySettings>("/api/caddy/settings");
+export const saveCaddySettings = (settings: CaddySettings) =>
+  apiRequest<CaddySettings>("/api/caddy/settings", {
+    method: "PUT",
+    body: JSON.stringify(settings),
+  });
 export const updateManagedCaddy = (version?: string) =>
   apiRequest<{ accepted: boolean; target_version: string }>("/api/caddy/update", {
     method: "POST",

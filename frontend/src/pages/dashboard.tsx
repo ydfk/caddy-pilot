@@ -91,7 +91,7 @@ export default function DashboardPage() {
                 : "暂无成功发布"}
             </p>
             <Button variant="outline" size="sm" asChild>
-              <Link to="/config-versions">查看历史</Link>
+              <Link to="/caddy">查看历史</Link>
             </Button>
           </CardContent>
         </Card>

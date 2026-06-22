@@ -57,7 +57,7 @@ export default function ConfigVersionDetailPage() {
         actions={
           <>
             <Button variant="outline" asChild>
-              <Link to="/config-versions">
+              <Link to="/caddy">
                 <ArrowLeft data-icon="inline-start" /> 返回
               </Link>
             </Button>

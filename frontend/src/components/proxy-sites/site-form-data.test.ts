@@ -25,6 +25,7 @@ describe("代理站点表单转换", () => {
     expect(payload.upstreams).toHaveLength(2);
     expect(payload.request_headers).toEqual({ "X-Request": "value" });
     expect(payload.allowed_ips).toEqual(["127.0.0.1", "10.0.0.0/8"]);
+    expect(payload.dns_provider).toBe("alidns");
   });
 });
 

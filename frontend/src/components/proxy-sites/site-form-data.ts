@@ -116,10 +116,7 @@ export function payloadFromForm(values: SiteFormValues, forceDisabled = false): 
     certificate_domain: values.certificateDomain.trim(),
     acme_challenge_type:
       values.certificateType === "wildcard" ? "dns" : values.acmeChallengeType,
-    dns_provider:
-      values.certificateType === "wildcard" || values.acmeChallengeType === "dns"
-        ? values.dnsProvider
-        : "",
+    dns_provider: values.dnsProvider,
     dns_provider_id:
       values.certificateType === "single" && values.acmeChallengeType === "dns"
         ? values.dnsProviderID || undefined

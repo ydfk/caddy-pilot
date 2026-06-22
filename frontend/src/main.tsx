@@ -13,11 +13,9 @@ import "./index.css";
 const LoginPage = lazy(() => import("./pages/login"));
 const ProxySitesPage = lazy(() => import("./pages/proxy-sites"));
 const ProxySiteFormPage = lazy(() => import("./pages/proxy-sites/form"));
-const ConfigVersionsPage = lazy(() => import("./pages/config-versions"));
 const ConfigVersionDetailPage = lazy(() => import("./pages/config-versions/detail"));
 const DashboardPage = lazy(() => import("./pages/dashboard"));
 const CaddyPage = lazy(() => import("./pages/caddy"));
-const SettingsPage = lazy(() => import("./pages/settings"));
 const BasicAuthPage = lazy(() => import("./pages/basic-auth"));
 const CertificatesPage = lazy(() => import("./pages/certificates"));
 const DNSProvidersPage = lazy(() => import("./pages/dns-providers"));
@@ -66,7 +64,7 @@ const router = createBrowserRouter([
           },
           {
             path: "config-versions",
-            element: <ConfigVersionsPage />,
+            element: <Navigate to="/caddy" replace />,
           },
           {
             path: "config-versions/:id",
@@ -75,10 +73,6 @@ const router = createBrowserRouter([
           {
             path: "caddy",
             element: <CaddyPage />,
-          },
-          {
-            path: "settings",
-            element: <SettingsPage />,
           },
         ],
       },

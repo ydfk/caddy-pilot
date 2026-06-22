@@ -10,9 +10,24 @@ import {
   type ProxySite,
 } from "@/api/proxy-sites";
 import { publishCaddyConfig } from "@/api/caddy";
-import { listBasicAuthCredentials, type BasicAuthCredential } from "@/api/basic-auth";
-import { createCertificate, listCertificates, type CertificateProfile, type CertificateProfilePayload } from "@/api/certificates";
-import { listDNSProviders, type DNSProvider } from "@/api/dns-providers";
+import {
+  createBasicAuthCredential,
+  listBasicAuthCredentials,
+  type BasicAuthCredential,
+  type BasicAuthCredentialPayload,
+} from "@/api/basic-auth";
+import {
+  createCertificate,
+  listCertificates,
+  type CertificateProfile,
+  type CertificateProfilePayload,
+} from "@/api/certificates";
+import {
+  createDNSProvider,
+  listDNSProviders,
+  type DNSProvider,
+  type DNSProviderPayload,
+} from "@/api/dns-providers";
 import { JSONDialog } from "@/components/json-dialog";
 import { SiteForm } from "@/components/proxy-sites/site-form";
 import {
@@ -44,7 +59,9 @@ export default function ProxySiteFormPage() {
         setCertificates(nextCertificates);
         setDNSProviders(nextProviders);
       })
-      .catch((error) => toast.error(error instanceof Error ? error.message : "读取站点依赖配置失败"));
+      .catch((error) =>
+        toast.error(error instanceof Error ? error.message : "读取站点依赖配置失败")
+      );
   }, []);
 
   useEffect(() => {
@@ -92,6 +109,20 @@ export default function ProxySiteFormPage() {
     return created;
   }
 
+  async function createProvider(payload: DNSProviderPayload) {
+    const created = await createDNSProvider(payload);
+    setDNSProviders((current) => [created, ...current]);
+    toast.success("DNS Provider 已创建并选中");
+    return created;
+  }
+
+  async function createCredential(payload: BasicAuthCredentialPayload) {
+    const created = await createBasicAuthCredential(payload);
+    setCredentials((current) => [created, ...current]);
+    toast.success("密码条目已创建并选中");
+    return created;
+  }
+
   if (loading) {
     return (
       <div className="flex flex-col gap-4">
@@ -111,6 +142,8 @@ export default function ProxySiteFormPage() {
         certificates={certificates}
         dnsProviders={dnsProviders}
         onCreateCertificate={createCertificateProfile}
+        onCreateDNSProvider={createProvider}
+        onCreateCredential={createCredential}
         onSave={save}
         onPreview={(data) => setPreview(draftPreview(data))}
       />

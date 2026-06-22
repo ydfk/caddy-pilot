@@ -13,7 +13,18 @@ test("展示 CaddyPilot 管理导航", () => {
   );
 
   expect(screen.getByText("CADDYPILOT")).toBeInTheDocument();
-  for (const item of ["仪表盘", "代理站点", "Caddy 管理", "运行状态", "配置版本", "证书与访问", "证书", "DNS Provider", "密码本", "系统设置"]) {
+  for (const item of [
+    "仪表盘",
+    "代理站点",
+    "Caddy 管理",
+    "证书与访问",
+    "证书",
+    "DNS Provider",
+    "密码本",
+  ]) {
     expect(screen.getByText(item)).toBeInTheDocument();
   }
+  expect(screen.queryByText("系统设置")).not.toBeInTheDocument();
+  expect(screen.queryByText("运行状态")).not.toBeInTheDocument();
+  expect(screen.queryByText("配置版本")).not.toBeInTheDocument();
 });
