@@ -1,8 +1,10 @@
+import { useEffect, useState } from "react";
 import { LogOut } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/brand-logo";
+import { getSystemInfo } from "@/api/system";
 import {
   Sidebar,
   SidebarContent,
@@ -27,6 +29,13 @@ export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const clear = useAuthStore((state) => state.clear);
+  const [systemVersion, setSystemVersion] = useState("dev");
+
+  useEffect(() => {
+    getSystemInfo()
+      .then((info) => setSystemVersion(info.version))
+      .catch(() => undefined);
+  }, []);
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border/70">
@@ -90,6 +99,12 @@ export function AppSidebar() {
       </SidebarContent>
       <SidebarSeparator />
       <SidebarFooter className="p-3">
+        <div className="mb-1 rounded-md border border-sidebar-border/70 px-3 py-2 group-data-[collapsible=icon]:hidden">
+          <p className="text-[10px] uppercase tracking-[0.14em] text-sidebar-foreground/50">
+            系统版本
+          </p>
+          <p className="mt-1 font-mono text-xs font-medium">CaddyPilot {systemVersion}</p>
+        </div>
         <Button
           variant="ghost"
           size="sm"

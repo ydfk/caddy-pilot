@@ -2,7 +2,6 @@ import { apiRequest } from "./client";
 
 export type CaddyStatus = { online: boolean; error_message?: string };
 export type CaddyVersion = {
-  system_version: string;
   current_version: string;
   latest_version?: string;
   update_available: boolean;

@@ -29,6 +29,7 @@ jobs:
           else
             echo "stable=true" >> "$GITHUB_OUTPUT"
           fi
+          echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
       - name: 配置 QEMU
         uses: docker/setup-qemu-action@06116385d9baf250c9f4dcb4858b16962ea869c3 # v4.1.0
@@ -58,7 +59,7 @@ jobs:
         uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
         with:
           context: .
-          build-args: APP_VERSION=${{ github.ref_name }}
+          build-args: APP_VERSION=${{ steps.version.outputs.version }}
           push: true
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}

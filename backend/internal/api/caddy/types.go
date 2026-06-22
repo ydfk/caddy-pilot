@@ -20,7 +20,6 @@ type StatusOutput struct {
 }
 
 type VersionResponse struct {
-	SystemVersion   string `json:"system_version"`
 	CurrentVersion  string `json:"current_version"`
 	LatestVersion   string `json:"latest_version,omitempty"`
 	UpdateAvailable bool   `json:"update_available"`

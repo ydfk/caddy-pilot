@@ -8,7 +8,6 @@ import (
 	"go-fiber-starter/internal/service"
 	"go-fiber-starter/pkg/db"
 	"go-fiber-starter/pkg/logger"
-	buildversion "go-fiber-starter/pkg/version"
 
 	"github.com/danielgtaylor/huma/v2"
 )
@@ -39,7 +38,6 @@ func Version(ctx context.Context, _ *struct{}) (*VersionOutput, error) {
 		return nil, huma.Error500InternalServerError(err.Error())
 	}
 	return &VersionOutput{Body: VersionResponse{
-		SystemVersion:   buildversion.Current,
 		CurrentVersion:  info.CurrentVersion,
 		LatestVersion:   info.LatestVersion,
 		UpdateAvailable: info.UpdateAvailable,
