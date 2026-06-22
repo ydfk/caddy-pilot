@@ -103,7 +103,7 @@ export function CertificateOptions({
                     <SelectGroup>
                       {wildcardProfiles.map((profile) => (
                         <SelectItem key={profile.id} value={profile.id}>
-                          {profile.name} · {profile.subjects.join(", ")}
+                          {profile.name}
                         </SelectItem>
                       ))}
                     </SelectGroup>

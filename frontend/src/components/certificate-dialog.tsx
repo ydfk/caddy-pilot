@@ -4,6 +4,7 @@ import { Plus, Save, Trash2 } from "lucide-react";
 import type { CertificateProfile, CertificateProfilePayload } from "@/api/certificates";
 import type { DNSProvider, DNSProviderPayload } from "@/api/dns-providers";
 import { DNSProviderDialog } from "@/components/dns-provider-dialog";
+import { DialogError } from "@/components/dialog-error";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -50,6 +51,7 @@ export function CertificateDialog({
   const [providerID, setProviderID] = useState("");
   const [enabled, setEnabled] = useState(true);
   const [pending, setPending] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const enabledProviders = useMemo(() => providers.filter((item) => item.enabled), [providers]);
 
   useEffect(() => {
@@ -60,11 +62,13 @@ export function CertificateDialog({
     setChallenge(profile?.challenge_type ?? "dns");
     setProviderID(profile?.dns_provider_id ?? enabledProviders[0]?.id ?? "");
     setEnabled(profile?.enabled ?? true);
-  }, [open, profile, enabledProviders]);
+    setErrorMessage("");
+  }, [open, profile]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     setPending(true);
+    setErrorMessage("");
     try {
       const challengeType = type === "wildcard" ? "dns" : challenge;
       await onSave({
@@ -76,6 +80,8 @@ export function CertificateDialog({
         enabled,
       });
       setOpen(false);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "保存证书配置失败");
     } finally {
       setPending(false);
     }
@@ -97,6 +103,7 @@ export function CertificateDialog({
             <DialogDescription>Caddy 按此配置自动签发并续期证书。</DialogDescription>
           </DialogHeader>
           <FieldGroup className="py-5">
+            {errorMessage ? <DialogError message={errorMessage} /> : null}
             <div className="grid gap-4 sm:grid-cols-2">
               <Field>
                 <FieldLabel htmlFor="certificate-name">名称</FieldLabel>

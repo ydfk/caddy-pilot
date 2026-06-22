@@ -41,7 +41,7 @@ func Create(_ context.Context, input *SiteInput) (*SiteOutput, error) {
 		return nil, huma.Error400BadRequest(err.Error())
 	}
 	if err := db.DB.Create(&site).Error; err != nil {
-		return nil, huma.Error500InternalServerError("创建代理站点失败")
+		return nil, huma.Error500InternalServerError("创建代理站点失败", err)
 	}
 	return outputOrServerError(site)
 }
@@ -66,7 +66,7 @@ func Update(_ context.Context, input *UpdateSiteInput) (*SiteOutput, error) {
 	updated.Id = site.Id
 	updated.CreatedAt = site.CreatedAt
 	if err := db.DB.Model(&site).Select("*").Omit("id", "created_at", "deleted_at").Updates(&updated).Error; err != nil {
-		return nil, huma.Error500InternalServerError("更新代理站点失败")
+		return nil, huma.Error500InternalServerError("更新代理站点失败", err)
 	}
 	return outputOrServerError(updated)
 }
@@ -77,7 +77,7 @@ func Delete(_ context.Context, input *SiteIDInput) (*struct{}, error) {
 		return nil, err
 	}
 	if err := db.DB.Delete(&site).Error; err != nil {
-		return nil, huma.Error500InternalServerError("删除代理站点失败")
+		return nil, huma.Error500InternalServerError("删除代理站点失败", err)
 	}
 	return nil, nil
 }
@@ -149,7 +149,7 @@ func setEnabled(_ context.Context, input *SiteIDInput, enabled bool) (*SiteOutpu
 		return nil, err
 	}
 	if err := db.DB.Model(&site).Update("enabled", enabled).Error; err != nil {
-		return nil, huma.Error500InternalServerError("更新代理站点状态失败")
+		return nil, huma.Error500InternalServerError("更新代理站点状态失败", err)
 	}
 	site.Enabled = enabled
 	return outputOrServerError(site)

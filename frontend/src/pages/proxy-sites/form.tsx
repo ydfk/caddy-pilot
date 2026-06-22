@@ -103,24 +103,39 @@ export default function ProxySiteFormPage() {
   }
 
   async function createCertificateProfile(payload: CertificateProfilePayload) {
-    const created = await createCertificate(payload);
-    setCertificates((current) => [created, ...current]);
-    toast.success("证书配置已创建并选中");
-    return created;
+    try {
+      const created = await createCertificate(payload);
+      setCertificates((current) => [created, ...current]);
+      toast.success("证书配置已创建并选中");
+      return created;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "创建证书配置失败");
+      throw error;
+    }
   }
 
   async function createProvider(payload: DNSProviderPayload) {
-    const created = await createDNSProvider(payload);
-    setDNSProviders((current) => [created, ...current]);
-    toast.success("DNS Provider 已创建并选中");
-    return created;
+    try {
+      const created = await createDNSProvider(payload);
+      setDNSProviders((current) => [created, ...current]);
+      toast.success("DNS Provider 已创建并选中");
+      return created;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "创建 DNS Provider 失败");
+      throw error;
+    }
   }
 
   async function createCredential(payload: BasicAuthCredentialPayload) {
-    const created = await createBasicAuthCredential(payload);
-    setCredentials((current) => [created, ...current]);
-    toast.success("密码条目已创建并选中");
-    return created;
+    try {
+      const created = await createBasicAuthCredential(payload);
+      setCredentials((current) => [created, ...current]);
+      toast.success("密码条目已创建并选中");
+      return created;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "创建密码条目失败");
+      throw error;
+    }
   }
 
   if (loading) {

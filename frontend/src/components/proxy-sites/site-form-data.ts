@@ -7,42 +7,52 @@ const optionalJSON = z
   .string()
   .refine((value) => !value.trim() || isJSON(value), "请输入有效 JSON");
 
-export const siteFormSchema = z.object({
-  domains: z.array(z.string()).refine((value) => compactItems(value).length > 0, "至少填写一个域名"),
-  upstreams: z.array(z.string()).refine((value) => compactItems(value).length > 0, "至少填写一个上游"),
-  upstreamType: z.enum(["http", "https", "h2c", "unix"]),
-  upstreamTLSServerName: z.string().max(253),
-  upstreamTLSInsecureSkipVerify: z.boolean(),
-  enabled: z.boolean(),
-  enableHTTPS: z.boolean(),
-  forceHTTPS: z.boolean(),
-  certificateType: z.enum(["single", "wildcard"]),
-  certificateDomain: z.string().max(253),
-  acmeChallengeType: z.enum(["http", "dns"]),
-  dnsProvider: z.literal("alidns"),
-  dnsProviderID: z.string(),
-  certificateProfileID: z.string(),
-  enableWS: z.boolean(),
-  enableGzip: z.boolean(),
-  enableLog: z.boolean(),
-  requestHeaders: jsonObject,
-  responseHeaders: jsonObject,
-  allowedIPs: z.string(),
-  basicAuthEnabled: z.boolean(),
-  basicAuthCredentialIDs: z.array(z.string()),
-  advancedJSON: optionalJSON,
-}).superRefine((values, context) => {
-  if (values.certificateType === "wildcard" && !values.certificateProfileID) {
-    context.addIssue({
-      code: "custom",
-      path: ["certificateProfileID"],
-      message: "请选择通配符证书配置",
-    });
-  }
-  if (values.certificateType === "single" && values.acmeChallengeType === "dns" && !values.dnsProviderID) {
-    context.addIssue({ code: "custom", path: ["dnsProviderID"], message: "请选择 DNS Provider" });
-  }
-});
+export const siteFormSchema = z
+  .object({
+    domains: z
+      .array(z.string())
+      .refine((value) => compactItems(value).length > 0, "至少填写一个域名"),
+    upstreams: z
+      .array(z.string())
+      .refine((value) => compactItems(value).length > 0, "至少填写一个上游"),
+    upstreamType: z.enum(["http", "https", "h2c", "unix"]),
+    upstreamTLSServerName: z.string().max(253),
+    upstreamTLSInsecureSkipVerify: z.boolean(),
+    enabled: z.boolean(),
+    enableHTTPS: z.boolean(),
+    forceHTTPS: z.boolean(),
+    certificateType: z.enum(["single", "wildcard"]),
+    certificateDomain: z.string().max(253),
+    acmeChallengeType: z.enum(["http", "dns"]),
+    dnsProvider: z.literal("alidns"),
+    dnsProviderID: z.string(),
+    certificateProfileID: z.string(),
+    enableWS: z.boolean(),
+    enableGzip: z.boolean(),
+    enableLog: z.boolean(),
+    requestHeaders: jsonObject,
+    responseHeaders: jsonObject,
+    allowedIPs: z.string(),
+    basicAuthEnabled: z.boolean(),
+    basicAuthCredentialIDs: z.array(z.string()),
+    advancedJSON: optionalJSON,
+  })
+  .superRefine((values, context) => {
+    if (values.certificateType === "wildcard" && !values.certificateProfileID) {
+      context.addIssue({
+        code: "custom",
+        path: ["certificateProfileID"],
+        message: "请选择通配符证书配置",
+      });
+    }
+    if (
+      values.certificateType === "single" &&
+      values.acmeChallengeType === "dns" &&
+      !values.dnsProviderID
+    ) {
+      context.addIssue({ code: "custom", path: ["dnsProviderID"], message: "请选择 DNS Provider" });
+    }
+  });
 
 export type SiteFormValues = z.infer<typeof siteFormSchema>;
 
@@ -61,7 +71,7 @@ export const defaultSiteValues: SiteFormValues = {
   dnsProvider: "alidns",
   dnsProviderID: "",
   certificateProfileID: "",
-  enableWS: true,
+  enableWS: false,
   enableGzip: true,
   enableLog: false,
   requestHeaders: "{}",
@@ -88,7 +98,7 @@ export function formValuesFromSite(site: ProxySite, clone: boolean): SiteFormVal
     dnsProvider: "alidns",
     dnsProviderID: site.dns_provider_id ?? "",
     certificateProfileID: site.certificate_profile_id ?? "",
-    enableWS: site.enable_ws,
+    enableWS: false,
     enableGzip: site.enable_gzip,
     enableLog: site.enable_log,
     requestHeaders: JSON.stringify(site.request_headers, null, 2),
@@ -114,8 +124,7 @@ export function payloadFromForm(values: SiteFormValues, forceDisabled = false): 
     force_https: values.forceHTTPS,
     certificate_type: values.certificateType,
     certificate_domain: values.certificateDomain.trim(),
-    acme_challenge_type:
-      values.certificateType === "wildcard" ? "dns" : values.acmeChallengeType,
+    acme_challenge_type: values.certificateType === "wildcard" ? "dns" : values.acmeChallengeType,
     dns_provider: values.dnsProvider,
     dns_provider_id:
       values.certificateType === "single" && values.acmeChallengeType === "dns"
@@ -123,7 +132,7 @@ export function payloadFromForm(values: SiteFormValues, forceDisabled = false): 
         : undefined,
     certificate_profile_id:
       values.certificateType === "wildcard" ? values.certificateProfileID || undefined : undefined,
-    enable_ws: values.enableWS,
+    enable_ws: false,
     enable_gzip: values.enableGzip,
     enable_log: values.enableLog,
     request_headers: JSON.parse(values.requestHeaders) as Record<string, string>,
@@ -157,9 +166,7 @@ function draftTransport(values: SiteFormValues) {
     return {
       protocol: "http",
       tls: {
-        ...(values.upstreamTLSServerName
-          ? { server_name: values.upstreamTLSServerName }
-          : {}),
+        ...(values.upstreamTLSServerName ? { server_name: values.upstreamTLSServerName } : {}),
         ...(values.upstreamTLSInsecureSkipVerify ? { insecure_skip_verify: true } : {}),
       },
     };
@@ -173,7 +180,10 @@ function compactItems(value: string[]) {
 }
 
 function splitTextLines(value: string) {
-  return value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
+  return value
+    .split(/\r?\n/)
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 function isJSONObject(value: string) {

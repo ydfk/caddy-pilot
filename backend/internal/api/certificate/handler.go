@@ -37,7 +37,7 @@ func Create(_ context.Context, input *CertificateProfileCreateInput) (*Certifica
 		return nil, huma.Error400BadRequest(err.Error())
 	}
 	if err := db.DB.Create(&profile).Error; err != nil {
-		return nil, huma.Error500InternalServerError("创建证书配置失败")
+		return nil, huma.Error500InternalServerError("创建证书配置失败", err)
 	}
 	return &CertificateProfileOutput{Body: responseFromModel(profile, subjects)}, nil
 }
@@ -53,7 +53,7 @@ func Update(_ context.Context, input *CertificateProfileUpdateInput) (*Certifica
 	}
 	profile.Id, profile.CreatedAt = existing.Id, existing.CreatedAt
 	if err := db.DB.Model(&existing).Select("*").Omit("id", "created_at", "deleted_at").Updates(&profile).Error; err != nil {
-		return nil, huma.Error500InternalServerError("更新证书配置失败")
+		return nil, huma.Error500InternalServerError("更新证书配置失败", err)
 	}
 	return &CertificateProfileOutput{Body: responseFromModel(profile, subjects)}, nil
 }
@@ -71,7 +71,7 @@ func Delete(_ context.Context, input *CertificateProfileIDInput) (*struct{}, err
 		return nil, huma.Error400BadRequest("证书配置仍被代理站点引用，无法删除")
 	}
 	if err := db.DB.Delete(&profile).Error; err != nil {
-		return nil, huma.Error500InternalServerError("删除证书配置失败")
+		return nil, huma.Error500InternalServerError("删除证书配置失败", err)
 	}
 	return nil, nil
 }

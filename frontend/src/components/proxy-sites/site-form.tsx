@@ -145,7 +145,9 @@ export function SiteForm({
         <Card>
           <CardHeader>
             <CardTitle>传输与日志</CardTitle>
-            <CardDescription>直接开关常用代理能力。</CardDescription>
+            <CardDescription>
+              WebSocket 由 Caddy 自动支持，这里只保留需要显式控制的能力。
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <SiteOptions control={form.control} />

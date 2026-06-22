@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { ShieldCheck, Save } from "lucide-react";
 
 import type { CaddySettings } from "@/api/caddy";
+import { DialogError } from "@/components/dialog-error";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -30,17 +31,24 @@ export function CaddySettingsDialog({ settings, trigger, onSave }: Props) {
     checksum_url: "",
   });
   const [pending, setPending] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
-    if (open && settings) setValues(settings);
+    if (open && settings) {
+      setValues(settings);
+      setErrorMessage("");
+    }
   }, [open, settings]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     setPending(true);
+    setErrorMessage("");
     try {
       await onSave(values);
       setOpen(false);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "保存更新源失败");
     } finally {
       setPending(false);
     }
@@ -62,6 +70,7 @@ export function CaddySettingsDialog({ settings, trigger, onSave }: Props) {
             </DialogDescription>
           </DialogHeader>
           <FieldGroup className="py-5">
+            {errorMessage ? <DialogError message={errorMessage} /> : null}
             <div className="flex gap-3 rounded-lg border border-primary/20 bg-primary/[0.035] p-3 text-sm">
               <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
               <p>

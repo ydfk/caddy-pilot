@@ -38,7 +38,7 @@ func Create(_ context.Context, input *CredentialInput) (*CredentialOutput, error
 	}
 	credential := model.Credential{Name: name, Username: username, PasswordHash: string(hash)}
 	if err := db.DB.Create(&credential).Error; err != nil {
-		return nil, huma.Error500InternalServerError("创建密码条目失败")
+		return nil, huma.Error500InternalServerError("创建密码条目失败", err)
 	}
 	return &CredentialOutput{Body: newCredentialResponse(credential)}, nil
 }
@@ -64,7 +64,7 @@ func Update(_ context.Context, input *UpdateCredentialInput) (*CredentialOutput,
 		credential.PasswordHash = string(hash)
 	}
 	if err := db.DB.Save(&credential).Error; err != nil {
-		return nil, huma.Error500InternalServerError("更新密码条目失败")
+		return nil, huma.Error500InternalServerError("更新密码条目失败", err)
 	}
 	return &CredentialOutput{Body: newCredentialResponse(credential)}, nil
 }
@@ -82,7 +82,7 @@ func Delete(_ context.Context, input *CredentialIDInput) (*struct{}, error) {
 		return nil, huma.Error400BadRequest("密码条目仍被代理站点引用，无法删除")
 	}
 	if err := db.DB.Delete(&credential).Error; err != nil {
-		return nil, huma.Error500InternalServerError("删除密码条目失败")
+		return nil, huma.Error500InternalServerError("删除密码条目失败", err)
 	}
 	return nil, nil
 }

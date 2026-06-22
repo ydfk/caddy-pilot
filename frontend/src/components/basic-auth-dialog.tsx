@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Save } from "lucide-react";
 
 import type { BasicAuthCredential, BasicAuthCredentialPayload } from "@/api/basic-auth";
+import { DialogError } from "@/components/dialog-error";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -28,20 +29,25 @@ export function BasicAuthDialog({ credential, trigger, onSave }: Props) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [pending, setPending] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     if (!open) return;
     setName(credential?.name ?? "");
     setUsername(credential?.username ?? "");
     setPassword("");
+    setErrorMessage("");
   }, [credential, open]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     setPending(true);
+    setErrorMessage("");
     try {
       await onSave({ name: name.trim(), username: username.trim(), password });
       setOpen(false);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "保存密码条目失败");
     } finally {
       setPending(false);
     }
@@ -57,6 +63,7 @@ export function BasicAuthDialog({ credential, trigger, onSave }: Props) {
             <DialogDescription>密码只用于生成 bcrypt 哈希，不会保存或回传明文。</DialogDescription>
           </DialogHeader>
           <FieldGroup className="py-5">
+            {errorMessage ? <DialogError message={errorMessage} /> : null}
             <Field>
               <FieldLabel htmlFor="credential-dialog-name">名称</FieldLabel>
               <Input

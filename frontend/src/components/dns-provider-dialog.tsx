@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Save } from "lucide-react";
 
 import type { DNSProvider, DNSProviderPayload } from "@/api/dns-providers";
+import { DialogError } from "@/components/dialog-error";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -39,6 +40,7 @@ export function DNSProviderDialog({ provider, trigger, onSave }: Props) {
   const [regionID, setRegionID] = useState("cn-hangzhou");
   const [enabled, setEnabled] = useState(true);
   const [pending, setPending] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -47,11 +49,13 @@ export function DNSProviderDialog({ provider, trigger, onSave }: Props) {
     setAccessKeySecret("");
     setRegionID(provider?.region_id ?? "cn-hangzhou");
     setEnabled(provider?.enabled ?? true);
+    setErrorMessage("");
   }, [open, provider]);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     setPending(true);
+    setErrorMessage("");
     try {
       await onSave({
         name: name.trim(),
@@ -62,6 +66,8 @@ export function DNSProviderDialog({ provider, trigger, onSave }: Props) {
         enabled,
       });
       setOpen(false);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "保存 DNS Provider 失败");
     } finally {
       setPending(false);
     }
@@ -77,6 +83,7 @@ export function DNSProviderDialog({ provider, trigger, onSave }: Props) {
             <DialogDescription>凭据加密保存，页面不会再次显示 AccessKey Secret。</DialogDescription>
           </DialogHeader>
           <FieldGroup className="py-5">
+            {errorMessage ? <DialogError message={errorMessage} /> : null}
             <div className="grid gap-4 sm:grid-cols-2">
               <Field>
                 <FieldLabel>服务商</FieldLabel>

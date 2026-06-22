@@ -48,7 +48,7 @@ func Create(ctx context.Context, input *DNSProviderCreateInput) (*DNSProviderOut
 		EncryptedConfig: encrypted, Enabled: input.Body.Enabled,
 	}
 	if err := db.DB.Create(&provider).Error; err != nil {
-		return nil, huma.Error500InternalServerError("创建 DNS Provider 失败")
+		return nil, huma.Error500InternalServerError("创建 DNS Provider 失败", err)
 	}
 	if err := service.ApplyDNSProviderRuntime(ctx, db.DB); err != nil {
 		return nil, huma.Error500InternalServerError(err.Error())
@@ -79,7 +79,7 @@ func Update(ctx context.Context, input *DNSProviderUpdateInput) (*DNSProviderOut
 		return nil, huma.Error500InternalServerError("加密 DNS Provider 失败")
 	}
 	if err := db.DB.Save(&provider).Error; err != nil {
-		return nil, huma.Error500InternalServerError("更新 DNS Provider 失败")
+		return nil, huma.Error500InternalServerError("更新 DNS Provider 失败", err)
 	}
 	if err := service.ApplyDNSProviderRuntime(ctx, db.DB); err != nil {
 		return nil, huma.Error500InternalServerError(err.Error())
@@ -105,7 +105,7 @@ func Delete(ctx context.Context, input *DNSProviderIDInput) (*struct{}, error) {
 		return nil, huma.Error400BadRequest("DNS Provider 仍被证书或代理站点引用，无法删除")
 	}
 	if err := db.DB.Delete(&provider).Error; err != nil {
-		return nil, huma.Error500InternalServerError("删除 DNS Provider 失败")
+		return nil, huma.Error500InternalServerError("删除 DNS Provider 失败", err)
 	}
 	if err := service.ApplyDNSProviderRuntime(ctx, db.DB); err != nil {
 		return nil, huma.Error500InternalServerError(err.Error())
