@@ -4,28 +4,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        CADDY_VERSION: ${CADDY_VERSION:-2.10.0}
     container_name: caddypilot
     restart: unless-stopped
     ports:
       - "8080:8080"
       - "80:80"
       - "443:443"
-    environment:
-      TZ: Asia/Shanghai
-      APP_ENV: production
-      JWT_SECRET: ${JWT_SECRET:-change-this-secret-before-production}
-      CADDYPILOT_SECRET_KEY: ${CADDYPILOT_SECRET_KEY:-change-this-encryption-key-before-production}
-      DATABASE_DSN: /data/caddypilot.db
-      CADDY_ADMIN_API: http://127.0.0.1:2019
-      CADDY_VERSION: ${CADDY_VERSION:-2.10.0}
-      CADDY_VERSION_CHECK_URL: ${CADDY_VERSION_CHECK_URL:-https://api.github.com/repos/caddyserver/caddy/releases/latest}
-      CADDY_DOWNLOAD_URL: ${CADDY_DOWNLOAD_URL:-https://caddyserver.com/api/download?os={os}&arch={arch}&p=github.com/caddy-dns/alidns&v={version}}
-      CADDY_CHECKSUM_URL: ${CADDY_CHECKSUM_URL:-}
-      CADDYPILOT_FRONTEND_DIR: /app/frontend
-      CADDYPILOT_BACKEND_ADDR: 127.0.0.1:25610
-      CADDYPILOT_MANAGE_ADDR: :8080
     volumes:
       - ./data:/data
     healthcheck:
@@ -34,3 +18,9 @@ services:
       timeout: 3s
       retries: 6
       start_period: 10s
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

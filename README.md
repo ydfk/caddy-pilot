@@ -79,9 +79,6 @@ Detailed design: [docs/design.md](docs/design.md)
 git clone https://github.com/ydfk/caddy-pilot.git
 cd caddy-pilot
 
-# Set a JWT secret (required)
-export JWT_SECRET="replace-with-a-long-random-string"
-
 # Build and start
 docker compose up -d --build
 
@@ -114,20 +111,17 @@ services:
       - "8080:8080"   # management UI
       - "80:80"       # proxy traffic
       - "443:443"     # proxy HTTPS
-    environment:
-      JWT_SECRET: ${JWT_SECRET}
-      DATABASE_DSN: /data/caddypilot.db
-      CADDY_ADMIN_API: http://127.0.0.1:2019
-      CADDYPILOT_MANAGE_ADDR: :8080
     volumes:
       - ./data:/data
 ```
+
+The default Compose file is production-oriented. Internal addresses, Caddy Admin API settings, and cryptographic secrets are owned by the image and do not need to be declared by users.
 
 ## Security
 
 **Do not expose port 2019 to the host or the internet.** The Caddy Admin API listens on `127.0.0.1:2019` inside the container only. The default compose file does not map it. The UI never proxies it to the browser.
 
-Change `JWT_SECRET` before deploying. The default value is a placeholder and produces a warning at startup.
+On first start, the container generates independent random JWT and credential-encryption keys. They are stored with mode `0600` under `/data/.caddypilot-secrets` and reused after restart or image upgrade.
 
 ---
 
@@ -139,8 +133,9 @@ All persistent data lives under `./data/`:
 |------|---------|
 | `/data/caddypilot.db` | Users, proxy sites, config versions |
 | `/data/caddy/` | Caddy certificates and runtime state |
+| `/data/.caddypilot-secrets` | Automatically managed JWT and credential-encryption keys |
 
-Back up both when migrating or upgrading. The `data/` directory is git-ignored.
+Back up the entire directory when migrating or upgrading. Losing `.caddypilot-secrets` makes existing encrypted DNS credentials unreadable. The `data/` directory is git-ignored.
 
 ---
 
@@ -180,9 +175,7 @@ Environment variables for development:
 | `CADDY_VERSION_CHECK_URL` | GitHub releases API | Version check endpoint |
 | `CADDY_DOWNLOAD_URL` | Caddy custom build API | Managed build with the Aliyun DNS module; supports `{version}`, `{os}`, `{arch}` |
 | `CADDY_CHECKSUM_URL` | empty | Optional SHA-512 manifest URL for a custom download source |
-| `CADDYPILOT_SECRET_KEY` | falls back to `JWT_SECRET` | AES-GCM key used to encrypt DNS credentials; do not rotate without re-entering credentials |
 | `VITE_PROXY_HOST` | `http://127.0.0.1:25610` | Vite dev proxy target |
-| `JWT_SECRET` | — | JWT signing key (required in production) |
 
 ---
 
