@@ -2,6 +2,7 @@
 .gitignore
 data
 backend/data
+backend/bin
 backend/log
 frontend/dist
 frontend/node_modules

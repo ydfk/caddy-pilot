@@ -4,39 +4,15 @@ param(
     [switch]$Check
 )
 
-$ErrorActionPreference = "Stop"
-$repoRoot = Split-Path -Parent $PSScriptRoot
+. (Join-Path $PSScriptRoot "common.ps1")
+
+$repoRoot = Get-CaddyPilotRoot
 $backendDir = Join-Path $repoRoot "backend"
 $frontendDir = Join-Path $repoRoot "frontend"
 $runtimeDir = Join-Path $repoRoot "data\runtime"
-
-function Resolve-Executable([string]$Name) {
-    $command = Get-Command $Name -ErrorAction SilentlyContinue
-    if (-not $command) {
-        throw "$Name was not found. Install it and add it to PATH."
-    }
-    return $command.Source
-}
-
-function Resolve-Pnpm {
-    $command = Get-Command "pnpm" -ErrorAction SilentlyContinue
-    if ($command) {
-        $previousPreference = $ErrorActionPreference
-        $ErrorActionPreference = "Continue"
-        & $command.Source --version *> $null
-        $pnpmExitCode = $LASTEXITCODE
-        $ErrorActionPreference = $previousPreference
-        if ($pnpmExitCode -eq 0) {
-            return @{ File = $command.Source; Prefix = @() }
-        }
-    }
-
-    $npx = Resolve-Executable "npx"
-    return @{ File = $npx; Prefix = @("--yes", "pnpm@10.6.2") }
-}
-
-$go = Resolve-Executable "go"
-$pnpm = Resolve-Pnpm
+$go = Resolve-RequiredExecutable "go"
+$pnpm = Resolve-PnpmCommand
+Assert-CgoCompiler
 
 if ($Check) {
     Write-Host "Local prerequisites are ready. Caddy will be managed by the backend." -ForegroundColor Green
@@ -50,16 +26,7 @@ if (Get-NetTCPConnection -LocalPort 8080 -State Listen -ErrorAction SilentlyCont
 }
 
 if (-not $SkipInstall) {
-    Push-Location $frontendDir
-    try {
-        & $pnpm.File @($pnpm.Prefix) install
-        if ($LASTEXITCODE -ne 0) {
-            throw "Frontend dependency installation failed."
-        }
-    }
-    finally {
-        Pop-Location
-    }
+    Invoke-PnpmCommand -Pnpm $pnpm -WorkingDirectory $frontendDir -Arguments @("install")
 }
 
 $backendJob = Start-Job -Name "CaddyPilot-Backend" -ArgumentList $backendDir, $go, $runtimeDir -ScriptBlock {

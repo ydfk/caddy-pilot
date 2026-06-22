@@ -3,40 +3,14 @@ param(
     [switch]$SkipInstall
 )
 
-$ErrorActionPreference = "Stop"
-$repoRoot = Split-Path -Parent $PSScriptRoot
+. (Join-Path $PSScriptRoot "common.ps1")
+
+$repoRoot = Get-CaddyPilotRoot
 $frontendDir = Join-Path $repoRoot "frontend"
-
-function Resolve-Pnpm {
-    $command = Get-Command "pnpm" -ErrorAction SilentlyContinue
-    if ($command) {
-        $previousPreference = $ErrorActionPreference
-        $ErrorActionPreference = "Continue"
-        & $command.Source --version *> $null
-        $pnpmExitCode = $LASTEXITCODE
-        $ErrorActionPreference = $previousPreference
-        if ($pnpmExitCode -eq 0) {
-            return @{ File = $command.Source; Prefix = @() }
-        }
-    }
-
-    $npx = Get-Command "npx" -ErrorAction Stop
-    return @{ File = $npx.Source; Prefix = @("--yes", "pnpm@10.6.2") }
-}
-
-$pnpm = Resolve-Pnpm
+$pnpm = Resolve-PnpmCommand
 
 if (-not $SkipInstall) {
-    Push-Location $frontendDir
-    try {
-        & $pnpm.File @($pnpm.Prefix) install
-        if ($LASTEXITCODE -ne 0) {
-            throw "Frontend dependency installation failed."
-        }
-    }
-    finally {
-        Pop-Location
-    }
+    Invoke-PnpmCommand -Pnpm $pnpm -WorkingDirectory $frontendDir -Arguments @("install")
 }
 
 Write-Host "Starting frontend dev server..." -ForegroundColor Cyan

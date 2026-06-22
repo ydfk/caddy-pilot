@@ -44,26 +44,6 @@ huma.Register(api, huma.Operation{
 
 ## 快速开始
 
-### Docker 开发，推荐用于 Win11
-
-只需要 Docker Desktop，不要求 Windows 安装 GCC、Go 或 Air：
-
-```bat
-scripts\dev-docker.bat
-```
-
-等价命令：
-
-```bash
-docker compose -f docker-compose.dev.yml up --build
-```
-
-源码会挂载到容器，Air 自动重新编译和启动服务。停止服务：
-
-```bash
-docker compose -f docker-compose.dev.yml down
-```
-
 ### Win11 原生开发
 
 官方 SQLite 驱动使用 `go-sqlite3`，因此必须启用 CGO，并安装 MinGW-w64 或其他可用的 GCC。确保 `gcc.exe` 已加入 `PATH`：
@@ -77,15 +57,15 @@ gcc --version
 
 ```powershell
 go install github.com/air-verse/air@v1.65.3
-scripts\dev.bat
+..\scripts\dev-server.cmd
 ```
 
-其他脚本：
+项目级脚本统一放在仓库根目录：
 
 ```bat
-scripts\build.bat
-scripts\run.bat
-scripts\test.bat
+..\scripts\build.cmd
+..\scripts\dev.cmd
+..\scripts\test.cmd
 ```
 
 脚本会先检查 GCC；没有本机编译器时请使用 Docker 开发模式。
@@ -150,7 +130,6 @@ go-fiber-starter/
 │   ├── model/                   # 数据模型
 │   └── service/                 # 业务服务
 ├── pkg/                         # 配置、数据库、日志和工具
-├── scripts/                     # Win11 开发脚本
 ├── Dockerfile                   # Linux 生产镜像
 ├── Dockerfile.dev               # CGO + Air 开发镜像
 ├── docker-compose.yml           # 生产运行

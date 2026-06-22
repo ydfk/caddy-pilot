@@ -1,19 +1,15 @@
 [CmdletBinding()]
 param()
 
-$ErrorActionPreference = "Stop"
-$repoRoot = Split-Path -Parent $PSScriptRoot
+. (Join-Path $PSScriptRoot "common.ps1")
+
+$repoRoot = Get-CaddyPilotRoot
 $backendDir = Join-Path $repoRoot "backend"
 $runtimeDir = Join-Path $repoRoot "data\runtime"
 
-$go = Get-Command "go" -ErrorAction Stop
-$air = Get-Command "air" -ErrorAction Stop
-
-# Check CGO availability (required by gorm sqlite driver)
-$gcc = Get-Command "gcc" -ErrorAction SilentlyContinue
-if (-not $gcc) {
-    throw "gorm.io/driver/sqlite requires CGO and a C compiler. Install MinGW-w64 and add gcc.exe to PATH."
-}
+$null = Resolve-RequiredExecutable "go"
+$air = Resolve-RequiredExecutable "air"
+Assert-CgoCompiler
 
 if (Get-NetTCPConnection -LocalPort 8080 -State Listen -ErrorAction SilentlyContinue) {
     throw "Port 8080 is already in use. Stop the conflicting service before starting the backend."
@@ -31,7 +27,7 @@ Write-Host "Caddy Admin API: http://127.0.0.1:2019"
 
 Push-Location $backendDir
 try {
-    & $air.Source -c .air.toml
+    & $air -c .air.toml
 }
 finally {
     Pop-Location

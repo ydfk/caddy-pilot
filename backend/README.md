@@ -29,22 +29,6 @@ The project does not contain generated Swagger files and does not use `swag init
 
 ## Development
 
-### Docker on Win11
-
-Docker Desktop is the simplest option because the official SQLite driver requires CGO:
-
-```bat
-scripts\dev-docker.bat
-```
-
-Or:
-
-```bash
-docker compose -f docker-compose.dev.yml up --build
-```
-
-The source directory is mounted into the container and Air rebuilds the service when files change.
-
 ### Native Win11
 
 Install Go, Air, and MinGW-w64. Ensure `gcc.exe` is on `PATH`, then enable CGO:
@@ -52,16 +36,15 @@ Install Go, Air, and MinGW-w64. Ensure `gcc.exe` is on `PATH`, then enable CGO:
 ```powershell
 go env -w CGO_ENABLED=1
 go install github.com/air-verse/air@v1.65.3
-scripts\dev.bat
+..\scripts\dev-server.cmd
 ```
 
-Available scripts:
+Project-level scripts are centralized at the repository root:
 
 ```bat
-scripts\build.bat
-scripts\dev.bat
-scripts\run.bat
-scripts\test.bat
+..\scripts\build.cmd
+..\scripts\dev.cmd
+..\scripts\test.cmd
 ```
 
 ### Production
@@ -104,7 +87,6 @@ go-fiber-starter/
 ├── internal/model/              # Database models
 ├── internal/service/            # Business services
 ├── pkg/                         # Config, database, logging, and utilities
-├── scripts/                     # Win11 scripts
 ├── Dockerfile                   # Production image
 ├── Dockerfile.dev               # CGO and Air development image
 ├── docker-compose.yml
