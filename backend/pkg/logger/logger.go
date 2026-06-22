@@ -1,17 +1,13 @@
-/*
- * @Description: Copyright (c) ydfk. All rights reserved
- * @Author: ydfk
- * @Date: 2025-06-09 16:40:41
- * @LastEditors: ydfk
- * @LastEditTime: 2025-06-10 15:31:56
- */
 package logger
 
 import (
 	"fmt"
-	"go-fiber-starter/pkg/util"
 	"io"
 	"os"
+	"path/filepath"
+	"strings"
+
+	"go-fiber-starter/pkg/util"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -21,17 +17,20 @@ import (
 var Logger *zap.SugaredLogger
 
 func Init() error {
-
-	if err := util.EnsureDir("log"); err != nil {
+	logDir := strings.TrimSpace(os.Getenv("CADDYPILOT_LOG_DIR"))
+	if logDir == "" {
+		logDir = filepath.Join("data", "logs")
+	}
+	if err := util.EnsureDir(logDir); err != nil {
 		return fmt.Errorf("创建日志目录失败: %w", err)
 	}
 
 	lumberjacklogger := &lumberjack.Logger{
-		Filename:   "./log/log.json",
-		MaxSize:    10, // megabytes
+		Filename:   filepath.Join(logDir, "system.log"),
+		MaxSize:    10,
 		MaxBackups: 3,
-		MaxAge:     28,   //days
-		Compress:   true, // disabled by default
+		MaxAge:     28,
+		Compress:   true,
 	}
 
 	// 1. 文件日志配置 - 不带颜色

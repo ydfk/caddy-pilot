@@ -8,6 +8,7 @@ import (
 	"go-fiber-starter/internal/api/configversion"
 	"go-fiber-starter/internal/api/dashboard"
 	"go-fiber-starter/internal/api/dnsprovider"
+	"go-fiber-starter/internal/api/logs"
 	"go-fiber-starter/internal/api/proxysite"
 	"go-fiber-starter/internal/api/systeminfo"
 	"go-fiber-starter/pkg/logger"
@@ -49,6 +50,7 @@ func newApp() *fiber.App {
 	configversion.RegisterRoutes(humaAPI)
 	dashboard.RegisterRoutes(humaAPI)
 	dnsprovider.RegisterRoutes(humaAPI)
+	logs.RegisterRoutes(humaAPI)
 	systeminfo.RegisterRoutes(humaAPI)
 	return app
 }

@@ -34,6 +34,7 @@ All configuration changes are versioned. If a publish fails, your previous worki
 - **Dashboard** — at-a-glance status: site counts, Caddy health, last publish time
 - **Unified Caddy workbench** — runtime health, validate/publish flow, config history, and Caddy updates in one place
 - **System identity** — the global sidebar shows the CaddyPilot version embedded from the release Tag
+- **Runtime observability** — inspect issued certificate metadata and follow system or Caddy process logs online
 - **Self-protecting** — the management port (`:8080`) is never removed from generated configs, so the UI always stays reachable
 - **Single system** — Caddy + Go API + React ship together; users never install or start Caddy separately
 
@@ -140,6 +141,8 @@ All persistent data lives under `./data/`:
 |------|---------|
 | `/data/caddypilot.db` | Users, proxy sites, config versions |
 | `/data/caddy/` | Caddy certificates and runtime state |
+| `/data/runtime/caddy/` | Managed Caddy binaries, selected version, and active JSON |
+| `/data/logs/` | Rotated CaddyPilot and Caddy process logs |
 | `/data/.caddypilot-secrets` | Automatically managed JWT and credential-encryption keys |
 
 Back up the entire directory when migrating or upgrading. Losing `.caddypilot-secrets` makes existing encrypted DNS credentials unreadable. The `data/` directory is git-ignored.

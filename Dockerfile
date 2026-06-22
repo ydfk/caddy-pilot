@@ -49,6 +49,7 @@ ENV APP_ENV=production \
     CADDYPILOT_RUNTIME_DIR=/data/runtime \
     CADDYPILOT_BACKEND_ADDR=127.0.0.1:25610 \
     CADDYPILOT_FRONTEND_DIR=/app/frontend \
+    CADDYPILOT_LOG_DIR=/data/logs \
     CADDYPILOT_MANAGE_ADDR=:8080 \
     DATABASE_DSN=/data/caddypilot.db \
     PYTHONWARNINGS=ignore \

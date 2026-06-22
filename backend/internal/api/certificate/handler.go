@@ -9,6 +9,7 @@ import (
 	model "go-fiber-starter/internal/model/certificate"
 	"go-fiber-starter/internal/model/dnsprovider"
 	"go-fiber-starter/internal/model/proxysite"
+	"go-fiber-starter/internal/service"
 	"go-fiber-starter/pkg/db"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -21,12 +22,16 @@ func List(_ context.Context, _ *struct{}) (*CertificateProfileListOutput, error)
 		return nil, huma.Error500InternalServerError("查询证书配置失败")
 	}
 	output := &CertificateProfileListOutput{Body: make([]CertificateProfileResponse, 0, len(profiles))}
+	issued, err := service.LoadIssuedCertificates()
+	if err != nil {
+		return nil, huma.Error500InternalServerError("读取 Caddy 证书失败", err)
+	}
 	for _, profile := range profiles {
 		subjects, err := decodeSubjects(profile.Subjects)
 		if err != nil {
 			return nil, huma.Error500InternalServerError("解析证书域名失败")
 		}
-		output.Body = append(output.Body, responseFromModel(profile, subjects))
+		output.Body = append(output.Body, responseFromModel(profile, subjects, service.MatchIssuedCertificates(subjects, issued)))
 	}
 	return output, nil
 }
@@ -39,7 +44,7 @@ func Create(_ context.Context, input *CertificateProfileCreateInput) (*Certifica
 	if err := db.DB.Create(&profile).Error; err != nil {
 		return nil, huma.Error500InternalServerError("创建证书配置失败", err)
 	}
-	return &CertificateProfileOutput{Body: responseFromModel(profile, subjects)}, nil
+	return &CertificateProfileOutput{Body: responseFromModel(profile, subjects, nil)}, nil
 }
 
 func Update(_ context.Context, input *CertificateProfileUpdateInput) (*CertificateProfileOutput, error) {
@@ -55,7 +60,7 @@ func Update(_ context.Context, input *CertificateProfileUpdateInput) (*Certifica
 	if err := db.DB.Model(&existing).Select("*").Omit("id", "created_at", "deleted_at").Updates(&profile).Error; err != nil {
 		return nil, huma.Error500InternalServerError("更新证书配置失败", err)
 	}
-	return &CertificateProfileOutput{Body: responseFromModel(profile, subjects)}, nil
+	return &CertificateProfileOutput{Body: responseFromModel(profile, subjects, nil)}, nil
 }
 
 func Delete(_ context.Context, input *CertificateProfileIDInput) (*struct{}, error) {

@@ -1,5 +1,14 @@
 import type { LucideIcon } from "lucide-react";
-import { BadgeCheck, CloudCog, Gauge, KeyRound, Route, ServerCog, ShieldCheck } from "lucide-react";
+import {
+  BadgeCheck,
+  CloudCog,
+  Gauge,
+  KeyRound,
+  Route,
+  ScrollText,
+  ServerCog,
+  ShieldCheck,
+} from "lucide-react";
 
 export type NavigationItem = { title: string; url: string; icon: LucideIcon };
 
@@ -7,6 +16,7 @@ export const primaryNavigation: NavigationItem[] = [
   { title: "仪表盘", url: "/dashboard", icon: Gauge },
   { title: "代理站点", url: "/proxy-sites", icon: Route },
   { title: "Caddy 管理", url: "/caddy", icon: ServerCog },
+  { title: "日志", url: "/logs", icon: ScrollText },
 ];
 
 export const navigationGroups = [

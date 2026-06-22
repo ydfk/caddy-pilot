@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { BadgeCheck, Pencil, Plus, Trash2 } from "lucide-react";
+import { BadgeCheck, CalendarClock, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -133,6 +133,7 @@ export default function CertificatesPage() {
                     <p className="truncate font-mono text-xs text-muted-foreground">
                       {profile.subjects.join(", ")} · {profile.challenge_type.toUpperCase()}
                     </p>
+                    <CertificateRuntimeInfo profile={profile} />
                   </div>
                   <CertificateDialog
                     profile={profile}
@@ -161,4 +162,33 @@ export default function CertificatesPage() {
       </Card>
     </div>
   );
+}
+
+function CertificateRuntimeInfo({ profile }: { profile: CertificateProfile }) {
+  if (!profile.issued_certificates?.length) {
+    return <p className="mt-1 text-xs text-amber-600">等待 Caddy 签发</p>;
+  }
+  return (
+    <div className="mt-2 grid gap-1">
+      {profile.issued_certificates.map((certificate) => (
+        <div
+          key={certificate.serial_number}
+          className="grid gap-1 rounded-md border bg-muted/20 px-2 py-1.5 text-[11px] text-muted-foreground sm:grid-cols-[1fr_auto]"
+        >
+          <span className="flex min-w-0 items-center gap-1.5">
+            <CalendarClock className="size-3 shrink-0" />
+            <span className="truncate">
+              签发 {formatCertificateTime(certificate.issued_at)} · 到期{" "}
+              {formatCertificateTime(certificate.expires_at)}
+            </span>
+          </span>
+          <span className="truncate">{certificate.issuer}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function formatCertificateTime(value: string) {
+  return new Date(value).toLocaleDateString("zh-CN");
 }

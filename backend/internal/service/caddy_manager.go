@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"os/exec"
@@ -13,6 +14,8 @@ import (
 	"time"
 
 	"go-fiber-starter/internal/caddygen"
+
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 type CaddyManager struct {
@@ -22,6 +25,7 @@ type CaddyManager struct {
 	configPath string
 	command    *exec.Cmd
 	process    *managedCaddyProcess
+	caddyLog   io.WriteCloser
 	lifecycle  chan error
 	mu         sync.Mutex
 }
@@ -206,11 +210,18 @@ func (manager *CaddyManager) startLocked(ctx context.Context, runtimeInfo CaddyR
 	process := &managedCaddyProcess{done: make(chan error, 1)}
 	manager.process = process
 	manager.command = exec.Command(runtimeInfo.BinaryPath, "run", "--config", manager.configPath)
-	manager.command.Stdout = os.Stdout
-	manager.command.Stderr = os.Stderr
+	logWriter, err := newCaddyLogWriter()
+	if err != nil {
+		return err
+	}
+	manager.caddyLog = logWriter
+	manager.command.Stdout = io.MultiWriter(os.Stdout, logWriter)
+	manager.command.Stderr = io.MultiWriter(os.Stderr, logWriter)
 	dataDir := environmentValue("CADDY_DATA_DIR", filepath.Join(manager.Installer.RuntimeDir, "caddy-data"))
 	manager.command.Env = append(os.Environ(), "XDG_DATA_HOME="+dataDir)
 	if err := manager.command.Start(); err != nil {
+		_ = manager.caddyLog.Close()
+		manager.caddyLog = nil
 		return fmt.Errorf("启动 Caddy 失败: %w", err)
 	}
 	go func(command *exec.Cmd) {
@@ -281,17 +292,37 @@ func (manager *CaddyManager) stopLocked(ctx context.Context) error {
 	select {
 	case <-process.done:
 		manager.command = nil
+		manager.closeCaddyLog()
 		return nil
 	case <-ctx.Done():
 		_ = manager.command.Process.Kill()
+		manager.closeCaddyLog()
 		return ctx.Err()
 	case <-time.After(5 * time.Second):
 		_ = manager.command.Process.Kill()
 		manager.command = nil
+		manager.closeCaddyLog()
 		if requestErr != nil {
 			return fmt.Errorf("停止 Caddy 失败: %w", requestErr)
 		}
 		return fmt.Errorf("停止 Caddy 超时")
+	}
+}
+
+func newCaddyLogWriter() (io.WriteCloser, error) {
+	logDir := environmentValue("CADDYPILOT_LOG_DIR", filepath.Join("data", "logs"))
+	if err := os.MkdirAll(logDir, 0o755); err != nil {
+		return nil, fmt.Errorf("创建 Caddy 日志目录失败: %w", err)
+	}
+	return &lumberjack.Logger{
+		Filename: filepath.Join(logDir, "caddy.log"), MaxSize: 10, MaxBackups: 3, MaxAge: 28, Compress: true,
+	}, nil
+}
+
+func (manager *CaddyManager) closeCaddyLog() {
+	if manager.caddyLog != nil {
+		_ = manager.caddyLog.Close()
+		manager.caddyLog = nil
 	}
 }
 

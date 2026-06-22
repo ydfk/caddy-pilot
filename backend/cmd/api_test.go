@@ -23,6 +23,7 @@ func TestOpenAPIContainsCaddyPilotRoutes(t *testing.T) {
 		"/api/proxy-sites:", "/api/caddy/publish:",
 		"/api/caddy/settings:",
 		"/api/caddy/upload:", "/api/caddy/update-tasks/current:",
+		"/api/logs:",
 		"/api/system/info:",
 		"/api/config-versions/{id}/rollback:", "/api/dashboard/summary:",
 	} {

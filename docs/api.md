@@ -50,7 +50,7 @@
 | --- | --- | --- |
 | GET/POST | `/api/dns-providers` | 查询或新增系统 DNS Provider |
 | PUT/DELETE | `/api/dns-providers/{id}` | 编辑或删除未被引用的 Provider |
-| GET/POST | `/api/certificates` | 查询或新增可复用证书配置 |
+| GET/POST | `/api/certificates` | 查询或新增可复用证书配置；列表包含实际签发证书的时间、到期时间和颁发机构 |
 | PUT/DELETE | `/api/certificates/{id}` | 编辑或删除未被站点引用的证书配置 |
 
 ## Caddy 工作台设置
@@ -73,7 +73,9 @@
 | GET | `/api/caddy/status` | Caddy 在线状态 |
 | GET | `/api/caddy/version` | 当前版本、最新稳定版与托管下载信息 |
 | POST | `/api/caddy/update` | 由后端异步下载、切换并重启托管 Caddy |
-| GET | `/api/caddy/change-status` | 当前启用站点是否存在未发布变更 |
+| POST | `/api/caddy/upload` | 上传可执行文件、ZIP 或 tar.gz 并切换托管 Caddy |
+| GET | `/api/caddy/update-tasks/current` | 获取当前更新任务阶段、进度和失败原因 |
+| GET | `/api/caddy/change-status` | 动态比较业务配置、持久化配置与 Caddy 当前 JSON |
 | POST | `/api/caddy/preview` | 生成完整 JSON，不发布 |
 | POST | `/api/caddy/validate` | 对生成配置执行 JSON 与管理入口基础校验 |
 | POST | `/api/caddy/publish` | 生成版本并调用 `/load` |
@@ -96,6 +98,12 @@
 | POST | `/api/config-versions/{id}/rollback` | 创建新版本并回滚 |
 
 状态值：`draft`、`published`、`failed`、`rollback`。
+
+## 日志
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/api/logs?source=system&cursor=0&limit=200` | 通过游标增量读取系统或 Caddy 进程日志 |
 
 ## Dashboard
 
