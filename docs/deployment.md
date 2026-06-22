@@ -44,15 +44,15 @@ docker compose -f docker-compose.prod.yml up -d
 
 密钥保存到 `/data/.caddypilot-secrets`，文件权限为 `0600`。容器重建和镜像升级会继续使用原密钥，Compose 不需要也不应该重复声明这些内部配置。
 
-`CADDY_VERSION_CHECK_URL` 和 `CADDY_DOWNLOAD_URL` 不参与容器正常启动：镜像已经包含带阿里云 DNS 模块的 Caddy。国内网络无法访问 GitHub 或 Caddy 官方服务时，只会影响“检查更新”和“后端更新”，不会影响已有站点运行。
+版本校验地址和下载地址不参与容器正常启动：镜像已经包含带阿里云 DNS 模块的 Caddy。国内网络无法访问 GitHub 或 Caddy 官方服务时，只会影响“检查更新”和“后端更新”，不会影响已有站点运行。
 
-`docker-compose.prod.yml` 保留这三个可选覆盖项：
+这三个地址在“Caddy 管理 → 更新源设置”中修改并保存到 SQLite，不再使用 Docker 环境变量：
 
 - `CADDY_VERSION_CHECK_URL`：返回 `tag_name`，或返回 `version` 与 `update_url` 的 JSON 地址。
 - `CADDY_DOWNLOAD_URL`：支持 `{version}`、`{os}`、`{arch}`、`{ext}` 占位符的可信下载源。
 - `CADDY_CHECKSUM_URL`：自定义下载源对应的 SHA-512 清单，生产环境使用镜像源时建议同时配置。
 
-普通部署无需填写。国内部署更推荐直接更新 CaddyPilot Docker 镜像；只有确实需要界面内热更新 Caddy 时，再配置可信的国内镜像地址。
+普通部署无需修改。国内部署更推荐直接更新 CaddyPilot Docker 镜像；只有确实需要界面内热更新 Caddy 时，再配置可信的国内镜像地址。
 
 ## 检查
 
@@ -81,9 +81,9 @@ docker compose start
 
 管理界面的“Caddy 状态 → 版本管理”会显示当前版本与最新稳定版。点击“后端更新”后，后端下载独立版本目录、保护当前管理配置、重启 Caddy，并在失败时尝试恢复旧版本。
 
-用户不需要安装或启动 Caddy。Docker 镜像带有基础版本；Windows 独立环境缺少运行时时，后端会根据 `CADDY_VERSION` 和 `CADDY_DOWNLOAD_URL` 自动下载到项目 `data/runtime/`。
+用户不需要安装或启动 Caddy。Docker 镜像带有基础版本；Windows 独立环境缺少运行时时，后端会根据目标版本和系统中保存的下载地址自动下载到项目 `data/runtime/`。
 
-Docker 镜像和默认托管下载都包含 `github.com/caddy-dns/alidns`。使用自定义 `CADDY_DOWNLOAD_URL` 时，必须确保目标 Caddy 同样包含该模块，否则阿里云 DNS-01 配置无法加载。
+Docker 镜像和默认托管下载都包含 `github.com/caddy-dns/alidns`。使用自定义下载地址时，必须确保目标 Caddy 同样包含该模块，否则阿里云 DNS-01 配置无法加载。
 
 阿里云 AccessKey 在“证书与访问 → DNS Provider”中配置，系统使用自动生成的独立密钥进行 AES-GCM 加密。
 

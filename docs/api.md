@@ -53,6 +53,13 @@
 | GET/POST | `/api/certificates` | 查询或新增可复用证书配置 |
 | PUT/DELETE | `/api/certificates/{id}` | 编辑或删除未被站点引用的证书配置 |
 
+## Caddy 工作台设置
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/api/caddy/settings` | 获取数据库中保存的版本校验、下载与校验和地址 |
+| PUT | `/api/caddy/settings` | 更新 Caddy 更新源设置 |
+
 ## Caddy
 
 | 方法 | 路径 | 说明 |

@@ -32,7 +32,7 @@ All configuration changes are versioned. If a publish fails, your previous worki
 - **Config preview & publish** — see the exact Caddy JSON before it goes live; push to Caddy Admin API in one step
 - **Version history & rollback** — every publish is recorded; diff, inspect, or rollback to any previous version
 - **Dashboard** — at-a-glance status: site counts, Caddy health, last publish time
-- **Caddy version management** — the backend downloads, starts, monitors, updates, and stops Caddy automatically
+- **Unified Caddy workbench** — runtime health, validate/publish flow, config history, system version, and Caddy updates in one place
 - **Self-protecting** — the management port (`:8080`) is never removed from generated configs, so the UI always stays reachable
 - **Single system** — Caddy + Go API + React ship together; users never install or start Caddy separately
 
@@ -177,11 +177,10 @@ Environment variables for development:
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `CADDY_VERSION` | `2.10.0` | Managed Caddy target version |
-| `CADDY_VERSION_CHECK_URL` | GitHub releases API | Version check endpoint |
-| `CADDY_DOWNLOAD_URL` | Caddy custom build API | Managed build with the Aliyun DNS module; supports `{version}`, `{os}`, `{arch}` |
-| `CADDY_CHECKSUM_URL` | empty | Optional SHA-512 manifest URL for a custom download source |
+| `CADDY_VERSION` | `2.10.0` | Native development bootstrap version |
 | `VITE_PROXY_HOST` | `http://127.0.0.1:25610` | Vite dev proxy target |
+
+Caddy version-check, download, and checksum URLs are managed from **Caddy 管理 → 更新源设置** and stored in SQLite. Docker environment variables are not required.
 
 Project-level Windows commands are centralized under `scripts/`:
 
