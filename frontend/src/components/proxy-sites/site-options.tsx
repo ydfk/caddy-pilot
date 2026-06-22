@@ -1,18 +1,11 @@
 import { Controller, type Control, useController } from "react-hook-form";
 
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { cn } from "@/lib/utils";
 import type { SiteFormValues } from "./site-form-data";
 
 type SiteOptionsProps = { control: Control<SiteFormValues>; cloneMode: boolean };
-
-const httpsModes = [
-  { value: "redirect", label: "强制 HTTPS", description: "HTTP 自动跳转，推荐" },
-  { value: "on", label: "仅 HTTPS", description: "不创建 HTTP 跳转" },
-  { value: "off", label: "关闭 HTTPS", description: "只监听 HTTP" },
-] as const;
 
 const transportOptions = [
   { name: "enableWS", label: "WebSocket", description: "允许协议升级" },
@@ -55,27 +48,14 @@ export function SiteCoreOptions({ control, cloneMode }: SiteOptionsProps) {
 
       <Field>
         <FieldLabel>HTTPS 模式</FieldLabel>
-        <RadioGroup
-          value={httpsMode}
-          onValueChange={setHTTPSMode}
-          className="grid gap-2 md:grid-cols-3"
-        >
-          {httpsModes.map((mode) => (
-            <label
-              key={mode.value}
-              className={cn(
-                "flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors hover:bg-accent/50",
-                httpsMode === mode.value && "border-primary bg-primary/5"
-              )}
-            >
-              <RadioGroupItem value={mode.value} className="mt-0.5" />
-              <span>
-                <span className="block text-sm font-medium">{mode.label}</span>
-                <span className="block text-xs text-muted-foreground">{mode.description}</span>
-              </span>
-            </label>
-          ))}
-        </RadioGroup>
+        <Select value={httpsMode} onValueChange={setHTTPSMode}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent><SelectGroup>
+            <SelectItem value="redirect">强制 HTTPS · HTTP 自动跳转</SelectItem>
+            <SelectItem value="on">仅 HTTPS · 不创建 HTTP 跳转</SelectItem>
+            <SelectItem value="off">关闭 HTTPS · 只监听 HTTP</SelectItem>
+          </SelectGroup></SelectContent>
+        </Select>
       </Field>
     </FieldGroup>
   );

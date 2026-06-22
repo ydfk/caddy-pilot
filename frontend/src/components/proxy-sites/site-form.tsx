@@ -5,6 +5,8 @@ import { Link } from "react-router-dom";
 
 import { PageHeader } from "@/components/page-header";
 import type { BasicAuthCredential } from "@/api/basic-auth";
+import type { CertificateProfile, CertificateProfilePayload } from "@/api/certificates";
+import type { DNSProvider } from "@/api/dns-providers";
 import {
   Accordion,
   AccordionContent,
@@ -21,18 +23,22 @@ import { SiteCoreOptions, SiteOptions } from "./site-options";
 import { siteFormSchema, type SiteFormValues } from "./site-form-data";
 import { UpstreamOptions, UpstreamTLSOptions } from "./upstream-options";
 import { CredentialSelector } from "./credential-selector";
-import { CertificateOptions, DNSHint } from "./certificate-options";
+import { CertificateOptions } from "./certificate-options";
+import { StringListField } from "./string-list-field";
 
 type SiteFormProps = {
   mode: "new" | "edit" | "clone";
   values: SiteFormValues;
   pending: boolean;
   credentials: BasicAuthCredential[];
+  certificates: CertificateProfile[];
+  dnsProviders: DNSProvider[];
+  onCreateCertificate: (payload: CertificateProfilePayload) => Promise<CertificateProfile>;
   onSave: (values: SiteFormValues, publish: boolean) => Promise<void>;
   onPreview: (values: SiteFormValues) => void;
 };
 
-export function SiteForm({ mode, values, pending, credentials, onSave, onPreview }: SiteFormProps) {
+export function SiteForm({ mode, values, pending, credentials, certificates, dnsProviders, onCreateCertificate, onSave, onPreview }: SiteFormProps) {
   const form = useForm<SiteFormValues>({ resolver: zodResolver(siteFormSchema), values });
   const errors = form.formState.errors;
   const cloneMode = mode === "clone";
@@ -60,33 +66,8 @@ export function SiteForm({ mode, values, pending, credentials, onSave, onPreview
           <FieldGroup className="gap-5">
             <UpstreamOptions control={form.control} />
             <div className="grid gap-4 md:grid-cols-2">
-              <Field data-invalid={Boolean(errors.domains) || undefined}>
-                <FieldLabel htmlFor="domains">域名</FieldLabel>
-                <Textarea
-                  id="domains"
-                  rows={3}
-                  className="font-mono"
-                  placeholder={"example.com\nwww.example.com"}
-                  {...form.register("domains")}
-                  aria-invalid={Boolean(errors.domains)}
-                />
-                <FieldError errors={[errors.domains]} />
-              </Field>
-              <Field data-invalid={Boolean(errors.upstreams) || undefined}>
-                <FieldLabel htmlFor="upstreams">上游</FieldLabel>
-                <Textarea
-                  id="upstreams"
-                  rows={3}
-                  className="font-mono"
-                  placeholder={"127.0.0.1:3000\n10.0.0.8:8080"}
-                  {...form.register("upstreams")}
-                  aria-invalid={Boolean(errors.upstreams)}
-                />
-                <FieldDescription>
-                  {upstreamType === "unix" ? "每行一个套接字绝对路径。" : "每行一个 host:port 地址。"}
-                </FieldDescription>
-                <FieldError errors={[errors.upstreams]} />
-              </Field>
+              <Controller control={form.control} name="domains" render={({ field }) => <StringListField id="domains" label="域名" value={field.value} onChange={field.onChange} placeholder="example.com" addLabel="添加域名" description="多个域名共用这一套代理和访问控制配置。" error={errors.domains?.message} />} />
+              <Controller control={form.control} name="upstreams" render={({ field }) => <StringListField id="upstreams" label="上游地址" value={field.value} onChange={field.onChange} placeholder={upstreamType === "unix" ? "/run/app.sock" : "127.0.0.1:3000"} addLabel="添加上游" description={upstreamType === "unix" ? "每项一个套接字路径。" : "多个上游由 Caddy 自动负载分配。每项填写 host:port。"} error={errors.upstreams?.message} />} />
             </div>
 
             {upstreamType === "https" ? <UpstreamTLSOptions control={form.control} /> : null}
@@ -97,9 +78,16 @@ export function SiteForm({ mode, values, pending, credentials, onSave, onPreview
                 control={form.control}
                 errors={errors}
                 certificateType={certificateType}
+                challengeType={acmeChallengeType}
+                profiles={certificates}
+                providers={dnsProviders}
+                onCreateCertificate={async (payload) => {
+                  const created = await onCreateCertificate(payload);
+                  form.setValue("certificateProfileID", created.id, { shouldValidate: true });
+                  return created;
+                }}
               />
             ) : null}
-            {enableHTTPS && certificateType === "single" && acmeChallengeType === "dns" ? <DNSHint /> : null}
           </FieldGroup>
         </CardContent>
       </Card>

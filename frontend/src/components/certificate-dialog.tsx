@@ -16,7 +16,7 @@ type Props = {
   profile?: CertificateProfile | null;
   providers: DNSProvider[];
   trigger: ReactNode;
-  onSave: (payload: CertificateProfilePayload) => Promise<void>;
+  onSave: (payload: CertificateProfilePayload) => Promise<unknown>;
 };
 
 export function CertificateDialog({ profile, providers, trigger, onSave }: Props) {

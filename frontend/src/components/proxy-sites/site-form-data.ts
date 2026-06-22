@@ -8,8 +8,8 @@ const optionalJSON = z
   .refine((value) => !value.trim() || isJSON(value), "请输入有效 JSON");
 
 export const siteFormSchema = z.object({
-  domains: z.string().refine((value) => splitLines(value).length > 0, "至少填写一个域名"),
-  upstreams: z.string().refine((value) => splitLines(value).length > 0, "至少填写一个上游"),
+  domains: z.array(z.string()).refine((value) => compactItems(value).length > 0, "至少填写一个域名"),
+  upstreams: z.array(z.string()).refine((value) => compactItems(value).length > 0, "至少填写一个上游"),
   upstreamType: z.enum(["http", "https", "h2c", "unix"]),
   upstreamTLSServerName: z.string().max(253),
   upstreamTLSInsecureSkipVerify: z.boolean(),
@@ -20,6 +20,8 @@ export const siteFormSchema = z.object({
   certificateDomain: z.string().max(253),
   acmeChallengeType: z.enum(["http", "dns"]),
   dnsProvider: z.literal("alidns"),
+  dnsProviderID: z.string(),
+  certificateProfileID: z.string(),
   enableWS: z.boolean(),
   enableGzip: z.boolean(),
   enableLog: z.boolean(),
@@ -30,20 +32,23 @@ export const siteFormSchema = z.object({
   basicAuthCredentialIDs: z.array(z.string()),
   advancedJSON: optionalJSON,
 }).superRefine((values, context) => {
-  if (values.certificateType === "wildcard" && !values.certificateDomain.startsWith("*.")) {
+  if (values.certificateType === "wildcard" && !values.certificateProfileID) {
     context.addIssue({
       code: "custom",
-      path: ["certificateDomain"],
-      message: "通配符证书域名必须以 *. 开头",
+      path: ["certificateProfileID"],
+      message: "请选择通配符证书配置",
     });
+  }
+  if (values.certificateType === "single" && values.acmeChallengeType === "dns" && !values.dnsProviderID) {
+    context.addIssue({ code: "custom", path: ["dnsProviderID"], message: "请选择 DNS Provider" });
   }
 });
 
 export type SiteFormValues = z.infer<typeof siteFormSchema>;
 
 export const defaultSiteValues: SiteFormValues = {
-  domains: "",
-  upstreams: "",
+  domains: [""],
+  upstreams: [""],
   upstreamType: "http",
   upstreamTLSServerName: "",
   upstreamTLSInsecureSkipVerify: false,
@@ -54,6 +59,8 @@ export const defaultSiteValues: SiteFormValues = {
   certificateDomain: "",
   acmeChallengeType: "http",
   dnsProvider: "alidns",
+  dnsProviderID: "",
+  certificateProfileID: "",
   enableWS: true,
   enableGzip: true,
   enableLog: false,
@@ -67,8 +74,8 @@ export const defaultSiteValues: SiteFormValues = {
 
 export function formValuesFromSite(site: ProxySite, clone: boolean): SiteFormValues {
   return {
-    domains: site.domains.join("\n"),
-    upstreams: site.upstreams.join("\n"),
+    domains: site.domains.length ? site.domains : [""],
+    upstreams: site.upstreams.length ? site.upstreams : [""],
     upstreamType: site.upstream_type || "http",
     upstreamTLSServerName: site.upstream_tls_server_name,
     upstreamTLSInsecureSkipVerify: site.upstream_tls_insecure_skip_verify,
@@ -79,6 +86,8 @@ export function formValuesFromSite(site: ProxySite, clone: boolean): SiteFormVal
     certificateDomain: site.certificate_domain,
     acmeChallengeType: site.acme_challenge_type || "http",
     dnsProvider: "alidns",
+    dnsProviderID: site.dns_provider_id ?? "",
+    certificateProfileID: site.certificate_profile_id ?? "",
     enableWS: site.enable_ws,
     enableGzip: site.enable_gzip,
     enableLog: site.enable_log,
@@ -95,8 +104,8 @@ export function payloadFromForm(values: SiteFormValues, forceDisabled = false): 
   return {
     name: "",
     description: "",
-    domains: splitLines(values.domains),
-    upstreams: splitLines(values.upstreams),
+    domains: compactItems(values.domains),
+    upstreams: compactItems(values.upstreams),
     upstream_type: values.upstreamType,
     upstream_tls_server_name: values.upstreamTLSServerName.trim(),
     upstream_tls_insecure_skip_verify: values.upstreamTLSInsecureSkipVerify,
@@ -111,12 +120,18 @@ export function payloadFromForm(values: SiteFormValues, forceDisabled = false): 
       values.certificateType === "wildcard" || values.acmeChallengeType === "dns"
         ? values.dnsProvider
         : "",
+    dns_provider_id:
+      values.certificateType === "single" && values.acmeChallengeType === "dns"
+        ? values.dnsProviderID || undefined
+        : undefined,
+    certificate_profile_id:
+      values.certificateType === "wildcard" ? values.certificateProfileID || undefined : undefined,
     enable_ws: values.enableWS,
     enable_gzip: values.enableGzip,
     enable_log: values.enableLog,
     request_headers: JSON.parse(values.requestHeaders) as Record<string, string>,
     response_headers: JSON.parse(values.responseHeaders) as Record<string, string>,
-    allowed_ips: splitLines(values.allowedIPs),
+    allowed_ips: splitTextLines(values.allowedIPs),
     basic_auth_enabled: values.basicAuthEnabled,
     basic_auth_users: {},
     basic_auth_credential_ids: values.basicAuthCredentialIDs,
@@ -127,11 +142,11 @@ export function payloadFromForm(values: SiteFormValues, forceDisabled = false): 
 export function draftPreview(values: SiteFormValues) {
   const transport = draftTransport(values);
   return {
-    match: [{ host: splitLines(values.domains) }],
+    match: [{ host: compactItems(values.domains) }],
     handle: [
       {
         handler: "reverse_proxy",
-        upstreams: splitLines(values.upstreams).map((dial) => ({ dial })),
+        upstreams: compactItems(values.upstreams).map((dial) => ({ dial })),
         ...(transport ? { transport } : {}),
       },
     ],
@@ -156,11 +171,12 @@ function draftTransport(values: SiteFormValues) {
   return null;
 }
 
-function splitLines(value: string) {
-  return value
-    .split(/\r?\n/)
-    .map((item) => item.trim())
-    .filter(Boolean);
+function compactItems(value: string[]) {
+  return value.map((item) => item.trim()).filter(Boolean);
+}
+
+function splitTextLines(value: string) {
+  return value.split(/\r?\n/).map((item) => item.trim()).filter(Boolean);
 }
 
 function isJSONObject(value: string) {

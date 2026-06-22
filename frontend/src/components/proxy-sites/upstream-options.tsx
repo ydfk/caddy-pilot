@@ -2,17 +2,9 @@ import { Controller, type Control } from "react-hook-form";
 
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { cn } from "@/lib/utils";
 import type { SiteFormValues } from "./site-form-data";
-
-const upstreamTypes = [
-  { value: "http", label: "HTTP", description: "常规明文 HTTP 服务" },
-  { value: "https", label: "HTTPS", description: "使用 TLS 连接上游" },
-  { value: "h2c", label: "h2c", description: "明文 HTTP/2，例如 gRPC" },
-  { value: "unix", label: "Unix Socket", description: "连接本机套接字文件" },
-] as const;
 
 export function UpstreamOptions({ control }: { control: Control<SiteFormValues> }) {
   return (
@@ -22,27 +14,15 @@ export function UpstreamOptions({ control }: { control: Control<SiteFormValues> 
       render={({ field }) => (
         <Field>
           <FieldLabel>上游类型</FieldLabel>
-          <RadioGroup
-            value={field.value}
-            onValueChange={field.onChange}
-            className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4"
-          >
-            {upstreamTypes.map((type) => (
-              <label
-                key={type.value}
-                className={cn(
-                  "flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors hover:bg-accent/50",
-                  field.value === type.value && "border-primary bg-primary/5"
-                )}
-              >
-                <RadioGroupItem value={type.value} className="mt-0.5" />
-                <span>
-                  <span className="block text-sm font-medium">{type.label}</span>
-                  <span className="block text-xs text-muted-foreground">{type.description}</span>
-                </span>
-              </label>
-            ))}
-          </RadioGroup>
+          <Select value={field.value} onValueChange={field.onChange}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent><SelectGroup>
+              <SelectItem value="http">HTTP · 常规明文服务</SelectItem>
+              <SelectItem value="https">HTTPS · TLS 上游</SelectItem>
+              <SelectItem value="h2c">h2c · 明文 HTTP/2 / gRPC</SelectItem>
+              <SelectItem value="unix">Unix Socket · 套接字文件</SelectItem>
+            </SelectGroup></SelectContent>
+          </Select>
         </Field>
       )}
     />

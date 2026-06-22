@@ -9,11 +9,11 @@ describe("代理站点表单转换", () => {
     expect(values.enabled).toBe(false);
   });
 
-  test("多行字段和 JSON 字段转换为 API 载荷", () => {
+  test("重复项和 JSON 字段转换为 API 载荷", () => {
     const payload = payloadFromForm({
       ...defaultSiteValues,
-      domains: "example.com\nwww.example.com\n",
-      upstreams: "127.0.0.1:3000\n127.0.0.1:3001",
+      domains: ["example.com", "www.example.com", ""],
+      upstreams: ["127.0.0.1:3000", "127.0.0.1:3001"],
       requestHeaders: '{"X-Request":"value"}',
       responseHeaders: '{"X-Response":"value"}',
       allowedIPs: "127.0.0.1\n10.0.0.0/8",

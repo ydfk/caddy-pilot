@@ -11,6 +11,8 @@ import {
 } from "@/api/proxy-sites";
 import { publishCaddyConfig } from "@/api/caddy";
 import { listBasicAuthCredentials, type BasicAuthCredential } from "@/api/basic-auth";
+import { createCertificate, listCertificates, type CertificateProfile, type CertificateProfilePayload } from "@/api/certificates";
+import { listDNSProviders, type DNSProvider } from "@/api/dns-providers";
 import { JSONDialog } from "@/components/json-dialog";
 import { SiteForm } from "@/components/proxy-sites/site-form";
 import {
@@ -32,11 +34,17 @@ export default function ProxySiteFormPage() {
   const [pending, setPending] = useState(false);
   const [preview, setPreview] = useState<unknown>(null);
   const [credentials, setCredentials] = useState<BasicAuthCredential[]>([]);
+  const [certificates, setCertificates] = useState<CertificateProfile[]>([]);
+  const [dnsProviders, setDNSProviders] = useState<DNSProvider[]>([]);
 
   useEffect(() => {
-    listBasicAuthCredentials()
-      .then(setCredentials)
-      .catch((error) => toast.error(error instanceof Error ? error.message : "读取密码本失败"));
+    Promise.all([listBasicAuthCredentials(), listCertificates(), listDNSProviders()])
+      .then(([nextCredentials, nextCertificates, nextProviders]) => {
+        setCredentials(nextCredentials);
+        setCertificates(nextCertificates);
+        setDNSProviders(nextProviders);
+      })
+      .catch((error) => toast.error(error instanceof Error ? error.message : "读取站点依赖配置失败"));
   }, []);
 
   useEffect(() => {
@@ -77,6 +85,13 @@ export default function ProxySiteFormPage() {
     }
   }
 
+  async function createCertificateProfile(payload: CertificateProfilePayload) {
+    const created = await createCertificate(payload);
+    setCertificates((current) => [created, ...current]);
+    toast.success("证书配置已创建并选中");
+    return created;
+  }
+
   if (loading) {
     return (
       <div className="flex flex-col gap-4">
@@ -93,6 +108,9 @@ export default function ProxySiteFormPage() {
         values={values}
         pending={pending}
         credentials={credentials}
+        certificates={certificates}
+        dnsProviders={dnsProviders}
+        onCreateCertificate={createCertificateProfile}
         onSave={save}
         onPreview={(data) => setPreview(draftPreview(data))}
       />

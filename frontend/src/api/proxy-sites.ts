@@ -14,6 +14,8 @@ export type ProxySitePayload = {
   certificate_domain: string;
   acme_challenge_type: "http" | "dns";
   dns_provider: "" | "alidns";
+  dns_provider_id?: string;
+  certificate_profile_id?: string;
   enable_gzip: boolean;
   enable_log: boolean;
   enable_ws: boolean;
