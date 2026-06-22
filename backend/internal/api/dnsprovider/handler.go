@@ -5,7 +5,9 @@ import (
 	"errors"
 	"strings"
 
+	"go-fiber-starter/internal/model/certificate"
 	model "go-fiber-starter/internal/model/dnsprovider"
+	"go-fiber-starter/internal/model/proxysite"
 	"go-fiber-starter/internal/service"
 	"go-fiber-starter/pkg/db"
 
@@ -87,6 +89,18 @@ func Delete(ctx context.Context, input *DNSProviderIDInput) (*struct{}, error) {
 	provider, err := find(input.ID)
 	if err != nil {
 		return nil, err
+	}
+	var count int64
+	if err := db.DB.Model(&certificate.CertificateProfile{}).Where("dns_provider_id = ?", provider.Id).Count(&count).Error; err != nil {
+		return nil, huma.Error500InternalServerError("检查 DNS Provider 引用失败")
+	}
+	if count == 0 {
+		if err := db.DB.Model(&proxysite.ProxySite{}).Where("dns_provider_id = ?", provider.Id).Count(&count).Error; err != nil {
+			return nil, huma.Error500InternalServerError("检查 DNS Provider 引用失败")
+		}
+	}
+	if count > 0 {
+		return nil, huma.Error400BadRequest("DNS Provider 仍被证书或代理站点引用，无法删除")
 	}
 	if err := db.DB.Delete(&provider).Error; err != nil {
 		return nil, huma.Error500InternalServerError("删除 DNS Provider 失败")

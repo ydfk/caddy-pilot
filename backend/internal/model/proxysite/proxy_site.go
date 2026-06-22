@@ -3,6 +3,7 @@ package proxysite
 import (
 	"go-fiber-starter/internal/model/base"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -21,6 +22,8 @@ type ProxySite struct {
 	CertificateDomain             string         `gorm:"size:253" json:"certificate_domain"`
 	ACMEChallengeType             string         `gorm:"size:16;not null;default:http" json:"acme_challenge_type"`
 	DNSProvider                   string         `gorm:"size:32" json:"dns_provider"`
+	DNSProviderID                 *uuid.UUID     `gorm:"type:char(36);index" json:"dns_provider_id"`
+	CertificateProfileID          *uuid.UUID     `gorm:"type:char(36);index" json:"certificate_profile_id"`
 	EnableGzip                    bool           `gorm:"not null;default:true" json:"enable_gzip"`
 	EnableLog                     bool           `gorm:"not null;default:false" json:"enable_log"`
 	EnableWS                      bool           `gorm:"not null;default:true" json:"enable_ws"`
@@ -33,4 +36,5 @@ type ProxySite struct {
 	AdvancedJSON                  string         `gorm:"type:text" json:"advanced_json"`
 	Enabled                       bool           `gorm:"not null;default:false;index" json:"enabled"`
 	DeletedAt                     gorm.DeletedAt `gorm:"index" json:"-"`
+	ResolvedCertificateSubjects   string         `gorm:"-" json:"-"`
 }

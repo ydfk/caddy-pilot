@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"go-fiber-starter/internal/model/dnsprovider"
 	"go-fiber-starter/internal/model/proxysite"
 )
 
@@ -102,17 +103,30 @@ func siteTLSPolicy(site proxysite.ProxySite) (map[string]any, error) {
 	}
 	subjects := domains
 	if site.CertificateType == "wildcard" {
-		if site.CertificateDomain == "" {
+		if site.ResolvedCertificateSubjects != "" {
+			subjects, err = decodeStringList(site.ResolvedCertificateSubjects)
+			if err != nil {
+				return nil, fmt.Errorf("解析证书配置域名失败: %w", err)
+			}
+		} else if site.CertificateDomain != "" {
+			subjects = []string{site.CertificateDomain}
+		} else {
 			return nil, fmt.Errorf("通配符证书域名不能为空")
 		}
-		subjects = []string{site.CertificateDomain}
+	}
+	provider := map[string]any{
+		"name": "alidns", "access_key_id": "{env.ALIYUN_ACCESS_KEY_ID}",
+		"access_key_secret": "{env.ALIYUN_ACCESS_KEY_SECRET}",
+	}
+	if site.DNSProviderID != nil {
+		idName, secretName, regionName := dnsprovider.EnvNames(*site.DNSProviderID)
+		provider["access_key_id"] = "{env." + idName + "}"
+		provider["access_key_secret"] = "{env." + secretName + "}"
+		provider["region_id"] = "{env." + regionName + "}"
 	}
 	issuer := map[string]any{
-		"module": "acme",
-		"challenges": map[string]any{"dns": map[string]any{"provider": map[string]any{
-			"name": "alidns", "access_key_id": "{env.ALIYUN_ACCESS_KEY_ID}",
-			"access_key_secret": "{env.ALIYUN_ACCESS_KEY_SECRET}",
-		}}},
+		"module":     "acme",
+		"challenges": map[string]any{"dns": map[string]any{"provider": provider}},
 	}
 	return map[string]any{"subjects": subjects, "issuers": []map[string]any{issuer}}, nil
 }

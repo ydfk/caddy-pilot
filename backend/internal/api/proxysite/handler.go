@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"go-fiber-starter/internal/caddygen"
+	certificateModel "go-fiber-starter/internal/model/certificate"
+	dnsProviderModel "go-fiber-starter/internal/model/dnsprovider"
 	model "go-fiber-starter/internal/model/proxysite"
 	"go-fiber-starter/internal/service"
 	"go-fiber-starter/pkg/db"
@@ -127,6 +129,9 @@ func Preview(ctx context.Context, input *SiteIDInput) (*PreviewOutput, error) {
 	if err := service.ResolveBasicAuthCredentials(ctx, db.DB, sites); err != nil {
 		return nil, huma.Error400BadRequest(err.Error())
 	}
+	if err := service.ResolveCertificateProfiles(ctx, db.DB, sites); err != nil {
+		return nil, huma.Error400BadRequest(err.Error())
+	}
 	route, err := caddygen.GenerateSiteRoute(sites[0])
 	if err != nil {
 		return nil, huma.Error500InternalServerError("生成站点配置失败")
@@ -182,8 +187,12 @@ func siteFromPayload(payload SitePayload) (model.ProxySite, error) {
 	}
 	if certificateType == "wildcard" {
 		challengeType = "dns"
-		if !strings.HasPrefix(certificateDomain, "*.") {
-			return model.ProxySite{}, errors.New("通配符证书域名必须以 *. 开头")
+		if payload.CertificateProfileID == nil {
+			return model.ProxySite{}, errors.New("通配符证书必须选择系统证书配置")
+		}
+		var profile certificateModel.CertificateProfile
+		if err := db.DB.Where("id = ? AND certificate_type = ? AND enabled = ?", *payload.CertificateProfileID, "wildcard", true).First(&profile).Error; err != nil {
+			return model.ProxySite{}, errors.New("选择的通配符证书不存在或未启用")
 		}
 	}
 	dnsProvider := ""
@@ -191,6 +200,15 @@ func siteFromPayload(payload SitePayload) (model.ProxySite, error) {
 		dnsProvider = defaultString(strings.TrimSpace(payload.DNSProvider), "alidns")
 		if dnsProvider != "alidns" {
 			return model.ProxySite{}, errors.New("当前只支持阿里云 DNS")
+		}
+		if certificateType == "single" {
+			if payload.DNSProviderID == nil {
+				return model.ProxySite{}, errors.New("DNS-01 必须选择系统 DNS Provider")
+			}
+			var provider dnsProviderModel.DNSProvider
+			if err := db.DB.Where("id = ? AND enabled = ?", *payload.DNSProviderID, true).First(&provider).Error; err != nil {
+				return model.ProxySite{}, errors.New("选择的 DNS Provider 不存在或未启用")
+			}
 		}
 	}
 	name := strings.TrimSpace(payload.Name)
@@ -219,6 +237,8 @@ func siteFromPayload(payload SitePayload) (model.ProxySite, error) {
 		CertificateDomain:             certificateDomain,
 		ACMEChallengeType:             challengeType,
 		DNSProvider:                   dnsProvider,
+		DNSProviderID:                 payload.DNSProviderID,
+		CertificateProfileID:          payload.CertificateProfileID,
 		EnableGzip:                    payload.EnableGzip,
 		EnableLog:                     payload.EnableLog,
 		EnableWS:                      payload.EnableWS,

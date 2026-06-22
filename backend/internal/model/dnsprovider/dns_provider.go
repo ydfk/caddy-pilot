@@ -2,9 +2,16 @@ package dnsprovider
 
 import (
 	"go-fiber-starter/internal/model/base"
+	"strings"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
+
+func EnvNames(id uuid.UUID) (string, string, string) {
+	prefix := "CADDYPILOT_DNS_" + strings.ToUpper(strings.ReplaceAll(id.String(), "-", "_"))
+	return prefix + "_ACCESS_KEY_ID", prefix + "_ACCESS_KEY_SECRET", prefix + "_REGION_ID"
+}
 
 type DNSProvider struct {
 	base.BaseModel

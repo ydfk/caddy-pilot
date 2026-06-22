@@ -2,6 +2,7 @@ package db
 
 import (
 	"go-fiber-starter/internal/model/basicauth"
+	"go-fiber-starter/internal/model/certificate"
 	"go-fiber-starter/internal/model/configversion"
 	"go-fiber-starter/internal/model/dnsprovider"
 	"go-fiber-starter/internal/model/proxysite"
@@ -15,6 +16,7 @@ func autoMigrate() error {
 		&basicauth.Credential{},
 		&proxysite.ProxySite{},
 		&configversion.ConfigVersion{},
+		&certificate.CertificateProfile{},
 		&dnsprovider.DNSProvider{},
 	); err != nil {
 		return err

@@ -4,6 +4,7 @@ import (
 	"go-fiber-starter/internal/api/auth"
 	"go-fiber-starter/internal/api/basicauth"
 	"go-fiber-starter/internal/api/caddy"
+	"go-fiber-starter/internal/api/certificate"
 	"go-fiber-starter/internal/api/configversion"
 	"go-fiber-starter/internal/api/dashboard"
 	"go-fiber-starter/internal/api/dnsprovider"
@@ -42,6 +43,7 @@ func newApp() *fiber.App {
 	basicauth.RegisterRoutes(humaAPI)
 	proxysite.RegisterRoutes(humaAPI)
 	caddy.RegisterRoutes(humaAPI)
+	certificate.RegisterRoutes(humaAPI)
 	configversion.RegisterRoutes(humaAPI)
 	dashboard.RegisterRoutes(humaAPI)
 	dnsprovider.RegisterRoutes(humaAPI)

@@ -5,11 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strings"
 
 	"go-fiber-starter/internal/model/dnsprovider"
 
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -60,7 +58,7 @@ func LoadDNSProviderEnvironment(ctx context.Context, database *gorm.DB) error {
 		if err != nil {
 			return fmt.Errorf("解密 DNS Provider %s 失败: %w", provider.Name, err)
 		}
-		idName, secretName, regionName := DNSProviderEnvNames(provider.Id)
+		idName, secretName, regionName := dnsprovider.EnvNames(provider.Id)
 		if err := os.Setenv(idName, config.AccessKeyID); err != nil {
 			return err
 		}
@@ -86,9 +84,4 @@ func ApplyDNSProviderRuntime(ctx context.Context, database *gorm.DB) error {
 		return fmt.Errorf("重启托管 Caddy 失败: %w", err)
 	}
 	return nil
-}
-
-func DNSProviderEnvNames(id uuid.UUID) (string, string, string) {
-	prefix := "CADDYPILOT_DNS_" + strings.ToUpper(strings.ReplaceAll(id.String(), "-", "_"))
-	return prefix + "_ACCESS_KEY_ID", prefix + "_ACCESS_KEY_SECRET", prefix + "_REGION_ID"
 }

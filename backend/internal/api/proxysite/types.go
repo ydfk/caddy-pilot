@@ -23,6 +23,8 @@ type SitePayload struct {
 	CertificateDomain             string            `json:"certificate_domain" doc:"通配符证书域名"`
 	ACMEChallengeType             string            `json:"acme_challenge_type" enum:"http,dns" doc:"ACME 验证方式"`
 	DNSProvider                   string            `json:"dns_provider" enum:"alidns" doc:"DNS-01 服务商"`
+	DNSProviderID                 *uuid.UUID        `json:"dns_provider_id,omitempty" doc:"系统 DNS Provider"`
+	CertificateProfileID          *uuid.UUID        `json:"certificate_profile_id,omitempty" doc:"系统证书配置"`
 	EnableGzip                    bool              `json:"enable_gzip" doc:"启用 gzip 和 zstd"`
 	EnableLog                     bool              `json:"enable_log" doc:"启用访问日志"`
 	EnableWS                      bool              `json:"enable_ws" doc:"启用 WebSocket"`
@@ -75,6 +77,8 @@ type SiteResponse struct {
 	CertificateDomain             string            `json:"certificate_domain"`
 	ACMEChallengeType             string            `json:"acme_challenge_type"`
 	DNSProvider                   string            `json:"dns_provider"`
+	DNSProviderID                 *uuid.UUID        `json:"dns_provider_id,omitempty"`
+	CertificateProfileID          *uuid.UUID        `json:"certificate_profile_id,omitempty"`
 	EnableGzip                    bool              `json:"enable_gzip"`
 	EnableLog                     bool              `json:"enable_log"`
 	EnableWS                      bool              `json:"enable_ws"`
@@ -128,6 +132,8 @@ func newSiteResponse(site model.ProxySite) (SiteResponse, error) {
 		CertificateDomain:             site.CertificateDomain,
 		ACMEChallengeType:             defaultString(site.ACMEChallengeType, "http"),
 		DNSProvider:                   defaultString(site.DNSProvider, "alidns"),
+		DNSProviderID:                 site.DNSProviderID,
+		CertificateProfileID:          site.CertificateProfileID,
 		EnableGzip:                    site.EnableGzip,
 		EnableLog:                     site.EnableLog,
 		EnableWS:                      site.EnableWS,

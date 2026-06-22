@@ -5,7 +5,10 @@ import (
 	"encoding/json"
 	"testing"
 
+	"go-fiber-starter/internal/model/dnsprovider"
 	"go-fiber-starter/internal/model/proxysite"
+
+	"github.com/google/uuid"
 )
 
 func TestGenerateEmptySitesContainsManagementEntry(t *testing.T) {
@@ -125,6 +128,25 @@ func TestGenerateSupportsAliDNSWildcardCertificate(t *testing.T) {
 	for _, expected := range []string{`"subjects":["*.example.com"]`, `"name":"alidns"`, `{env.ALIYUN_ACCESS_KEY_ID}`, `{env.ALIYUN_ACCESS_KEY_SECRET}`} {
 		if !bytes.Contains(compact, []byte(expected)) {
 			t.Fatalf("DNS-01 配置缺少 %s: %s", expected, payload)
+		}
+	}
+}
+
+func TestGenerateUsesStoredDNSProviderEnvironment(t *testing.T) {
+	site := testSite(true, []string{"127.0.0.1:3000"})
+	providerID := uuid.MustParse("11111111-2222-3333-4444-555555555555")
+	site.EnableHTTPS = true
+	site.CertificateType = "single"
+	site.ACMEChallengeType = "dns"
+	site.DNSProviderID = &providerID
+	payload, err := Generate([]proxysite.ProxySite{site})
+	if err != nil {
+		t.Fatalf("生成系统 DNS Provider 配置失败: %v", err)
+	}
+	idName, secretName, _ := dnsprovider.EnvNames(providerID)
+	for _, expected := range []string{"{env." + idName + "}", "{env." + secretName + "}"} {
+		if !bytes.Contains(payload, []byte(expected)) {
+			t.Fatalf("配置缺少动态凭据占位符 %s: %s", expected, payload)
 		}
 	}
 }
