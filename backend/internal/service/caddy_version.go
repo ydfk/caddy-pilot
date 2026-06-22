@@ -30,14 +30,16 @@ type CaddyVersionService struct {
 	Binary         string
 	ReleaseAPI     string
 	HTTPClient     *http.Client
+	DownloadURL    string
 	currentVersion func(context.Context) (string, error)
 }
 
 func NewCaddyVersionService() *CaddyVersionService {
 	service := &CaddyVersionService{
-		Binary:     environmentValue("CADDY_BINARY", "caddy"),
-		ReleaseAPI: environmentValue("CADDY_VERSION_CHECK_URL", CaddyLatestReleaseAPI),
-		HTTPClient: &http.Client{Timeout: 5 * time.Second},
+		Binary:      environmentValue("CADDY_BINARY", "caddy"),
+		ReleaseAPI:  CaddyLatestReleaseAPI,
+		DownloadURL: DefaultCaddyDownloadURL,
+		HTTPClient:  &http.Client{Timeout: 5 * time.Second},
 	}
 	service.currentVersion = service.readCurrentVersion
 	return service
@@ -52,8 +54,7 @@ func (service *CaddyVersionService) Check(ctx context.Context) (CaddyVersionInfo
 	info := CaddyVersionInfo{
 		CurrentVersion:  current,
 		VersionCheckURL: service.ReleaseAPI,
-		DownloadURL:     environmentValue("CADDY_DOWNLOAD_URL", DefaultCaddyDownloadURL),
-		UpdateURL:       strings.TrimSpace(os.Getenv("CADDY_UPDATE_URL")),
+		DownloadURL:     service.DownloadURL,
 	}
 	if path, lookupErr := exec.LookPath(service.Binary); lookupErr == nil {
 		info.BinaryPath = path
@@ -66,9 +67,6 @@ func (service *CaddyVersionService) Check(ctx context.Context) (CaddyVersionInfo
 
 	info.LatestVersion = latest
 	info.ReleaseURL = releaseURL
-	if info.UpdateURL != "" {
-		info.ReleaseURL = info.UpdateURL
-	}
 	info.UpdateAvailable = normalizeVersion(current) != normalizeVersion(latest)
 	return info, nil
 }

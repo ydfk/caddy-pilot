@@ -37,6 +37,12 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	manager := service.NewCaddyManager()
+	caddySettings, err := service.LoadCaddySettings(db.DB)
+	if err != nil {
+		return err
+	}
+	manager.Installer.DownloadURL = caddySettings.DownloadURL
+	manager.Installer.ChecksumURL = caddySettings.ChecksumURL
 	if err := service.LoadDNSProviderEnvironment(ctx, db.DB); err != nil {
 		return fmt.Errorf("加载 DNS Provider 失败: %w", err)
 	}

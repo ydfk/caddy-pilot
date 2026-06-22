@@ -12,6 +12,8 @@ import (
 func RegisterRoutes(api huma.API) {
 	register(api, huma.Operation{OperationID: "get-caddy-status", Method: http.MethodGet, Path: "/api/caddy/status", Summary: "获取 Caddy 状态"}, Status)
 	register(api, huma.Operation{OperationID: "get-caddy-version", Method: http.MethodGet, Path: "/api/caddy/version", Summary: "获取 Caddy 版本与更新信息"}, Version)
+	register(api, huma.Operation{OperationID: "get-caddy-settings", Method: http.MethodGet, Path: "/api/caddy/settings", Summary: "获取 Caddy 更新源设置"}, Settings)
+	register(api, huma.Operation{OperationID: "update-caddy-settings", Method: http.MethodPut, Path: "/api/caddy/settings", Summary: "保存 Caddy 更新源设置"}, SaveSettings)
 	register(api, huma.Operation{OperationID: "update-managed-caddy", Method: http.MethodPost, Path: "/api/caddy/update", Summary: "由后端下载并更新托管 Caddy"}, Update)
 	register(api, huma.Operation{OperationID: "get-caddy-change-status", Method: http.MethodGet, Path: "/api/caddy/change-status", Summary: "检查是否存在未发布变更"}, ChangeStatus)
 	register(api, huma.Operation{OperationID: "preview-caddy-config", Method: http.MethodPost, Path: "/api/caddy/preview", Summary: "预览完整 Caddy JSON"}, Preview)

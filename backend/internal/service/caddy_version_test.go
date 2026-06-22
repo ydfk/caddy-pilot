@@ -56,15 +56,13 @@ func TestCaddyVersionServiceSupportsCustomResponseAndUpdateURL(t *testing.T) {
 		_, _ = writer.Write([]byte(`{"version":"v2.12.0","update_url":"https://mirror.example/caddy"}`))
 	}))
 	defer server.Close()
-	t.Setenv("CADDY_UPDATE_URL", "https://download.example/caddy")
-
 	service := NewCaddyVersionService()
 	service.ReleaseAPI = server.URL
 	service.HTTPClient = server.Client()
 	service.currentVersion = func(context.Context) (string, error) { return "2.10.0", nil }
 
 	info, err := service.Check(context.Background())
-	if err != nil || info.LatestVersion != "2.12.0" || info.ReleaseURL != "https://download.example/caddy" {
+	if err != nil || info.LatestVersion != "2.12.0" || info.ReleaseURL != "https://mirror.example/caddy" {
 		t.Fatalf("自定义版本服务结果不正确: %+v, %v", info, err)
 	}
 }

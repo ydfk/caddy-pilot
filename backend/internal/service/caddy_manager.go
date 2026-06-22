@@ -93,9 +93,11 @@ func (manager *CaddyManager) Restart(ctx context.Context) error {
 	return manager.startLocked(ctx, runtimeInfo, protectedConfig)
 }
 
-func (manager *CaddyManager) Update(ctx context.Context, version string) (CaddyRuntimeInfo, error) {
+func (manager *CaddyManager) Update(ctx context.Context, version string, settings CaddySettings) (CaddyRuntimeInfo, error) {
 	manager.mu.Lock()
 	defer manager.mu.Unlock()
+	manager.Installer.DownloadURL = settings.DownloadURL
+	manager.Installer.ChecksumURL = settings.ChecksumURL
 	currentConfig, err := manager.Admin.GetConfig(ctx)
 	if err != nil {
 		return CaddyRuntimeInfo{}, fmt.Errorf("更新前读取 Caddy 配置失败: %w", err)

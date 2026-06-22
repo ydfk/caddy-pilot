@@ -20,6 +20,7 @@ type StatusOutput struct {
 }
 
 type VersionResponse struct {
+	SystemVersion   string `json:"system_version"`
 	CurrentVersion  string `json:"current_version"`
 	LatestVersion   string `json:"latest_version,omitempty"`
 	UpdateAvailable bool   `json:"update_available"`
@@ -35,6 +36,15 @@ type VersionResponse struct {
 type VersionOutput struct {
 	Body VersionResponse
 }
+
+type SettingsPayload struct {
+	VersionCheckURL string `json:"version_check_url" maxLength:"2048"`
+	DownloadURL     string `json:"download_url" maxLength:"4096"`
+	ChecksumURL     string `json:"checksum_url,omitempty" maxLength:"4096"`
+}
+
+type SettingsOutput struct{ Body SettingsPayload }
+type SettingsInput struct{ Body SettingsPayload }
 
 type UpdatePayload struct {
 	Version string `json:"version,omitempty" doc:"目标 Caddy 版本，留空使用最新稳定版"`

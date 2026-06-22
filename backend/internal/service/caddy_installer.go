@@ -40,8 +40,8 @@ func NewCaddyInstaller() *CaddyInstaller {
 		HTTPClient:  &http.Client{Timeout: 5 * time.Minute},
 		GOOS:        runtime.GOOS,
 		GOARCH:      runtime.GOARCH,
-		DownloadURL: environmentValue("CADDY_DOWNLOAD_URL", DefaultCaddyDownloadURL),
-		ChecksumURL: environmentValue("CADDY_CHECKSUM_URL", DefaultCaddyChecksumURL),
+		DownloadURL: DefaultCaddyDownloadURL,
+		ChecksumURL: DefaultCaddyChecksumURL,
 	}
 }
 

@@ -10,10 +10,6 @@ services:
       - "${CADDYPILOT_MANAGE_PORT:-8080}:8080"
       - "${CADDYPILOT_HTTP_PORT:-80}:80"
       - "${CADDYPILOT_HTTPS_PORT:-443}:443"
-    environment:
-      CADDY_VERSION_CHECK_URL: ${CADDY_VERSION_CHECK_URL:-}
-      CADDY_DOWNLOAD_URL: ${CADDY_DOWNLOAD_URL:-}
-      CADDY_CHECKSUM_URL: ${CADDY_CHECKSUM_URL:-}
     volumes:
       - ./data:/data
     healthcheck:

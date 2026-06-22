@@ -1,4 +1,5 @@
 ARG CADDY_VERSION=2.10.0
+ARG APP_VERSION=dev
 
 FROM node:22-alpine AS frontend-build
 WORKDIR /src/frontend
@@ -9,12 +10,13 @@ COPY frontend/ ./
 RUN pnpm build
 
 FROM golang:1.25-alpine AS backend-build
+ARG APP_VERSION
 RUN apk add --no-cache build-base
 WORKDIR /src/backend
 COPY backend/go.mod backend/go.sum ./
 RUN go mod download
 COPY backend/ ./
-RUN CGO_ENABLED=1 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/caddypilot ./cmd
+RUN CGO_ENABLED=1 GOOS=linux go build -trimpath -ldflags="-s -w -X go-fiber-starter/pkg/version.Current=${APP_VERSION}" -o /out/caddypilot ./cmd
 
 FROM caddy:${CADDY_VERSION}-builder-alpine AS caddy-build
 ARG CADDY_VERSION

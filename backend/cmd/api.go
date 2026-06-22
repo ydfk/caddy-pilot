@@ -10,6 +10,7 @@ import (
 	"go-fiber-starter/internal/api/dnsprovider"
 	"go-fiber-starter/internal/api/proxysite"
 	"go-fiber-starter/pkg/logger"
+	buildversion "go-fiber-starter/pkg/version"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humafiber"
@@ -28,7 +29,7 @@ func newApp() *fiber.App {
 		Stream: logger.GetFiberLogWriter(),
 	}))
 
-	humaConfig := huma.DefaultConfig("Go Fiber Starter API", "1.0.0")
+	humaConfig := huma.DefaultConfig("CaddyPilot API", buildversion.Current)
 	humaConfig.Info.Description = "基于 Fiber v3 与 Huma 的 OpenAPI 3.1 code-first API"
 	humaConfig.Components.SecuritySchemes = map[string]*huma.SecurityScheme{
 		auth.BearerAuthScheme: {

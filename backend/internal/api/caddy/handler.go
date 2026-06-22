@@ -8,6 +8,7 @@ import (
 	"go-fiber-starter/internal/service"
 	"go-fiber-starter/pkg/db"
 	"go-fiber-starter/pkg/logger"
+	buildversion "go-fiber-starter/pkg/version"
 
 	"github.com/danielgtaylor/huma/v2"
 )
@@ -26,11 +27,19 @@ func Status(ctx context.Context, _ *struct{}) (*StatusOutput, error) {
 }
 
 func Version(ctx context.Context, _ *struct{}) (*VersionOutput, error) {
-	info, err := service.NewCaddyVersionService().Check(ctx)
+	settings, err := service.LoadCaddySettings(db.DB)
+	if err != nil {
+		return nil, huma.Error500InternalServerError(err.Error())
+	}
+	versionService := service.NewCaddyVersionService()
+	versionService.ReleaseAPI = settings.VersionCheckURL
+	versionService.DownloadURL = settings.DownloadURL
+	info, err := versionService.Check(ctx)
 	if err != nil {
 		return nil, huma.Error500InternalServerError(err.Error())
 	}
 	return &VersionOutput{Body: VersionResponse{
+		SystemVersion:   buildversion.Current,
 		CurrentVersion:  info.CurrentVersion,
 		LatestVersion:   info.LatestVersion,
 		UpdateAvailable: info.UpdateAvailable,
@@ -44,14 +53,53 @@ func Version(ctx context.Context, _ *struct{}) (*VersionOutput, error) {
 	}}, nil
 }
 
+func Settings(_ context.Context, _ *struct{}) (*SettingsOutput, error) {
+	settings, err := service.LoadCaddySettings(db.DB)
+	if err != nil {
+		return nil, huma.Error500InternalServerError(err.Error())
+	}
+	return &SettingsOutput{Body: SettingsPayload{
+		VersionCheckURL: settings.VersionCheckURL,
+		DownloadURL:     settings.DownloadURL,
+		ChecksumURL:     settings.ChecksumURL,
+	}}, nil
+}
+
+func SaveSettings(_ context.Context, input *SettingsInput) (*SettingsOutput, error) {
+	settings := service.CaddySettings{
+		VersionCheckURL: input.Body.VersionCheckURL,
+		DownloadURL:     input.Body.DownloadURL,
+		ChecksumURL:     input.Body.ChecksumURL,
+	}
+	if err := service.SaveCaddySettings(db.DB, settings); err != nil {
+		return nil, huma.Error400BadRequest(err.Error())
+	}
+	settings, err := service.LoadCaddySettings(db.DB)
+	if err != nil {
+		return nil, huma.Error500InternalServerError(err.Error())
+	}
+	return &SettingsOutput{Body: SettingsPayload{
+		VersionCheckURL: settings.VersionCheckURL,
+		DownloadURL:     settings.DownloadURL,
+		ChecksumURL:     settings.ChecksumURL,
+	}}, nil
+}
+
 func Update(ctx context.Context, input *UpdateInput) (*UpdateOutput, error) {
 	manager := service.ManagedCaddy()
 	if manager == nil {
 		return nil, huma.Error503ServiceUnavailable("Caddy 托管服务尚未就绪")
 	}
 	target := strings.TrimSpace(input.Body.Version)
+	settings, err := service.LoadCaddySettings(db.DB)
+	if err != nil {
+		return nil, huma.Error500InternalServerError(err.Error())
+	}
 	if target == "" {
-		info, err := service.NewCaddyVersionService().Check(ctx)
+		versionService := service.NewCaddyVersionService()
+		versionService.ReleaseAPI = settings.VersionCheckURL
+		versionService.DownloadURL = settings.DownloadURL
+		info, err := versionService.Check(ctx)
 		if err != nil {
 			return nil, huma.Error500InternalServerError(err.Error())
 		}
@@ -61,15 +109,15 @@ func Update(ctx context.Context, input *UpdateInput) (*UpdateOutput, error) {
 		return nil, huma.Error400BadRequest("无法确定 Caddy 目标版本")
 	}
 
-	go func(version string) {
+	go func(version string, settings service.CaddySettings) {
 		updateContext, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 		defer cancel()
-		if _, err := manager.Update(updateContext, version); err != nil {
+		if _, err := manager.Update(updateContext, version, settings); err != nil {
 			logger.Error("托管 Caddy 更新到 %s 失败: %v", version, err)
 			return
 		}
 		logger.Info("托管 Caddy 已更新到 %s", version)
-	}(target)
+	}(target, settings)
 
 	return &UpdateOutput{Body: UpdateResponse{
 		Accepted: true, TargetVersion: target,
