@@ -3,9 +3,11 @@ package service
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -29,8 +31,14 @@ type ConfigService struct {
 }
 
 type ConfigChangeStatus struct {
-	Dirty         bool
-	LatestVersion uint
+	Dirty                  bool
+	State                  string
+	LatestVersion          uint
+	LatestVersionID        uint
+	ActiveVersion          uint
+	RuntimeInSync          bool
+	PersistentConfigInSync bool
+	ErrorMessage           string
 }
 
 func NewConfigService(database *gorm.DB, caddy CaddyAdmin) *ConfigService {
@@ -61,21 +69,52 @@ func (service *ConfigService) ChangeStatus(ctx context.Context) (ConfigChangeSta
 		return ConfigChangeStatus{}, fmt.Errorf("编码业务配置失败: %w", err)
 	}
 
-	var latest configversion.ConfigVersion
+	var versions []configversion.ConfigVersion
 	err = service.DB.WithContext(ctx).
 		Where("status IN ?", []string{ConfigStatusPublished, ConfigStatusRollback}).
-		Order("version DESC").First(&latest).Error
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return ConfigChangeStatus{Dirty: len(sites) > 0}, nil
-	}
+		Order("version DESC").Find(&versions).Error
 	if err != nil {
 		return ConfigChangeStatus{}, fmt.Errorf("读取最近发布配置失败: %w", err)
 	}
+	if len(versions) == 0 {
+		return ConfigChangeStatus{Dirty: len(sites) > 0, State: "no_version"}, nil
+	}
+	latest := versions[0]
+	status := ConfigChangeStatus{
+		Dirty:           !sameJSON(current, []byte(latest.BusinessConfig)),
+		LatestVersion:   latest.Version,
+		LatestVersionID: latest.ID,
+	}
+	if service.Caddy == nil {
+		status.State = "offline"
+		status.ErrorMessage = "Caddy Admin API Client 未配置"
+		return status, nil
+	}
+	runtimeConfig, runtimeErr := service.Caddy.GetConfig(ctx)
+	if runtimeErr != nil {
+		status.State = "offline"
+		status.ErrorMessage = runtimeErr.Error()
+		return status, nil
+	}
+	runtimeHash := normalizedJSONHash(runtimeConfig)
+	for _, version := range versions {
+		if runtimeHash == normalizedJSONHash([]byte(version.CaddyJSON)) {
+			status.ActiveVersion = version.Version
+			break
+		}
+	}
+	status.RuntimeInSync = status.ActiveVersion > 0
+	status.PersistentConfigInSync = runtimeMatchesActiveConfig(runtimeHash)
+	switch {
+	case !status.RuntimeInSync || !status.PersistentConfigInSync:
+		status.State = "runtime_drift"
+	case status.Dirty:
+		status.State = "unpublished_changes"
+	default:
+		status.State = "in_sync"
+	}
 
-	return ConfigChangeStatus{
-		Dirty:         !sameJSON(current, []byte(latest.BusinessConfig)),
-		LatestVersion: latest.Version,
-	}, nil
+	return status, nil
 }
 
 func (service *ConfigService) Publish(ctx context.Context, reason string) (configversion.ConfigVersion, error) {
@@ -223,4 +262,21 @@ func sameJSON(left, right []byte) bool {
 	leftNormalized, _ := json.Marshal(leftValue)
 	rightNormalized, _ := json.Marshal(rightValue)
 	return bytes.Equal(leftNormalized, rightNormalized)
+}
+
+func normalizedJSONHash(payload []byte) [sha256.Size]byte {
+	var value any
+	if json.Unmarshal(payload, &value) == nil {
+		payload, _ = json.Marshal(value)
+	}
+	return sha256.Sum256(bytes.TrimSpace(payload))
+}
+
+func runtimeMatchesActiveConfig(runtimeHash [sha256.Size]byte) bool {
+	manager := ManagedCaddy()
+	if manager == nil {
+		return false
+	}
+	payload, err := os.ReadFile(manager.ActiveConfigPath())
+	return err == nil && runtimeHash == normalizedJSONHash(payload)
 }

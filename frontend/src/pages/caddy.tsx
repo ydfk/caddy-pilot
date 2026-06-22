@@ -17,8 +17,7 @@ import {
   type CaddyUpdateTask,
   type CaddyVersion,
 } from "@/api/caddy";
-import { ConfigHistory } from "@/components/caddy/config-history";
-import { DeploymentPipeline } from "@/components/caddy/deployment-pipeline";
+import { ConfigManagement } from "@/components/caddy/config-management";
 import { RuntimeCard } from "@/components/caddy/runtime-card";
 import { JSONDialog } from "@/components/json-dialog";
 import { PageHeader } from "@/components/page-header";
@@ -28,7 +27,12 @@ export default function CaddyPage() {
   const [status, setStatus] = useState<CaddyStatus | null>(null);
   const [version, setVersion] = useState<CaddyVersion | null>(null);
   const [settings, setSettings] = useState<CaddySettings | null>(null);
-  const [changeStatus, setChangeStatus] = useState<CaddyChangeStatus>({ dirty: false });
+  const [changeStatus, setChangeStatus] = useState<CaddyChangeStatus>({
+    dirty: false,
+    state: "no_version",
+    runtime_in_sync: false,
+    persistent_config_in_sync: false,
+  });
   const [currentConfig, setCurrentConfig] = useState<unknown>(null);
   const [loading, setLoading] = useState(true);
   const [checkingVersion, setCheckingVersion] = useState(false);
@@ -176,15 +180,11 @@ export default function CaddyPage() {
         onSaveSettings={saveSettings}
       />
 
-      <div className="grid gap-4">
-        <DeploymentPipeline
-          dirty={changeStatus.dirty}
-          latestVersion={changeStatus.latest_version}
-          onPublished={refreshAfterConfigChange}
-        />
-      </div>
-
-      <ConfigHistory refreshKey={historyKey} onRollback={refreshAfterConfigChange} />
+      <ConfigManagement
+        status={changeStatus}
+        refreshKey={historyKey}
+        onChanged={refreshAfterConfigChange}
+      />
       <JSONDialog
         open={currentConfig !== null}
         onOpenChange={(open) => !open && setCurrentConfig(null)}

@@ -19,7 +19,16 @@ export type CaddySettings = {
   checksum_url: string;
 };
 export type CaddyJSONResponse = { caddy_json: unknown };
-export type CaddyChangeStatus = { dirty: boolean; latest_version?: number };
+export type CaddyChangeStatus = {
+  dirty: boolean;
+  state: "no_version" | "offline" | "runtime_drift" | "unpublished_changes" | "in_sync";
+  latest_version?: number;
+  latest_version_id?: number;
+  active_version?: number;
+  runtime_in_sync: boolean;
+  persistent_config_in_sync: boolean;
+  error_message?: string;
+};
 export type CaddyUpdateTask = {
   id?: string;
   kind?: "download" | "upload";

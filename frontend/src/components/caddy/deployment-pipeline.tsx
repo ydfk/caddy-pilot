@@ -25,9 +25,10 @@ type Props = {
   dirty: boolean;
   latestVersion?: number;
   onPublished: () => Promise<void>;
+  embedded?: boolean;
 };
 
-export function DeploymentPipeline({ dirty, latestVersion, onPublished }: Props) {
+export function DeploymentPipeline({ dirty, latestVersion, onPublished, embedded }: Props) {
   const [validated, setValidated] = useState(false);
   const [validating, setValidating] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -72,7 +73,13 @@ export function DeploymentPipeline({ dirty, latestVersion, onPublished }: Props)
   }
 
   return (
-    <Card className="overflow-hidden border-primary/20">
+    <Card
+      className={
+        embedded
+          ? "overflow-hidden rounded-none border-0 shadow-none"
+          : "overflow-hidden border-primary/20"
+      }
+    >
       <CardHeader className="border-b bg-primary/[0.035]">
         <div className="flex items-center justify-between gap-3">
           <div>

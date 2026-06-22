@@ -41,9 +41,13 @@ import {
 export function ConfigHistory({
   refreshKey,
   onRollback,
+  activeVersion,
+  embedded,
 }: {
   refreshKey: number;
   onRollback: () => Promise<void>;
+  activeVersion?: number;
+  embedded?: boolean;
 }) {
   const [versions, setVersions] = useState<ConfigVersionSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,7 +81,7 @@ export function ConfigHistory({
   }
 
   return (
-    <Card>
+    <Card className={embedded ? "rounded-none border-0 border-t shadow-none" : undefined}>
       <CardHeader>
         <CardTitle>配置版本</CardTitle>
         <CardDescription>发布和回滚历史与运行状态放在同一个工作台。</CardDescription>
@@ -114,7 +118,16 @@ export function ConfigHistory({
               <TableBody>
                 {versions.map((version) => (
                   <TableRow key={version.id}>
-                    <TableCell className="font-mono font-medium">v{version.version}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2 font-mono font-medium">
+                        v{version.version}
+                        {activeVersion === version.version ? (
+                          <span className="rounded border px-1.5 py-0.5 font-sans text-[10px] text-emerald-600">
+                            当前运行
+                          </span>
+                        ) : null}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <VersionStatus status={version.status} />
                     </TableCell>

@@ -91,8 +91,14 @@ type ValidateOutput struct {
 }
 
 type ChangeStatusResponse struct {
-	Dirty         bool `json:"dirty"`
-	LatestVersion uint `json:"latest_version,omitempty"`
+	Dirty                  bool   `json:"dirty"`
+	State                  string `json:"state"`
+	LatestVersion          uint   `json:"latest_version,omitempty"`
+	LatestVersionID        uint   `json:"latest_version_id,omitempty"`
+	ActiveVersion          uint   `json:"active_version,omitempty"`
+	RuntimeInSync          bool   `json:"runtime_in_sync"`
+	PersistentConfigInSync bool   `json:"persistent_config_in_sync"`
+	ErrorMessage           string `json:"error_message,omitempty"`
 }
 
 type ChangeStatusOutput struct {

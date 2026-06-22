@@ -173,12 +173,15 @@ func Preview(ctx context.Context, _ *struct{}) (*JSONOutput, error) {
 }
 
 func ChangeStatus(ctx context.Context, _ *struct{}) (*ChangeStatusOutput, error) {
-	status, err := service.NewConfigService(db.DB, nil).ChangeStatus(ctx)
+	status, err := service.NewConfigService(db.DB, newCaddyAdmin()).ChangeStatus(ctx)
 	if err != nil {
 		return nil, huma.Error500InternalServerError(err.Error())
 	}
 	return &ChangeStatusOutput{Body: ChangeStatusResponse{
-		Dirty: status.Dirty, LatestVersion: status.LatestVersion,
+		Dirty: status.Dirty, State: status.State, LatestVersion: status.LatestVersion,
+		LatestVersionID: status.LatestVersionID, ActiveVersion: status.ActiveVersion,
+		RuntimeInSync: status.RuntimeInSync, PersistentConfigInSync: status.PersistentConfigInSync,
+		ErrorMessage: status.ErrorMessage,
 	}}, nil
 }
 
