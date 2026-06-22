@@ -6,6 +6,7 @@ import (
 	"go-fiber-starter/internal/api/caddy"
 	"go-fiber-starter/internal/api/configversion"
 	"go-fiber-starter/internal/api/dashboard"
+	"go-fiber-starter/internal/api/dnsprovider"
 	"go-fiber-starter/internal/api/proxysite"
 	"go-fiber-starter/pkg/logger"
 
@@ -43,5 +44,6 @@ func newApp() *fiber.App {
 	caddy.RegisterRoutes(humaAPI)
 	configversion.RegisterRoutes(humaAPI)
 	dashboard.RegisterRoutes(humaAPI)
+	dnsprovider.RegisterRoutes(humaAPI)
 	return app
 }

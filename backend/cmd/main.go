@@ -37,6 +37,9 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	manager := service.NewCaddyManager()
+	if err := service.LoadDNSProviderEnvironment(ctx, db.DB); err != nil {
+		return fmt.Errorf("加载 DNS Provider 失败: %w", err)
+	}
 	runtimeInfo, err := manager.Start(ctx)
 	if err != nil {
 		return fmt.Errorf("托管 Caddy 启动失败: %w", err)

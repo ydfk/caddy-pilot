@@ -75,6 +75,24 @@ func (manager *CaddyManager) Stop(ctx context.Context) error {
 	return manager.stopLocked(ctx)
 }
 
+func (manager *CaddyManager) Restart(ctx context.Context) error {
+	manager.mu.Lock()
+	defer manager.mu.Unlock()
+	currentConfig, err := manager.Admin.GetConfig(ctx)
+	if err != nil {
+		return fmt.Errorf("重启前读取 Caddy 配置失败: %w", err)
+	}
+	protectedConfig, err := caddygen.EnsureManagementEntry(currentConfig)
+	if err != nil {
+		return fmt.Errorf("重启前保护管理入口失败: %w", err)
+	}
+	runtimeInfo := manager.Runtime
+	if err := manager.stopLocked(ctx); err != nil {
+		return err
+	}
+	return manager.startLocked(ctx, runtimeInfo, protectedConfig)
+}
+
 func (manager *CaddyManager) Update(ctx context.Context, version string) (CaddyRuntimeInfo, error) {
 	manager.mu.Lock()
 	defer manager.mu.Unlock()
