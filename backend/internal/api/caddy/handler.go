@@ -2,8 +2,8 @@ package caddy
 
 import (
 	"context"
+	"os"
 	"strings"
-	"time"
 
 	"go-fiber-starter/internal/service"
 	"go-fiber-starter/pkg/db"
@@ -12,7 +12,12 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 )
 
-var newCaddyAdmin = func() service.CaddyAdmin { return service.NewCaddyClient() }
+var newCaddyAdmin = func() service.CaddyAdmin {
+	if manager := service.ManagedCaddy(); manager != nil {
+		return manager
+	}
+	return service.NewCaddyClient()
+}
 
 func Status(ctx context.Context, _ *struct{}) (*StatusOutput, error) {
 	client := newCaddyAdmin()
@@ -107,19 +112,56 @@ func Update(ctx context.Context, input *UpdateInput) (*UpdateOutput, error) {
 		return nil, huma.Error400BadRequest("无法确定 Caddy 目标版本")
 	}
 
-	go func(version string, settings service.CaddySettings) {
-		updateContext, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
-		defer cancel()
-		if _, err := manager.Update(updateContext, version, settings); err != nil {
-			logger.Error("托管 Caddy 更新到 %s 失败: %v", version, err)
-			return
+	task, err := service.ManagedCaddyUpdateTasks().Start("download", target, func(updateContext context.Context, report func(string, int64, int64)) (string, error) {
+		runtimeInfo, updateErr := manager.Update(updateContext, target, settings, report)
+		if updateErr != nil {
+			logger.Error("托管 Caddy 更新到 %s 失败: %v", target, updateErr)
+			return "", updateErr
 		}
-		logger.Info("托管 Caddy 已更新到 %s", version)
-	}(target, settings)
+		logger.Info("托管 Caddy 已更新到 %s", runtimeInfo.Version)
+		return runtimeInfo.Version, nil
+	})
+	if err != nil {
+		return nil, huma.Error409Conflict(err.Error())
+	}
 
 	return &UpdateOutput{Body: UpdateResponse{
-		Accepted: true, TargetVersion: target,
+		Accepted: true, TaskID: task.ID, Status: task.Status, TargetVersion: target,
 	}}, nil
+}
+
+func Upload(_ context.Context, input *UploadInput) (*UpdateOutput, error) {
+	manager := service.ManagedCaddy()
+	if manager == nil {
+		return nil, huma.Error503ServiceUnavailable("Caddy 托管服务尚未就绪")
+	}
+	file := input.RawBody.Data().File
+	uploadPath, err := manager.Installer.SaveUpload(file)
+	if err != nil {
+		return nil, huma.Error400BadRequest(err.Error())
+	}
+	task, err := service.ManagedCaddyUpdateTasks().Start("upload", "", func(updateContext context.Context, report func(string, int64, int64)) (string, error) {
+		runtimeInfo, updateErr := manager.UpdateUpload(updateContext, uploadPath, file.Filename, report)
+		if updateErr != nil {
+			logger.Error("安装上传的 Caddy 失败: %v", updateErr)
+			return "", updateErr
+		}
+		logger.Info("已安装上传的 Caddy %s", runtimeInfo.Version)
+		return runtimeInfo.Version, nil
+	})
+	if err != nil {
+		_ = os.Remove(uploadPath)
+		return nil, huma.Error409Conflict(err.Error())
+	}
+	return &UpdateOutput{Body: UpdateResponse{Accepted: true, TaskID: task.ID, Status: task.Status}}, nil
+}
+
+func CurrentUpdateTask(_ context.Context, _ *struct{}) (*UpdateTaskOutput, error) {
+	task := service.ManagedCaddyUpdateTasks().Current()
+	if task == nil {
+		task = &service.CaddyUpdateTask{Status: "idle"}
+	}
+	return &UpdateTaskOutput{Body: *task}, nil
 }
 
 func Preview(ctx context.Context, _ *struct{}) (*JSONOutput, error) {

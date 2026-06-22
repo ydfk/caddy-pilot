@@ -1,7 +1,8 @@
 import { Braces, Download, ExternalLink, RefreshCw, Settings2 } from "lucide-react";
 
-import type { CaddySettings, CaddyStatus, CaddyVersion } from "@/api/caddy";
+import type { CaddySettings, CaddyStatus, CaddyUpdateTask, CaddyVersion } from "@/api/caddy";
 import { CaddySettingsDialog } from "@/components/caddy/caddy-settings-dialog";
+import { CaddyUploadButton } from "@/components/caddy/caddy-upload-button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
+import { Progress } from "@/components/ui/progress";
 
 type Props = {
   status: CaddyStatus | null;
@@ -25,10 +27,12 @@ type Props = {
   loading: boolean;
   checkingVersion: boolean;
   updatingVersion: boolean;
+  updateTask: CaddyUpdateTask | null;
   onRefresh: () => Promise<void>;
   onShowConfig: () => Promise<void>;
   onCheckVersion: () => Promise<void>;
   onUpdateVersion: () => Promise<void>;
+  onUploadVersion: (file: File) => Promise<void>;
   onSaveSettings: (settings: CaddySettings) => Promise<void>;
 };
 
@@ -39,10 +43,12 @@ export function RuntimeCard({
   loading,
   checkingVersion,
   updatingVersion,
+  updateTask,
   onRefresh,
   onShowConfig,
   onCheckVersion,
   onUpdateVersion,
+  onUploadVersion,
   onSaveSettings,
 }: Props) {
   return (
@@ -86,8 +92,11 @@ export function RuntimeCard({
           </p>
         ) : null}
 
+        {updateTask && updateTask.status !== "idle" ? <UpdateTaskStatus task={updateTask} /> : null}
+
         <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
           <div className="flex flex-wrap gap-2">
+            <CaddyUploadButton disabled={updatingVersion} onUpload={onUploadVersion} />
             <Button variant="outline" size="sm" onClick={() => void onRefresh()} disabled={loading}>
               {loading ? (
                 <Spinner data-icon="inline-start" />
@@ -155,6 +164,33 @@ export function RuntimeCard({
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+const taskLabels: Record<CaddyUpdateTask["status"], string> = {
+  idle: "空闲",
+  queued: "等待开始",
+  downloading: "正在下载",
+  verifying: "正在校验",
+  installing: "正在安装",
+  restarting: "正在重启",
+  succeeded: "更新完成",
+  failed: "更新失败",
+};
+
+function UpdateTaskStatus({ task }: { task: CaddyUpdateTask }) {
+  const active = !["succeeded", "failed"].includes(task.status);
+  return (
+    <div className="grid gap-2 rounded-lg border bg-muted/20 p-3">
+      <div className="flex items-center justify-between gap-3 text-sm">
+        <span className="font-medium">{taskLabels[task.status]}</span>
+        {task.target_version ? (
+          <span className="font-mono text-xs">v{task.target_version}</span>
+        ) : null}
+      </div>
+      {active ? <Progress value={task.progress || undefined} /> : null}
+      {task.error_message ? <p className="text-xs text-destructive">{task.error_message}</p> : null}
+    </div>
   );
 }
 

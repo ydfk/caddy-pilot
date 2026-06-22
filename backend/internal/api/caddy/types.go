@@ -1,6 +1,12 @@
 package caddy
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"go-fiber-starter/internal/service"
+
+	"github.com/danielgtaylor/huma/v2"
+)
 
 type JSONResponse struct {
 	CaddyJSON json.RawMessage `json:"caddy_json"`
@@ -55,11 +61,25 @@ type UpdateInput struct {
 
 type UpdateResponse struct {
 	Accepted      bool   `json:"accepted"`
+	TaskID        string `json:"task_id"`
+	Status        string `json:"status"`
 	TargetVersion string `json:"target_version"`
 }
 
 type UpdateOutput struct {
 	Body UpdateResponse
+}
+
+type UploadForm struct {
+	File huma.FormFile `form:"file" required:"true"`
+}
+
+type UploadInput struct {
+	RawBody huma.MultipartFormFiles[UploadForm]
+}
+
+type UpdateTaskOutput struct {
+	Body service.CaddyUpdateTask
 }
 
 type ValidateResponse struct {

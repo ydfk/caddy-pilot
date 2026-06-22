@@ -16,7 +16,9 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
   const token = useAuthStore.getState().token;
   const headers = new Headers(options.headers);
   headers.set("Accept", "application/json");
-  if (options.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+  if (options.body && !(options.body instanceof FormData) && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
   if (token) headers.set("Authorization", `Bearer ${token}`);
 
   const response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
@@ -31,9 +33,22 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
 
 async function errorMessage(response: Response) {
   const fallback = `请求失败（${response.status}）`;
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.includes("json")) {
+    const message = (await response.text()).trim();
+    return message || fallback;
+  }
   try {
-    const body = (await response.json()) as { detail?: string; title?: string };
-    return body.detail || body.title || fallback;
+    const body = (await response.json()) as {
+      detail?: string;
+      title?: string;
+      errors?: Array<{ message?: string; location?: string }>;
+    };
+    const validation = body.errors
+      ?.map((item) => [item.location, item.message].filter(Boolean).join(": "))
+      .filter(Boolean)
+      .join("；");
+    return body.detail || validation || body.title || fallback;
   } catch {
     return fallback;
   }

@@ -20,6 +20,24 @@ export type CaddySettings = {
 };
 export type CaddyJSONResponse = { caddy_json: unknown };
 export type CaddyChangeStatus = { dirty: boolean; latest_version?: number };
+export type CaddyUpdateTask = {
+  id?: string;
+  kind?: "download" | "upload";
+  status:
+    | "idle"
+    | "queued"
+    | "downloading"
+    | "verifying"
+    | "installing"
+    | "restarting"
+    | "succeeded"
+    | "failed";
+  target_version?: string;
+  progress: number;
+  downloaded_bytes?: number;
+  total_bytes?: number;
+  error_message?: string;
+};
 
 export const getCaddyStatus = () => apiRequest<CaddyStatus>("/api/caddy/status");
 export const getCaddyVersion = () => apiRequest<CaddyVersion>("/api/caddy/version");
@@ -30,10 +48,23 @@ export const saveCaddySettings = (settings: CaddySettings) =>
     body: JSON.stringify(settings),
   });
 export const updateManagedCaddy = (version?: string) =>
-  apiRequest<{ accepted: boolean; target_version: string }>("/api/caddy/update", {
+  apiRequest<{ accepted: boolean; task_id: string; status: string; target_version: string }>(
+    "/api/caddy/update",
+    {
+      method: "POST",
+      body: JSON.stringify({ version: version ?? "" }),
+    }
+  );
+export const getCaddyUpdateTask = () =>
+  apiRequest<CaddyUpdateTask>("/api/caddy/update-tasks/current");
+export const uploadManagedCaddy = (file: File) => {
+  const body = new FormData();
+  body.set("file", file);
+  return apiRequest<{ accepted: boolean; task_id: string; status: string }>("/api/caddy/upload", {
     method: "POST",
-    body: JSON.stringify({ version: version ?? "" }),
+    body,
   });
+};
 export const getCaddyChangeStatus = () => apiRequest<CaddyChangeStatus>("/api/caddy/change-status");
 export const previewCaddyConfig = () =>
   apiRequest<CaddyJSONResponse>("/api/caddy/preview", { method: "POST" });

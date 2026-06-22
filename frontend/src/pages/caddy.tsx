@@ -5,13 +5,16 @@ import {
   getCaddyChangeStatus,
   getCaddySettings,
   getCaddyStatus,
+  getCaddyUpdateTask,
   getCaddyVersion,
   getCurrentCaddyConfig,
   saveCaddySettings,
   updateManagedCaddy,
+  uploadManagedCaddy,
   type CaddyChangeStatus,
   type CaddySettings,
   type CaddyStatus,
+  type CaddyUpdateTask,
   type CaddyVersion,
 } from "@/api/caddy";
 import { ConfigHistory } from "@/components/caddy/config-history";
@@ -30,6 +33,7 @@ export default function CaddyPage() {
   const [loading, setLoading] = useState(true);
   const [checkingVersion, setCheckingVersion] = useState(false);
   const [updatingVersion, setUpdatingVersion] = useState(false);
+  const [updateTask, setUpdateTask] = useState<CaddyUpdateTask | null>(null);
   const [historyKey, setHistoryKey] = useState(0);
 
   const refresh = useCallback(async () => {
@@ -53,6 +57,27 @@ export default function CaddyPage() {
   }, []);
 
   useEffect(() => void refresh(), [refresh]);
+
+  useEffect(() => {
+    if (!updatingVersion) return;
+    const timer = window.setInterval(() => {
+      getCaddyUpdateTask()
+        .then(async (task) => {
+          setUpdateTask(task);
+          if (task.status === "succeeded" || task.status === "failed") {
+            setUpdatingVersion(false);
+            if (task.status === "succeeded") {
+              toast.success(`Caddy 已更新到 ${task.target_version}`);
+              await refresh();
+            } else {
+              toast.error(task.error_message || "Caddy 更新失败");
+            }
+          }
+        })
+        .catch((error) => toast.error(error instanceof Error ? error.message : "读取更新任务失败"));
+    }, 2000);
+    return () => window.clearInterval(timer);
+  }, [refresh, updatingVersion]);
 
   async function showCurrentConfig() {
     try {
@@ -92,25 +117,26 @@ export default function CaddyPage() {
     try {
       const task = await updateManagedCaddy(version.latest_version);
       toast.info(`正在更新 Caddy 到 ${task.target_version}`);
-      for (let attempt = 0; attempt < 30; attempt += 1) {
-        await new Promise((resolve) => window.setTimeout(resolve, 1000));
-        try {
-          const current = await getCaddyVersion();
-          if (current.current_version === task.target_version) {
-            setVersion(current);
-            toast.success(`Caddy 已更新到 ${task.target_version}`);
-            await refresh();
-            return;
-          }
-        } catch {
-          /* Caddy 重启期间继续等待。 */
-        }
-      }
-      toast.error("等待 Caddy 更新完成超时，请刷新确认状态");
+      setUpdateTask({
+        status: task.status as CaddyUpdateTask["status"],
+        progress: 0,
+        target_version: task.target_version,
+      });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "启动 Caddy 更新失败");
-    } finally {
       setUpdatingVersion(false);
+    }
+  }
+
+  async function uploadVersion(file: File) {
+    setUpdatingVersion(true);
+    try {
+      const task = await uploadManagedCaddy(file);
+      setUpdateTask({ status: task.status as CaddyUpdateTask["status"], progress: 0 });
+      toast.info(`已上传 ${file.name}，正在校验并安装`);
+    } catch (error) {
+      setUpdatingVersion(false);
+      toast.error(error instanceof Error ? error.message : "上传 Caddy 失败");
     }
   }
 
@@ -141,10 +167,12 @@ export default function CaddyPage() {
         loading={loading}
         checkingVersion={checkingVersion}
         updatingVersion={updatingVersion}
+        updateTask={updateTask}
         onRefresh={refresh}
         onShowConfig={showCurrentConfig}
         onCheckVersion={checkVersion}
         onUpdateVersion={updateVersion}
+        onUploadVersion={uploadVersion}
         onSaveSettings={saveSettings}
       />
 

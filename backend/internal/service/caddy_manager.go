@@ -39,7 +39,7 @@ func NewCaddyManager() *CaddyManager {
 	return &CaddyManager{
 		Installer:  installer,
 		Admin:      NewCaddyClient(),
-		configPath: filepath.Join(installer.RuntimeDir, "caddy", "initial.json"),
+		configPath: filepath.Join(installer.RuntimeDir, "caddy", "active.json"),
 		lifecycle:  make(chan error, 1),
 	}
 }
@@ -52,21 +52,52 @@ func ManagedCaddy() *CaddyManager {
 	return managedCaddy
 }
 
-func (manager *CaddyManager) Start(ctx context.Context) (CaddyRuntimeInfo, error) {
+func (manager *CaddyManager) Start(ctx context.Context, payload []byte) (CaddyRuntimeInfo, error) {
 	manager.mu.Lock()
 	defer manager.mu.Unlock()
 	runtimeInfo, err := manager.Installer.Ensure(ctx)
 	if err != nil {
 		return CaddyRuntimeInfo{}, err
 	}
-	payload, err := caddygen.Generate(nil)
-	if err != nil {
-		return CaddyRuntimeInfo{}, fmt.Errorf("生成 Caddy 初始配置失败: %w", err)
-	}
 	if err := manager.startLocked(ctx, runtimeInfo, payload); err != nil {
 		return CaddyRuntimeInfo{}, err
 	}
 	return runtimeInfo, nil
+}
+
+func (manager *CaddyManager) ActiveConfigPath() string {
+	return manager.configPath
+}
+
+func (manager *CaddyManager) GetConfig(ctx context.Context) ([]byte, error) {
+	return manager.Admin.GetConfig(ctx)
+}
+
+func (manager *CaddyManager) GetStatus(ctx context.Context) error {
+	return manager.Admin.GetStatus(ctx)
+}
+
+func (manager *CaddyManager) LoadConfig(ctx context.Context, payload []byte) error {
+	manager.mu.Lock()
+	defer manager.mu.Unlock()
+	protected, err := caddygen.EnsureManagementEntry(payload)
+	if err != nil {
+		return fmt.Errorf("保护管理入口失败: %w", err)
+	}
+	previous, err := manager.Admin.GetConfig(ctx)
+	if err != nil {
+		return fmt.Errorf("发布前读取 Caddy 配置失败: %w", err)
+	}
+	if err := manager.Admin.LoadConfig(ctx, protected); err != nil {
+		return err
+	}
+	if err := writeFileAtomic(manager.configPath, protected, 0o600); err != nil {
+		if restoreErr := manager.Admin.LoadConfig(ctx, previous); restoreErr != nil {
+			return fmt.Errorf("持久化活动配置失败: %v；恢复旧配置失败: %w", err, restoreErr)
+		}
+		return fmt.Errorf("持久化活动配置失败，已恢复旧配置: %w", err)
+	}
+	return nil
 }
 
 func (manager *CaddyManager) Stop(ctx context.Context) error {
@@ -93,11 +124,17 @@ func (manager *CaddyManager) Restart(ctx context.Context) error {
 	return manager.startLocked(ctx, runtimeInfo, protectedConfig)
 }
 
-func (manager *CaddyManager) Update(ctx context.Context, version string, settings CaddySettings) (CaddyRuntimeInfo, error) {
+func (manager *CaddyManager) Update(ctx context.Context, version string, settings CaddySettings, report func(string, int64, int64)) (CaddyRuntimeInfo, error) {
 	manager.mu.Lock()
 	defer manager.mu.Unlock()
 	manager.Installer.DownloadURL = settings.DownloadURL
 	manager.Installer.ChecksumURL = settings.ChecksumURL
+	manager.Installer.Progress = func(downloaded, total int64) { report("downloading", downloaded, total) }
+	manager.Installer.Stage = func(status string) { report(status, 0, 0) }
+	defer func() {
+		manager.Installer.Progress = nil
+		manager.Installer.Stage = nil
+	}()
 	currentConfig, err := manager.Admin.GetConfig(ctx)
 	if err != nil {
 		return CaddyRuntimeInfo{}, fmt.Errorf("更新前读取 Caddy 配置失败: %w", err)
@@ -110,6 +147,33 @@ func (manager *CaddyManager) Update(ctx context.Context, version string, setting
 	if err != nil {
 		return CaddyRuntimeInfo{}, err
 	}
+	report("restarting", 0, 0)
+	return manager.switchRuntimeLocked(ctx, nextRuntime, protectedConfig)
+}
+
+func (manager *CaddyManager) UpdateUpload(ctx context.Context, uploadPath, filename string, report func(string, int64, int64)) (CaddyRuntimeInfo, error) {
+	manager.mu.Lock()
+	defer manager.mu.Unlock()
+	defer os.Remove(uploadPath)
+	manager.Installer.Stage = func(status string) { report(status, 0, 0) }
+	defer func() { manager.Installer.Stage = nil }()
+	currentConfig, err := manager.Admin.GetConfig(ctx)
+	if err != nil {
+		return CaddyRuntimeInfo{}, fmt.Errorf("更新前读取 Caddy 配置失败: %w", err)
+	}
+	protectedConfig, err := caddygen.EnsureManagementEntry(currentConfig)
+	if err != nil {
+		return CaddyRuntimeInfo{}, fmt.Errorf("更新前保护管理入口失败: %w", err)
+	}
+	nextRuntime, err := manager.Installer.InstallUpload(ctx, uploadPath, filename)
+	if err != nil {
+		return CaddyRuntimeInfo{}, err
+	}
+	report("restarting", 0, 0)
+	return manager.switchRuntimeLocked(ctx, nextRuntime, protectedConfig)
+}
+
+func (manager *CaddyManager) switchRuntimeLocked(ctx context.Context, nextRuntime CaddyRuntimeInfo, protectedConfig []byte) (CaddyRuntimeInfo, error) {
 	previousRuntime := manager.Runtime
 	if err := manager.stopLocked(ctx); err != nil {
 		return CaddyRuntimeInfo{}, err
@@ -136,7 +200,7 @@ func (manager *CaddyManager) startLocked(ctx context.Context, runtimeInfo CaddyR
 	if err := os.MkdirAll(filepath.Dir(manager.configPath), 0o755); err != nil {
 		return fmt.Errorf("创建 Caddy 配置目录失败: %w", err)
 	}
-	if err := os.WriteFile(manager.configPath, payload, 0o600); err != nil {
+	if err := writeFileAtomic(manager.configPath, payload, 0o600); err != nil {
 		return fmt.Errorf("写入 Caddy 初始配置失败: %w", err)
 	}
 	process := &managedCaddyProcess{done: make(chan error, 1)}
@@ -169,6 +233,34 @@ func (manager *CaddyManager) startLocked(ctx context.Context, runtimeInfo CaddyR
 	process.ready.Store(true)
 	_ = os.Setenv("CADDY_BINARY", runtimeInfo.BinaryPath)
 	return nil
+}
+
+func writeFileAtomic(path string, payload []byte, mode os.FileMode) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+	temporary, err := os.CreateTemp(filepath.Dir(path), ".config-*")
+	if err != nil {
+		return err
+	}
+	temporaryPath := temporary.Name()
+	defer os.Remove(temporaryPath)
+	if err := temporary.Chmod(mode); err != nil {
+		temporary.Close()
+		return err
+	}
+	if _, err := temporary.Write(payload); err != nil {
+		temporary.Close()
+		return err
+	}
+	if err := temporary.Sync(); err != nil {
+		temporary.Close()
+		return err
+	}
+	if err := temporary.Close(); err != nil {
+		return err
+	}
+	return os.Rename(temporaryPath, path)
 }
 
 func (manager *CaddyManager) stopLocked(ctx context.Context) error {

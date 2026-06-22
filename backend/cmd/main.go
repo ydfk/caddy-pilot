@@ -46,7 +46,11 @@ func run() error {
 	if err := service.LoadDNSProviderEnvironment(ctx, db.DB); err != nil {
 		return fmt.Errorf("加载 DNS Provider 失败: %w", err)
 	}
-	runtimeInfo, err := manager.Start(ctx)
+	startupConfig, err := service.StartupCaddyConfig(ctx, db.DB, manager.ActiveConfigPath())
+	if err != nil {
+		return err
+	}
+	runtimeInfo, err := manager.Start(ctx, startupConfig)
 	if err != nil {
 		return fmt.Errorf("托管 Caddy 启动失败: %w", err)
 	}
