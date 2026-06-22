@@ -443,8 +443,32 @@ func writeExecutable(destination string, source io.Reader) error {
 	if err := file.Close(); err != nil {
 		return err
 	}
-	if err := os.Rename(temporary, destination); err != nil {
+	if err := replaceFile(temporary, destination); err != nil {
 		return fmt.Errorf("安装 Caddy 可执行文件失败: %w", err)
+	}
+	return nil
+}
+
+func replaceFile(source, destination string) error {
+	if err := os.Rename(source, destination); err == nil {
+		return nil
+	}
+	backup := destination + ".bak"
+	_ = os.Remove(backup)
+	hadDestination := false
+	if err := os.Rename(destination, backup); err == nil {
+		hadDestination = true
+	} else if !os.IsNotExist(err) {
+		return err
+	}
+	if err := os.Rename(source, destination); err != nil {
+		if hadDestination {
+			_ = os.Rename(backup, destination)
+		}
+		return err
+	}
+	if hadDestination {
+		_ = os.Remove(backup)
 	}
 	return nil
 }

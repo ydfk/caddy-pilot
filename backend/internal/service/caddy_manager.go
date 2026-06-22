@@ -271,7 +271,7 @@ func writeFileAtomic(path string, payload []byte, mode os.FileMode) error {
 	if err := temporary.Close(); err != nil {
 		return err
 	}
-	return os.Rename(temporaryPath, path)
+	return replaceFile(temporaryPath, path)
 }
 
 func (manager *CaddyManager) stopLocked(ctx context.Context) error {
