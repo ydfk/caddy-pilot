@@ -10,5 +10,9 @@ export type LogEntry = {
 };
 export type LogResponse = { entries: LogEntry[]; next_cursor: number };
 
-export const listLogs = (source: LogSource, cursor = 0, limit = 200) =>
-  apiRequest<LogResponse>(`/api/logs?source=${source}&cursor=${cursor}&limit=${limit}`);
+export const listLogs = (source: LogSource, cursor = 0, limit = 200, providerID = "") => {
+  const provider = providerID ? `&provider_id=${encodeURIComponent(providerID)}` : "";
+  return apiRequest<LogResponse>(
+    `/api/logs?source=${source}&cursor=${cursor}&limit=${limit}${provider}`
+  );
+};

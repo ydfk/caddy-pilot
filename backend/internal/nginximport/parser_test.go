@@ -45,7 +45,7 @@ func TestParseKeepsNonstandardHTTPSPort(t *testing.T) {
 		t.Fatal(err)
 	}
 	site := result.Sites[0]
-	if site.HTTPSRedirectPort != 8443 || site.UpstreamType != "https" || len(result.Warnings) != 1 {
+	if site.UpstreamType != "https" || len(result.Warnings) != 1 {
 		t.Fatalf("非标准端口解析不正确: %+v", result)
 	}
 }

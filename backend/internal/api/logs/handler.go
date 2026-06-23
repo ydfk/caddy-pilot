@@ -37,7 +37,13 @@ func List(_ context.Context, input *ListInput) (*ListOutput, error) {
 		cursor = 0
 	}
 	entries, nextCursor, err := readFilteredEntries(file, cursor, input.Limit, func(entry Entry) bool {
-		return input.Source != "dns" || entry.Message == "dns_provider_call"
+		if input.Source != "dns" {
+			return true
+		}
+		if entry.Message != "dns_provider_call" {
+			return false
+		}
+		return input.ProviderID == "" || entry.Fields["provider_id"] == input.ProviderID
 	})
 	if err != nil {
 		return nil, huma.Error500InternalServerError("读取日志失败", err)

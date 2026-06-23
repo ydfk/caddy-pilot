@@ -1,6 +1,7 @@
 package logs
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -28,6 +29,20 @@ func TestReadEntriesSupportsInitialTailAndCursor(t *testing.T) {
 	file.Close()
 	if err != nil || len(entries) != 0 || next != cursor {
 		t.Fatalf("游标增量读取失败: %+v, %d, %v", entries, next, err)
+	}
+}
+
+func TestListFiltersDNSLogsByProvider(t *testing.T) {
+	directory := t.TempDir()
+	t.Setenv("CADDYPILOT_LOG_DIR", directory)
+	payload := "{\"msg\":\"dns_provider_call\",\"provider_id\":\"provider-1\",\"zone\":\"one.example.\"}\n" +
+		"{\"msg\":\"dns_provider_call\",\"provider_id\":\"provider-2\",\"zone\":\"two.example.\"}\n"
+	if err := os.WriteFile(filepath.Join(directory, "caddy.log"), []byte(payload), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	output, err := List(context.Background(), &ListInput{Source: "dns", ProviderID: "provider-2", Limit: 10})
+	if err != nil || len(output.Body.Entries) != 1 || output.Body.Entries[0].Fields["zone"] != "two.example." {
+		t.Fatalf("DNS Provider 日志筛选失败: %+v, %v", output, err)
 	}
 }
 

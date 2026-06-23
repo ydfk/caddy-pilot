@@ -26,7 +26,6 @@ describe("代理站点表单转换", () => {
     expect(payload.request_headers).toEqual({ "X-Request": "value" });
     expect(payload.allowed_ips).toEqual(["127.0.0.1", "10.0.0.0/8"]);
     expect(payload.dns_provider).toBe("alidns");
-    expect(payload.https_redirect_port).toBe(443);
   });
 });
 
@@ -42,7 +41,6 @@ function sampleSite(): ProxySite {
     upstream_tls_insecure_skip_verify: false,
     enable_https: true,
     force_https: true,
-    https_redirect_port: 443,
     certificate_type: "single",
     certificate_domain: "",
     acme_challenge_type: "http",

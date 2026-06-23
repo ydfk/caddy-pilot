@@ -109,6 +109,7 @@
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
 | GET | `/api/logs?source=system&cursor=0&limit=200` | 通过游标增量读取系统日志；`source` 也可使用 `caddy` 或脱敏后的 `dns` Provider 业务日志 |
+| GET | `/api/logs?source=dns&provider_id={id}` | 读取指定 DNS Provider 的脱敏调用日志 |
 
 ## Dashboard
 

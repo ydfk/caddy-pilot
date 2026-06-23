@@ -194,10 +194,6 @@ func siteFromPayload(payload SitePayload) (model.ProxySite, error) {
 	}
 	certificateType := defaultString(strings.TrimSpace(payload.CertificateType), "single")
 	challengeType := defaultString(strings.TrimSpace(payload.ACMEChallengeType), "http")
-	httpsRedirectPort := normalizedHTTPSRedirectPort(payload.HTTPSRedirectPort)
-	if httpsRedirectPort < 1 || httpsRedirectPort > 65535 {
-		return model.ProxySite{}, errors.New("HTTPS 跳转端口必须在 1 到 65535 之间")
-	}
 	certificateDomain := strings.TrimSpace(payload.CertificateDomain)
 	if certificateType != "single" && certificateType != "wildcard" {
 		return model.ProxySite{}, errors.New("不支持的证书类型")
@@ -253,7 +249,6 @@ func siteFromPayload(payload SitePayload) (model.ProxySite, error) {
 		UpstreamTLSInsecureSkipVerify: payload.UpstreamTLSInsecureSkipVerify,
 		EnableHTTPS:                   payload.EnableHTTPS,
 		ForceHTTPS:                    payload.ForceHTTPS,
-		HTTPSRedirectPort:             httpsRedirectPort,
 		CertificateType:               certificateType,
 		CertificateDomain:             certificateDomain,
 		ACMEChallengeType:             challengeType,

@@ -116,15 +116,19 @@ services:
       dockerfile: Dockerfile
     container_name: caddypilot
     restart: unless-stopped
+    environment:
+      CADDYPILOT_HTTPS_PORT: "${CADDYPILOT_HTTPS_PORT:-443}"
     ports:
       - "8080:8080"   # management UI
-      - "80:80"       # proxy traffic
-      - "443:443"     # proxy HTTPS
+      - "${CADDYPILOT_HTTP_PORT:-80}:80"
+      - "${CADDYPILOT_HTTPS_PORT:-443}:443"
     volumes:
       - ./data:/data
 ```
 
 The default Compose file is production-oriented. Internal addresses, Caddy Admin API settings, and cryptographic secrets are owned by the image and do not need to be declared by users.
+
+Host HTTP/HTTPS ports are configured once through `CADDYPILOT_HTTP_PORT` and `CADDYPILOT_HTTPS_PORT`. The HTTPS value is also used for every Force HTTPS redirect.
 
 ## Security
 

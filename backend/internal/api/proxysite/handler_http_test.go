@@ -39,7 +39,7 @@ func TestProxySiteLifecycle(t *testing.T) {
 		t.Fatalf("创建站点状态码为 %d", createdResponse.StatusCode)
 	}
 	created := decodeProxySiteResponse(t, createdResponse)
-	if created.Name != "示例站点" || !created.Enabled || created.HTTPSRedirectPort != 443 {
+	if created.Name != "示例站点" || !created.Enabled {
 		t.Fatalf("创建结果不正确: %+v", created)
 	}
 

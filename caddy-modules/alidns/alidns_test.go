@@ -14,7 +14,7 @@ import (
 
 func TestAuditLogContainsBusinessFieldsWithoutCredentials(t *testing.T) {
 	core, logs := observer.New(zap.InfoLevel)
-	provider := &Provider{Provider: new(libdnsalidns.Provider), logger: zap.New(core)}
+	provider := &Provider{Provider: new(libdnsalidns.Provider), providerID: "provider-1", logger: zap.New(core)}
 	provider.AccessKeyID = "access-key-id"
 	provider.AccessKeySecret = "access-key-secret"
 	provider.SecurityToken = "security-token"
@@ -31,7 +31,7 @@ func TestAuditLogContainsBusinessFieldsWithoutCredentials(t *testing.T) {
 		t.Fatalf("编码审计日志失败: %v", err)
 	}
 	content := string(payload)
-	for _, expected := range []string{"example.com.", "append", "_acme-challenge", "TXT", "challenge-value"} {
+	for _, expected := range []string{"provider-1", "example.com.", "append", "_acme-challenge", "TXT", "challenge-value"} {
 		if !strings.Contains(content, expected) {
 			t.Fatalf("审计日志缺少 %q: %s", expected, content)
 		}
@@ -40,5 +40,12 @@ func TestAuditLogContainsBusinessFieldsWithoutCredentials(t *testing.T) {
 		if strings.Contains(content, secret) {
 			t.Fatalf("审计日志泄露凭据 %q", secret)
 		}
+	}
+}
+
+func TestProviderIDFromEnvironmentPlaceholder(t *testing.T) {
+	value := "{env.CADDYPILOT_DNS_11111111_2222_3333_4444_555555555555_ACCESS_KEY_ID}"
+	if got := providerIDFromEnvPlaceholder(value); got != "11111111-2222-3333-4444-555555555555" {
+		t.Fatalf("Provider ID 解析不正确: %s", got)
 	}
 }

@@ -10,14 +10,13 @@ import (
 )
 
 type Site struct {
-	Domains           []string
-	Upstreams         []string
-	UpstreamType      string
-	EnableHTTPS       bool
-	ForceHTTPS        bool
-	HTTPSRedirectPort int
-	EnableGzip        bool
-	EnableLog         bool
+	Domains      []string
+	Upstreams    []string
+	UpstreamType string
+	EnableHTTPS  bool
+	ForceHTTPS   bool
+	EnableGzip   bool
+	EnableLog    bool
 }
 
 type Result struct {
@@ -66,7 +65,7 @@ func Parse(payload string) (Result, error) {
 		key := strings.Join(domains, "\x00")
 		group, exists := groups[key]
 		if !exists {
-			group = &siteGroup{site: Site{Domains: domains, UpstreamType: "http", HTTPSRedirectPort: 443}}
+			group = &siteGroup{site: Site{Domains: domains, UpstreamType: "http"}}
 			groups[key] = group
 			order = append(order, key)
 		}
@@ -101,9 +100,8 @@ func importScope(directives []directive) []directive {
 }
 
 func applyServerBlock(group *siteGroup, server directive, upstreamGroups map[string][]string, warnings *[]string) {
-	if port, tlsEnabled := serverTLS(server); tlsEnabled {
+	if _, tlsEnabled := serverTLS(server); tlsEnabled {
 		group.site.EnableHTTPS = true
-		group.site.HTTPSRedirectPort = port
 	}
 	if hasHTTPSRedirect(server) {
 		group.hasRedirect = true

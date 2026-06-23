@@ -65,6 +65,11 @@ func writeProxySite(output *strings.Builder, site proxysite.ProxySite) error {
 	if err != nil {
 		return err
 	}
+	if site.EnableHTTPS && site.ForceHTTPS {
+		if err := writeHTTPSRedirectSite(output, domains); err != nil {
+			return err
+		}
+	}
 	addresses := siteAddresses(domains, site.EnableHTTPS, site.ForceHTTPS)
 	fmt.Fprintf(output, "%s {\n", strings.Join(addresses, ", "))
 	if site.EnableGzip {
@@ -88,6 +93,23 @@ func writeProxySite(output *strings.Builder, site proxysite.ProxySite) error {
 		output.WriteString("\t# advanced_json 仅能在 JSON 视图中完整表达\n")
 	}
 	output.WriteString("}\n\n")
+	return nil
+}
+
+func writeHTTPSRedirectSite(output *strings.Builder, domains []string) error {
+	location, err := httpsRedirectLocation()
+	if err != nil {
+		return err
+	}
+	location = strings.NewReplacer(
+		"{http.request.host}", "{host}",
+		"{http.request.uri}", "{uri}",
+	).Replace(location)
+	addresses := make([]string, 0, len(domains))
+	for _, domain := range domains {
+		addresses = append(addresses, "http://"+domain)
+	}
+	fmt.Fprintf(output, "%s {\n\tredir %s 308\n}\n\n", strings.Join(addresses, ", "), location)
 	return nil
 }
 
@@ -167,7 +189,7 @@ func siteAddresses(domains []string, https, forceHTTPS bool) []string {
 		case !https:
 			addresses = append(addresses, "http://"+domain)
 		case forceHTTPS:
-			addresses = append(addresses, domain)
+			addresses = append(addresses, "https://"+domain)
 		default:
 			addresses = append(addresses, "http://"+domain, "https://"+domain)
 		}

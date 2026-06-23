@@ -7,10 +7,12 @@ services:
       pull: true
     container_name: caddypilot
     restart: unless-stopped
+    environment:
+      CADDYPILOT_HTTPS_PORT: "${CADDYPILOT_HTTPS_PORT:-443}"
     ports:
       - "8080:8080"
-      - "80:80"
-      - "443:443"
+      - "${CADDYPILOT_HTTP_PORT:-80}:80"
+      - "${CADDYPILOT_HTTPS_PORT:-443}:443"
     volumes:
       - ./data:/data
     healthcheck:

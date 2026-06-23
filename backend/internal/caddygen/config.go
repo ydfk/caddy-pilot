@@ -71,23 +71,31 @@ func generateRedirectRoute(site proxysite.ProxySite) (map[string]any, error) {
 	if len(domains) == 0 {
 		return nil, fmt.Errorf("生成站点 %q 跳转失败: 域名不能为空", site.Name)
 	}
+	location, err := httpsRedirectLocation()
+	if err != nil {
+		return nil, fmt.Errorf("生成站点 %q 跳转失败: %w", site.Name, err)
+	}
 	return map[string]any{
 		"match": []map[string]any{{"host": domains}},
 		"handle": []map[string]any{{
 			"handler":     "static_response",
-			"headers":     map[string][]string{"Location": {httpsRedirectLocation(site.HTTPSRedirectPort)}},
+			"headers":     map[string][]string{"Location": {location}},
 			"status_code": 308,
 		}},
 		"terminal": true,
 	}, nil
 }
 
-func httpsRedirectLocation(port int) string {
+func httpsRedirectLocation() (string, error) {
+	port, err := strconv.Atoi(environmentValue("CADDYPILOT_HTTPS_PORT", "443"))
+	if err != nil || port < 1 || port > 65535 {
+		return "", fmt.Errorf("CADDYPILOT_HTTPS_PORT 必须是 1 到 65535 之间的端口")
+	}
 	location := "https://{http.request.host}"
-	if port > 0 && port != 443 {
+	if port != 443 {
 		location += ":" + strconv.Itoa(port)
 	}
-	return location + "{http.request.uri}"
+	return location + "{http.request.uri}", nil
 }
 
 func siteServer(listen string, routes []map[string]any) map[string]any {

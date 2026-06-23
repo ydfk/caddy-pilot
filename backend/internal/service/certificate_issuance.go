@@ -78,24 +78,51 @@ func LoadRecentCertificateErrors() []CertificateRuntimeError {
 		return nil
 	}
 	defer file.Close()
-	cutoff := time.Now().Add(-24 * time.Hour)
+	cutoff := time.Now().Add(-30 * time.Minute)
 	errors := make([]CertificateRuntimeError, 0)
 	scanner := bufio.NewScanner(file)
 	scanner.Buffer(make([]byte, 64*1024), 1<<20)
 	for scanner.Scan() {
 		var payload map[string]any
 		line := scanner.Text()
-		if json.Unmarshal([]byte(line), &payload) != nil || !isErrorLevel(payload["level"]) {
+		if json.Unmarshal([]byte(line), &payload) != nil || !isErrorLevel(payload["level"]) || !isCertificateRuntimeError(payload) {
 			continue
 		}
 		timestamp := parseCaddyLogTime(payload["ts"])
 		if !timestamp.IsZero() && timestamp.Before(cutoff) {
 			continue
 		}
-		message, _ := payload["msg"].(string)
+		message := certificateErrorMessage(payload)
 		errors = append(errors, CertificateRuntimeError{Timestamp: timestamp, Payload: strings.ToLower(line), Message: message})
 	}
 	return errors
+}
+
+func isCertificateRuntimeError(payload map[string]any) bool {
+	loggerName, _ := payload["logger"].(string)
+	message, _ := payload["msg"].(string)
+	errorMessage, _ := payload["error"].(string)
+	loggerName = strings.ToLower(loggerName)
+	for _, prefix := range []string{"tls.obtain", "tls.issuance", "tls.renew"} {
+		if strings.HasPrefix(loggerName, prefix) {
+			return true
+		}
+	}
+	content := strings.ToLower(message + " " + errorMessage)
+	for _, fragment := range []string{"acme", "certmagic", "obtaining certificate", "certificate issuance", "certificate renewal", "challenge failed"} {
+		if strings.Contains(content, fragment) {
+			return true
+		}
+	}
+	return false
+}
+
+func certificateErrorMessage(payload map[string]any) string {
+	if message, _ := payload["error"].(string); strings.TrimSpace(message) != "" {
+		return message
+	}
+	message, _ := payload["msg"].(string)
+	return message
 }
 
 func MatchCertificateError(subjects []string, errors []CertificateRuntimeError) string {

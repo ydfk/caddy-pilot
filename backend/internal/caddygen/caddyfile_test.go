@@ -8,6 +8,7 @@ import (
 )
 
 func TestGenerateCaddyfileIncludesManagementAndProxySites(t *testing.T) {
+	t.Setenv("CADDYPILOT_HTTPS_PORT", "8443")
 	site := proxysite.ProxySite{
 		Name: "example.com", Domains: mustJSON([]string{"example.com"}),
 		Upstreams: mustJSON([]string{"127.0.0.1:3000"}), UpstreamType: "http",
@@ -20,7 +21,7 @@ func TestGenerateCaddyfileIncludesManagementAndProxySites(t *testing.T) {
 		t.Fatal(err)
 	}
 	text := string(payload)
-	for _, expected := range []string{":8080 {", "handle /api/*", "127.0.0.1:25610", "example.com {", "reverse_proxy 127.0.0.1:3000", "header_up X-Forwarded-Proto"} {
+	for _, expected := range []string{":8080 {", "handle /api/*", "127.0.0.1:25610", "http://example.com {", "redir https://{host}:8443{uri} 308", "https://example.com {", "reverse_proxy 127.0.0.1:3000", "header_up X-Forwarded-Proto"} {
 		if !strings.Contains(text, expected) {
 			t.Fatalf("Caddyfile 缺少 %q:\n%s", expected, text)
 		}

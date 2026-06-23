@@ -114,10 +114,10 @@ func TestGenerateAddsTLSConnectionPolicy(t *testing.T) {
 }
 
 func TestGenerateRedirectUsesExternalHTTPSPort(t *testing.T) {
+	t.Setenv("CADDYPILOT_HTTPS_PORT", "8443")
 	site := testSite(true, []string{"127.0.0.1:3000"})
 	site.EnableHTTPS = true
 	site.ForceHTTPS = true
-	site.HTTPSRedirectPort = 8443
 	payload, err := Generate([]proxysite.ProxySite{site})
 	if err != nil {
 		t.Fatalf("生成 HTTPS 跳转失败: %v", err)
@@ -128,16 +128,26 @@ func TestGenerateRedirectUsesExternalHTTPSPort(t *testing.T) {
 }
 
 func TestGenerateRedirectOmitsStandardHTTPSPort(t *testing.T) {
+	t.Setenv("CADDYPILOT_HTTPS_PORT", "443")
 	site := testSite(true, []string{"127.0.0.1:3000"})
 	site.EnableHTTPS = true
 	site.ForceHTTPS = true
-	site.HTTPSRedirectPort = 443
 	payload, err := Generate([]proxysite.ProxySite{site})
 	if err != nil {
 		t.Fatalf("生成 HTTPS 跳转失败: %v", err)
 	}
 	if bytes.Contains(payload, []byte(`{http.request.host}:443`)) {
 		t.Fatalf("标准 HTTPS 端口不应写入跳转地址: %s", payload)
+	}
+}
+
+func TestGenerateRejectsInvalidExternalHTTPSPort(t *testing.T) {
+	t.Setenv("CADDYPILOT_HTTPS_PORT", "invalid")
+	site := testSite(true, []string{"127.0.0.1:3000"})
+	site.EnableHTTPS = true
+	site.ForceHTTPS = true
+	if _, err := Generate([]proxysite.ProxySite{site}); err == nil {
+		t.Fatal("应拒绝无效的全局 HTTPS 端口")
 	}
 }
 

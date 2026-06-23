@@ -57,7 +57,7 @@ func importedSitePayload(site nginximport.Site) SitePayload {
 	return SitePayload{
 		Name: site.Domains[0], Description: "从 Nginx 配置导入",
 		Domains: site.Domains, Upstreams: site.Upstreams, UpstreamType: site.UpstreamType,
-		EnableHTTPS: site.EnableHTTPS, ForceHTTPS: site.ForceHTTPS, HTTPSRedirectPort: site.HTTPSRedirectPort,
+		EnableHTTPS: site.EnableHTTPS, ForceHTTPS: site.ForceHTTPS,
 		CertificateType: "single", ACMEChallengeType: "http",
 		EnableGzip: site.EnableGzip, EnableLog: site.EnableLog, EnableWS: true,
 		RequestHeaders: map[string]string{}, ResponseHeaders: map[string]string{},

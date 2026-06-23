@@ -52,6 +52,7 @@ ENV APP_ENV=production \
     CADDYPILOT_FRONTEND_DIR=/app/frontend \
     CADDYPILOT_LOG_DIR=/data/logs \
     CADDYPILOT_MANAGE_ADDR=:8080 \
+    CADDYPILOT_HTTPS_PORT=443 \
     DATABASE_DSN=/data/caddypilot.db \
     PYTHONWARNINGS=ignore \
     TZ=Asia/Shanghai

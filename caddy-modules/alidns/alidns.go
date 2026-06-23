@@ -2,6 +2,7 @@ package alidns
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/caddyserver/caddy/v2"
@@ -13,7 +14,8 @@ import (
 
 type Provider struct {
 	*libdnsalidns.Provider
-	logger *zap.Logger
+	providerID string
+	logger     *zap.Logger
 }
 
 func init() {
@@ -29,6 +31,7 @@ func (Provider) CaddyModule() caddy.ModuleInfo {
 
 func (p *Provider) Provision(ctx caddy.Context) error {
 	replacer := caddy.NewReplacer()
+	p.providerID = providerIDFromEnvPlaceholder(p.AccessKeyID)
 	p.AccessKeyID = replacer.ReplaceAll(p.AccessKeyID, "")
 	p.AccessKeySecret = replacer.ReplaceAll(p.AccessKeySecret, "")
 	p.SecurityToken = replacer.ReplaceAll(p.SecurityToken, "")
@@ -74,6 +77,7 @@ func (p *Provider) log(operation, zone string, input, result []libdns.Record, st
 	}
 	fields := []zap.Field{
 		zap.String("provider", "alidns"),
+		zap.String("provider_id", p.providerID),
 		zap.String("zone", zone),
 		zap.String("operation", operation),
 		zap.Any("records", auditRecords(input)),
@@ -142,6 +146,16 @@ func (p *Provider) unmarshalOption(d *caddyfile.Dispenser) error {
 		return d.Errf("unrecognized subdirective '%s'", directive)
 	}
 	return nil
+}
+
+func providerIDFromEnvPlaceholder(value string) string {
+	const prefix = "{env.CADDYPILOT_DNS_"
+	const suffix = "_ACCESS_KEY_ID}"
+	if !strings.HasPrefix(value, prefix) || !strings.HasSuffix(value, suffix) {
+		return ""
+	}
+	id := strings.TrimSuffix(strings.TrimPrefix(value, prefix), suffix)
+	return strings.ToLower(strings.ReplaceAll(id, "_", "-"))
 }
 
 var (

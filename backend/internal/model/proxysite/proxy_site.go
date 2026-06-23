@@ -18,7 +18,6 @@ type ProxySite struct {
 	UpstreamTLSInsecureSkipVerify bool           `gorm:"not null;default:false" json:"upstream_tls_insecure_skip_verify"`
 	EnableHTTPS                   bool           `gorm:"column:enable_https;not null;default:false" json:"enable_https"`
 	ForceHTTPS                    bool           `gorm:"column:force_https;not null;default:false" json:"force_https"`
-	HTTPSRedirectPort             int            `gorm:"column:https_redirect_port;not null;default:443" json:"https_redirect_port"`
 	CertificateType               string         `gorm:"size:16;not null;default:single" json:"certificate_type"`
 	CertificateDomain             string         `gorm:"size:253" json:"certificate_domain"`
 	ACMEChallengeType             string         `gorm:"size:16;not null;default:http" json:"acme_challenge_type"`

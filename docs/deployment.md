@@ -29,13 +29,22 @@ docker compose -f docker-compose.prod.yml up -d
 
 ## 端口
 
-| 宿主机 | 容器 | 用途 |
-| --- | --- | --- |
-| 80 | 80 | HTTP 代理站点 |
-| 443 | 443 | HTTPS 代理站点 |
-| 8080 | 8080 | CaddyPilot 管理界面 |
+| 环境变量 | 默认宿主机端口 | 容器端口 | 用途 |
+| --- | --- | --- | --- |
+| `CADDYPILOT_HTTP_PORT` | 80 | 80 | HTTP 代理站点 |
+| `CADDYPILOT_HTTPS_PORT` | 443 | 443 | HTTPS 代理站点及全局跳转目标 |
+| — | 8080 | 8080 | CaddyPilot 管理界面 |
 
-2019 没有宿主机映射。**不要将 Caddy Admin API 2019 端口暴露到公网。**
+需要使用非标准宿主机端口时，在项目根目录创建 `.env`：
+
+```dotenv
+CADDYPILOT_HTTP_PORT=18080
+CADDYPILOT_HTTPS_PORT=18443
+```
+
+随后访问 `http://主机:18080`，强制 HTTPS 会统一跳转到 `https://主机:18443`。不要使用 `10080`：Chromium 系浏览器将其列为不安全端口并直接返回 `ERR_UNSAFE_PORT`，Caddy 无法覆盖浏览器的限制。
+
+2019 没有宿主机映射。**不要将 Caddy Admin API 2019 端口暴露到公网。** 使用 HTTP-01 签发证书时，公网仍需能访问标准 80 端口；非标准映射更适合 DNS-01 或由上层网关转发 80/443 的部署。
 
 ## 自动管理的内部配置
 

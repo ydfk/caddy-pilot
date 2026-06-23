@@ -1,9 +1,10 @@
 package logs
 
 type ListInput struct {
-	Source string `query:"source" enum:"system,caddy,dns" default:"system"`
-	Cursor int64  `query:"cursor" minimum:"0" default:"0"`
-	Limit  int    `query:"limit" minimum:"1" maximum:"500" default:"200"`
+	Source     string `query:"source" enum:"system,caddy,dns" default:"system"`
+	Cursor     int64  `query:"cursor" minimum:"0" default:"0"`
+	Limit      int    `query:"limit" minimum:"1" maximum:"500" default:"200"`
+	ProviderID string `query:"provider_id" doc:"按 DNS Provider ID 筛选"`
 }
 
 type Entry struct {
