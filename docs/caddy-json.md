@@ -34,7 +34,7 @@
 - `proxy-http` 监听 `:80`
 - `proxy-https` 监听 `:443`
 - 开启 HTTPS 的站点进入 HTTPS server
-- 同时开启 Force HTTPS 的站点在 HTTP server 生成 308 跳转
+- 同时开启 Force HTTPS 的站点在 HTTP server 生成 308 跳转；443 不写端口，非标准外部 HTTPS 端口会显式写入 Location
 - 未开启 Force HTTPS 的站点继续在 HTTP server 提供代理
 
 每个站点生成 host matcher 和 subroute。IP 白名单存在时，会在同一 matcher 中追加 `remote_ip`，与 host 条件共同生效。

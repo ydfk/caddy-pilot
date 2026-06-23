@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   Braces,
   Copy,
-  MoreHorizontal,
+  FileUp,
   Pencil,
   Plus,
   Rocket,
@@ -16,12 +16,15 @@ import { toast } from "sonner";
 import {
   deleteProxySite,
   listProxySites,
+  importNginxConfig,
   previewProxySite,
   setProxySiteEnabled,
   type ProxySite,
+  type ProxySitePreview,
 } from "@/api/proxy-sites";
 import { getCaddyChangeStatus, publishCaddyConfig, validateCaddyConfig } from "@/api/caddy";
-import { JSONDialog } from "@/components/json-dialog";
+import { NginxImportDialog } from "@/components/proxy-sites/nginx-import-dialog";
+import { SiteConfigPreviewDialog } from "@/components/proxy-sites/site-config-preview-dialog";
 import { PageHeader } from "@/components/page-header";
 import {
   AlertDialog,
@@ -37,14 +40,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Empty,
   EmptyContent,
@@ -70,7 +65,7 @@ export default function ProxySitesPage() {
   const [loading, setLoading] = useState(true);
   const [busyID, setBusyID] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<ProxySite | null>(null);
-  const [preview, setPreview] = useState<{ name: string; value: unknown } | null>(null);
+  const [preview, setPreview] = useState<{ name: string; value: ProxySitePreview } | null>(null);
   const [validated, setValidated] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [validating, setValidating] = useState(false);
@@ -118,7 +113,7 @@ export default function ProxySitesPage() {
     setBusyID(site.id);
     try {
       const result = await previewProxySite(site.id);
-      setPreview({ name: site.domains[0] ?? "站点", value: result.caddy_json });
+      setPreview({ name: site.domains[0] ?? "站点", value: result });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "生成预览失败");
     } finally {
@@ -222,6 +217,21 @@ export default function ProxySitesPage() {
                 </AlertDialog>
               </>
             ) : null}
+            <NginxImportDialog
+              trigger={
+                <Button variant="outline">
+                  <FileUp data-icon="inline-start" /> 导入 Nginx
+                </Button>
+              }
+              onImport={importNginxConfig}
+              onImported={(result) => {
+                setSites((current) => [...result.sites, ...current]);
+                toast.success(`已导入 ${result.sites.length} 个停用站点`);
+                if (result.warnings.length > 0) {
+                  toast.warning(result.warnings.join("；"));
+                }
+              }}
+            />
             <Button variant="secondary" asChild>
               <Link to="/proxy-sites/new">
                 <Plus data-icon="inline-start" /> 新增站点
@@ -322,40 +332,37 @@ export default function ProxySitesPage() {
                           minute: "2-digit",
                         }).format(new Date(site.updated_at))}
                       </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" aria-label={`${site.domains[0]} 操作`}>
-                              <MoreHorizontal />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuGroup>
-                              <DropdownMenuItem asChild>
-                                <Link to={`/proxy-sites/${site.id}/edit`}>
-                                  <Pencil /> 编辑
-                                </Link>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem asChild>
-                                <Link to={`/proxy-sites/${site.id}/clone`}>
-                                  <Copy /> 克隆
-                                </Link>
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onSelect={() => void showPreview(site)}>
-                                <Braces /> 预览配置
-                              </DropdownMenuItem>
-                            </DropdownMenuGroup>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuGroup>
-                              <DropdownMenuItem
-                                variant="destructive"
-                                onSelect={() => setDeleteTarget(site)}
-                              >
-                                <Trash2 /> 删除
-                              </DropdownMenuItem>
-                            </DropdownMenuGroup>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                      <TableCell className="min-w-48 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link to={`/proxy-sites/${site.id}/edit`}>
+                              <Pencil /> <span className="hidden xl:inline">编辑</span>
+                            </Link>
+                          </Button>
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link to={`/proxy-sites/${site.id}/clone`}>
+                              <Copy /> <span className="hidden xl:inline">克隆</span>
+                            </Link>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={busyID === site.id}
+                            onClick={() => void showPreview(site)}
+                          >
+                            {busyID === site.id ? <Spinner /> : <Braces />}
+                            <span className="hidden xl:inline">预览</span>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive"
+                            aria-label={`删除 ${site.domains[0]}`}
+                            onClick={() => setDeleteTarget(site)}
+                          >
+                            <Trash2 />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -384,11 +391,11 @@ export default function ProxySitesPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <JSONDialog
+      <SiteConfigPreviewDialog
         open={Boolean(preview)}
         onOpenChange={(open) => !open && setPreview(null)}
-        title={`${preview?.name ?? "站点"} · Caddy JSON 片段`}
-        value={preview?.value}
+        title={`${preview?.name ?? "站点"} · 配置预览`}
+        preview={preview?.value ?? null}
       />
     </div>
   );

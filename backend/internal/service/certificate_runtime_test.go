@@ -1,14 +1,17 @@
 package service
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"math/big"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -46,5 +49,16 @@ func TestLoadIssuedCertificates(t *testing.T) {
 	matched := MatchIssuedCertificates([]string{"*.example.com"}, certificates)
 	if len(matched) != 1 || matched[0].Status != "valid" || matched[0].SerialNumber != "2a" {
 		t.Fatalf("证书信息不正确: %+v", matched)
+	}
+}
+
+func TestLoadLiveCertificatesReadsManagedTLSCertificate(t *testing.T) {
+	server := httptest.NewTLSServer(nil)
+	defer server.Close()
+	t.Setenv("CADDYPILOT_HTTPS_ADDR", strings.TrimPrefix(server.URL, "https://"))
+
+	certificates := LoadLiveCertificates(context.Background(), []string{"example.com"})
+	if len(certificates) != 1 || len(MatchIssuedCertificates([]string{"example.com"}, certificates)) != 1 {
+		t.Fatalf("未读取到本机 TLS 证书: %+v", certificates)
 	}
 }

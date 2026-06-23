@@ -6,8 +6,10 @@ import {
   cloneProxySite,
   createProxySite,
   getProxySite,
+  previewProxySiteDraft,
   updateProxySite,
   type ProxySite,
+  type ProxySitePreview,
 } from "@/api/proxy-sites";
 import { publishCaddyConfig } from "@/api/caddy";
 import {
@@ -28,11 +30,10 @@ import {
   type DNSProvider,
   type DNSProviderPayload,
 } from "@/api/dns-providers";
-import { JSONDialog } from "@/components/json-dialog";
+import { SiteConfigPreviewDialog } from "@/components/proxy-sites/site-config-preview-dialog";
 import { SiteForm } from "@/components/proxy-sites/site-form";
 import {
   defaultSiteValues,
-  draftPreview,
   formValuesFromSite,
   payloadFromForm,
   type SiteFormValues,
@@ -47,7 +48,8 @@ export default function ProxySiteFormPage() {
   const [values, setValues] = useState<SiteFormValues>(defaultSiteValues);
   const [loading, setLoading] = useState(Boolean(id));
   const [pending, setPending] = useState(false);
-  const [preview, setPreview] = useState<unknown>(null);
+  const [previewing, setPreviewing] = useState(false);
+  const [preview, setPreview] = useState<ProxySitePreview | null>(null);
   const [credentials, setCredentials] = useState<BasicAuthCredential[]>([]);
   const [certificates, setCertificates] = useState<CertificateProfile[]>([]);
   const [dnsProviders, setDNSProviders] = useState<DNSProvider[]>([]);
@@ -138,6 +140,18 @@ export default function ProxySiteFormPage() {
     }
   }
 
+  async function showPreview(formValues: SiteFormValues) {
+    setPreviewing(true);
+    try {
+      const result = await previewProxySiteDraft(payloadFromForm(formValues, mode === "clone"));
+      setPreview(result);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "生成站点预览失败");
+    } finally {
+      setPreviewing(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex flex-col gap-4">
@@ -153,6 +167,7 @@ export default function ProxySiteFormPage() {
         mode={mode}
         values={values}
         pending={pending}
+        previewing={previewing}
         credentials={credentials}
         certificates={certificates}
         dnsProviders={dnsProviders}
@@ -160,14 +175,13 @@ export default function ProxySiteFormPage() {
         onCreateDNSProvider={createProvider}
         onCreateCredential={createCredential}
         onSave={save}
-        onPreview={(data) => setPreview(draftPreview(data))}
+        onPreview={showPreview}
       />
-      <JSONDialog
+      <SiteConfigPreviewDialog
         open={preview !== null}
         onOpenChange={(open) => !open && setPreview(null)}
-        title="站点草稿 · Caddy JSON"
-        description="此处为表单草稿片段；完整配置请在 Caddy 状态页预览。"
-        value={preview}
+        title="站点草稿 · 配置预览"
+        preview={preview}
       />
     </>
   );

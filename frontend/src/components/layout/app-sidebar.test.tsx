@@ -21,10 +21,14 @@ test("展示 CaddyPilot 管理导航", () => {
     "证书",
     "DNS Provider",
     "密码本",
+    "日志",
   ]) {
     expect(screen.getByText(item)).toBeInTheDocument();
   }
   expect(screen.queryByText("系统设置")).not.toBeInTheDocument();
   expect(screen.queryByText("运行状态")).not.toBeInTheDocument();
   expect(screen.queryByText("配置版本")).not.toBeInTheDocument();
+  const password = screen.getByText("密码本");
+  const logs = screen.getByText("日志");
+  expect(password.compareDocumentPosition(logs) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });

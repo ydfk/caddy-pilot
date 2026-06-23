@@ -30,6 +30,7 @@ All configuration changes are versioned. If a publish fails, your previous worki
 - **Typed upstreams** — HTTP, HTTPS, h2c, and Unix Socket with type-specific settings
 - **Access & certificates** — reusable Basic Auth password vault plus single-domain or wildcard certificates with Aliyun DNS-01
 - **Config preview & publish** — publish protected JSON while previewing and exporting a validated, read-only Caddyfile view
+- **Nginx migration** — import common server, upstream, proxy_pass, TLS listener, and HTTPS redirect patterns as reviewable disabled sites
 - **Version history & rollback** — every publish is recorded; diff, inspect, or rollback to any previous version
 - **Dashboard** — at-a-glance status: site counts, Caddy health, last publish time
 - **Unified Caddy workbench** — runtime health, validate/publish flow, config history, and Caddy updates in one place
@@ -184,7 +185,7 @@ Environment variables for development:
 | `CADDY_VERSION` | `2.11.4` | Native development bootstrap version |
 | `VITE_PROXY_HOST` | `http://127.0.0.1:25610` | Vite dev proxy target |
 
-Caddy version-check, download, and required SHA-512 checksum URLs are managed from **Caddy 管理 → 更新源** and stored in SQLite. The default source is the CaddyPilot Release runtime manifest. Downloads resume after interruption, retry up to three times, and persist task details under `data/runtime/caddy/update-task.json`. Docker environment variables are not required.
+Caddy version-check, download, and optional SHA-512 checksum URLs are managed from **Caddy 管理 → 更新源** and stored in SQLite. Defaults use the official Caddy GitHub Release API and the official custom-build service with the AliDNS module. Downloads resume after interruption, retry up to three times, and persist task details under `data/runtime/caddy/update-task.json`. Docker environment variables are not required.
 
 Project-level Windows commands are centralized under `scripts/`:
 
@@ -198,7 +199,7 @@ Project-level Windows commands are centralized under `scripts/`:
 
 ## Docker image releases
 
-Pushing a semantic version tag such as `v1.2.3` runs tests, publishes the Linux amd64 image to Docker Hub, and then creates a GitHub Release. The Release includes Linux and Windows amd64 Caddy 2.11.4 runtimes with the AliDNS audit module, a SHA-512 checksum list, runtime manifest, and production Compose file. Configure repository secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` first. Stable tags update `latest` and create a formal Release; tags such as `v1.2.3-rc.1` create a Prerelease.
+Pushing a semantic version tag such as `v1.2.3` builds and publishes the Linux amd64 image to Docker Hub, then creates a GitHub Release containing only the production Compose file. Configure repository secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` first. Stable tags update `latest` and create a formal Release; tags such as `v1.2.3-rc.1` create a Prerelease.
 
 ---
 

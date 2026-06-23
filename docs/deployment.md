@@ -48,9 +48,9 @@ docker compose -f docker-compose.prod.yml up -d
 
 这三个地址在“Caddy 管理 → 更新源设置”中修改并保存到 SQLite，不再使用 Docker 环境变量：
 
-- 版本校验地址：默认读取 CaddyPilot Release 的运行时 manifest，也兼容返回 `tag_name` 或 `version` 的 JSON。
-- Caddy 下载地址：支持 `{version}`、`{os}`、`{arch}`、`{ext}` 占位符的可信下载源。
-- SHA-512 清单地址：安装前强制校验下载文件，自定义镜像必须同时提供兼容清单。
+- 版本校验地址：默认读取 Caddy 官方 GitHub Release，也兼容返回 `tag_name` 或 `version` 的 JSON。
+- Caddy 下载地址：默认使用 Caddy 官方动态构建服务并包含 AliDNS 模块，也支持 `{version}`、`{os}`、`{arch}`、`{ext}` 占位符。
+- SHA-512 清单地址：官方动态构建源默认留空；自定义静态下载源可填写清单并在安装前强制校验。
 
 在线下载支持断点续传和最多三次退避重试，页面刷新后仍会恢复任务进度或最后一次失败原因。普通部署无需修改；国内部署可配置可信镜像，或使用“上传 Caddy 安装包”作为兜底。
 

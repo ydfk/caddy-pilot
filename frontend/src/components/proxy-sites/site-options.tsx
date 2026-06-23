@@ -1,6 +1,7 @@
 import { Controller, type Control, useController } from "react-hook-form";
 
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -67,6 +68,29 @@ export function SiteCoreOptions({ control, cloneMode }: SiteOptionsProps) {
           </SelectContent>
         </Select>
       </Field>
+
+      {httpsMode === "redirect" ? (
+        <Controller
+          control={control}
+          name="httpsRedirectPort"
+          render={({ field }) => (
+            <Field>
+              <FieldLabel htmlFor="httpsRedirectPort">HTTPS 跳转端口</FieldLabel>
+              <Input
+                id="httpsRedirectPort"
+                type="number"
+                min={1}
+                max={65535}
+                value={field.value}
+                onChange={(event) => field.onChange(Number(event.target.value))}
+              />
+              <FieldDescription>
+                标准端口填写 443，跳转地址不会附加端口；映射到 8443 等外部端口时填写对应端口。
+              </FieldDescription>
+            </Field>
+          )}
+        />
+      ) : null}
     </FieldGroup>
   );
 }

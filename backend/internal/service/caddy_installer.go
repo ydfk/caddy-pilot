@@ -17,8 +17,8 @@ import (
 
 const (
 	DefaultCaddyVersion     = "2.11.4"
-	DefaultCaddyDownloadURL = "https://github.com/ydfk/caddy-pilot/releases/latest/download/caddy_{version}_{os}_{arch}.{ext}"
-	DefaultCaddyChecksumURL = "https://github.com/ydfk/caddy-pilot/releases/latest/download/sha512sums.txt"
+	DefaultCaddyDownloadURL = "https://caddyserver.com/api/download?os={os}&arch={arch}&p=github.com/caddy-dns/alidns&v={version}"
+	DefaultCaddyChecksumURL = ""
 	MaxCaddyUploadSize      = 128 << 20
 )
 
@@ -115,9 +115,11 @@ func (installer *CaddyInstaller) Install(ctx context.Context, version string) (C
 		return CaddyRuntimeInfo{}, err
 	}
 	defer os.Remove(archivePath)
-	installer.report(CaddyUpdateProgress{Stage: "verifying"})
-	if err := installer.verifyChecksum(ctx, version, archivePath); err != nil {
-		return CaddyRuntimeInfo{}, err
+	if strings.TrimSpace(installer.ChecksumURL) != "" {
+		installer.report(CaddyUpdateProgress{Stage: "verifying"})
+		if err := installer.verifyChecksum(ctx, version, archivePath); err != nil {
+			return CaddyRuntimeInfo{}, err
+		}
 	}
 	if installer.isDirectBinaryDownload() {
 		installer.report(CaddyUpdateProgress{Stage: "installing"})

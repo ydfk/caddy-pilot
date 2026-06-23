@@ -25,6 +25,15 @@ func GenerateCaddyfile(sites []proxysite.ProxySite) ([]byte, error) {
 	return []byte(output.String()), nil
 }
 
+func GenerateSiteCaddyfile(site proxysite.ProxySite) ([]byte, error) {
+	var output strings.Builder
+	site.Enabled = true
+	if err := writeProxySite(&output, site); err != nil {
+		return nil, err
+	}
+	return []byte(output.String()), nil
+}
+
 func writeGlobalOptions(output *strings.Builder) {
 	output.WriteString("{\n")
 	output.WriteString("\tadmin 127.0.0.1:2019\n")

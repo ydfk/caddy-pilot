@@ -113,6 +113,34 @@ func TestGenerateAddsTLSConnectionPolicy(t *testing.T) {
 	}
 }
 
+func TestGenerateRedirectUsesExternalHTTPSPort(t *testing.T) {
+	site := testSite(true, []string{"127.0.0.1:3000"})
+	site.EnableHTTPS = true
+	site.ForceHTTPS = true
+	site.HTTPSRedirectPort = 8443
+	payload, err := Generate([]proxysite.ProxySite{site})
+	if err != nil {
+		t.Fatalf("生成 HTTPS 跳转失败: %v", err)
+	}
+	if !bytes.Contains(payload, []byte(`https://{http.request.host}:8443{http.request.uri}`)) {
+		t.Fatalf("非标准 HTTPS 端口未进入跳转地址: %s", payload)
+	}
+}
+
+func TestGenerateRedirectOmitsStandardHTTPSPort(t *testing.T) {
+	site := testSite(true, []string{"127.0.0.1:3000"})
+	site.EnableHTTPS = true
+	site.ForceHTTPS = true
+	site.HTTPSRedirectPort = 443
+	payload, err := Generate([]proxysite.ProxySite{site})
+	if err != nil {
+		t.Fatalf("生成 HTTPS 跳转失败: %v", err)
+	}
+	if bytes.Contains(payload, []byte(`{http.request.host}:443`)) {
+		t.Fatalf("标准 HTTPS 端口不应写入跳转地址: %s", payload)
+	}
+}
+
 func TestGenerateSupportsAliDNSWildcardCertificate(t *testing.T) {
 	site := testSite(true, []string{"127.0.0.1:3000"})
 	site.EnableHTTPS = true

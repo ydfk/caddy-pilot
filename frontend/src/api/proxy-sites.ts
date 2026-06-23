@@ -10,6 +10,7 @@ export type ProxySitePayload = {
   upstream_tls_insecure_skip_verify: boolean;
   enable_https: boolean;
   force_https: boolean;
+  https_redirect_port: number;
   certificate_type: "single" | "wildcard";
   certificate_domain: string;
   acme_challenge_type: "http" | "dns";
@@ -30,6 +31,9 @@ export type ProxySitePayload = {
 };
 
 export type ProxySite = ProxySitePayload & { id: string; created_at: string; updated_at: string };
+
+export type ProxySitePreview = { caddy_json: unknown; caddyfile: string };
+export type NginxImportResult = { sites: ProxySite[]; warnings: string[] };
 
 export const listProxySites = () => apiRequest<ProxySite[]>("/api/proxy-sites");
 export const getProxySite = (id: string) => apiRequest<ProxySite>(`/api/proxy-sites/${id}`);
@@ -52,4 +56,14 @@ export const setProxySiteEnabled = (id: string, enabled: boolean) =>
     method: "POST",
   });
 export const previewProxySite = (id: string) =>
-  apiRequest<{ caddy_json: unknown }>(`/api/proxy-sites/${id}/preview`, { method: "POST" });
+  apiRequest<ProxySitePreview>(`/api/proxy-sites/${id}/preview`, { method: "POST" });
+export const previewProxySiteDraft = (payload: ProxySitePayload) =>
+  apiRequest<ProxySitePreview>("/api/proxy-sites/preview", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+export const importNginxConfig = (config: string) =>
+  apiRequest<NginxImportResult>("/api/proxy-sites/import/nginx", {
+    method: "POST",
+    body: JSON.stringify({ config }),
+  });

@@ -19,6 +19,7 @@ type SitePayload struct {
 	UpstreamTLSInsecureSkipVerify bool              `json:"upstream_tls_insecure_skip_verify" doc:"跳过 HTTPS 上游证书校验"`
 	EnableHTTPS                   bool              `json:"enable_https" doc:"启用 HTTPS"`
 	ForceHTTPS                    bool              `json:"force_https" doc:"强制 HTTPS"`
+	HTTPSRedirectPort             int               `json:"https_redirect_port,omitempty" doc:"强制 HTTPS 的外部跳转端口，默认 443"`
 	CertificateType               string            `json:"certificate_type" enum:"single,wildcard" doc:"证书类型"`
 	CertificateDomain             string            `json:"certificate_domain" doc:"通配符证书域名"`
 	ACMEChallengeType             string            `json:"acme_challenge_type" enum:"http,dns" doc:"ACME 验证方式"`
@@ -73,6 +74,7 @@ type SiteResponse struct {
 	UpstreamTLSInsecureSkipVerify bool              `json:"upstream_tls_insecure_skip_verify"`
 	EnableHTTPS                   bool              `json:"enable_https"`
 	ForceHTTPS                    bool              `json:"force_https"`
+	HTTPSRedirectPort             int               `json:"https_redirect_port"`
 	CertificateType               string            `json:"certificate_type"`
 	CertificateDomain             string            `json:"certificate_domain"`
 	ACMEChallengeType             string            `json:"acme_challenge_type"`
@@ -104,10 +106,28 @@ type SiteListOutput struct {
 
 type PreviewResponse struct {
 	CaddyJSON json.RawMessage `json:"caddy_json"`
+	Caddyfile string          `json:"caddyfile"`
 }
 
 type PreviewOutput struct {
 	Body PreviewResponse
+}
+
+type NginxImportPayload struct {
+	Config string `json:"config" doc:"Nginx 配置内容"`
+}
+
+type NginxImportInput struct {
+	Body NginxImportPayload
+}
+
+type NginxImportResponse struct {
+	Sites    []SiteResponse `json:"sites"`
+	Warnings []string       `json:"warnings"`
+}
+
+type NginxImportOutput struct {
+	Body NginxImportResponse
 }
 
 func newSiteOutput(site model.ProxySite) (*SiteOutput, error) {
@@ -128,6 +148,7 @@ func newSiteResponse(site model.ProxySite) (SiteResponse, error) {
 		UpstreamTLSServerName:         site.UpstreamTLSServerName,
 		UpstreamTLSInsecureSkipVerify: site.UpstreamTLSInsecureSkipVerify,
 		ForceHTTPS:                    site.ForceHTTPS,
+		HTTPSRedirectPort:             normalizedHTTPSRedirectPort(site.HTTPSRedirectPort),
 		CertificateType:               defaultString(site.CertificateType, "single"),
 		CertificateDomain:             site.CertificateDomain,
 		ACMEChallengeType:             defaultString(site.ACMEChallengeType, "http"),
@@ -180,6 +201,13 @@ func normalizedUpstreamType(value string) string {
 func defaultString(value, fallback string) string {
 	if value == "" {
 		return fallback
+	}
+	return value
+}
+
+func normalizedHTTPSRedirectPort(value int) int {
+	if value == 0 {
+		return 443
 	}
 	return value
 }

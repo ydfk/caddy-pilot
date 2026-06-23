@@ -3,6 +3,7 @@ package caddygen
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"go-fiber-starter/internal/model/dnsprovider"
 	"go-fiber-starter/internal/model/proxysite"
@@ -72,11 +73,19 @@ func generateRedirectRoute(site proxysite.ProxySite) (map[string]any, error) {
 		"match": []map[string]any{{"host": domains}},
 		"handle": []map[string]any{{
 			"handler":     "static_response",
-			"headers":     map[string][]string{"Location": {"https://{http.request.host}{http.request.uri}"}},
+			"headers":     map[string][]string{"Location": {httpsRedirectLocation(site.HTTPSRedirectPort)}},
 			"status_code": 308,
 		}},
 		"terminal": true,
 	}, nil
+}
+
+func httpsRedirectLocation(port int) string {
+	location := "https://{http.request.host}"
+	if port > 0 && port != 443 {
+		location += ":" + strconv.Itoa(port)
+	}
+	return location + "{http.request.uri}"
 }
 
 func siteServer(listen string, routes []map[string]any) map[string]any {

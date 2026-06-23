@@ -16,6 +16,9 @@ export const primaryNavigation: NavigationItem[] = [
   { title: "仪表盘", url: "/dashboard", icon: Gauge },
   { title: "代理站点", url: "/proxy-sites", icon: Route },
   { title: "Caddy 管理", url: "/caddy", icon: ServerCog },
+];
+
+export const trailingNavigation: NavigationItem[] = [
   { title: "日志", url: "/logs", icon: ScrollText },
 ];
 
@@ -34,6 +37,7 @@ export const navigationGroups = [
 const navigationItems = [
   ...primaryNavigation,
   ...navigationGroups.flatMap((group) => group.children),
+  ...trailingNavigation,
 ];
 
 export function getRouteMeta(pathname: string) {

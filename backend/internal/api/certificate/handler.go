@@ -64,8 +64,9 @@ func Update(ctx context.Context, input *CertificateProfileUpdateInput) (*Certifi
 }
 
 type certificateUsage struct {
-	total  int
-	active int
+	total   int
+	active  int
+	domains []string
 }
 
 func buildCertificateResponses(ctx context.Context, profiles []model.CertificateProfile) ([]CertificateProfileResponse, error) {
@@ -85,8 +86,12 @@ func buildCertificateResponses(ctx context.Context, profiles []model.Certificate
 		key := site.CertificateProfileID.String()
 		value := usage[key]
 		value.total++
-		if site.Enabled {
+		if site.Enabled && site.EnableHTTPS {
 			value.active++
+			var domains []string
+			if json.Unmarshal([]byte(site.Domains), &domains) == nil {
+				value.domains = append(value.domains, domains...)
+			}
 		}
 		usage[key] = value
 	}
@@ -102,8 +107,11 @@ func buildCertificateResponses(ctx context.Context, profiles []model.Certificate
 		if decodeErr != nil {
 			return nil, decodeErr
 		}
-		matched := service.MatchIssuedCertificates(subjects, issued)
 		counts := usage[profile.Id.String()]
+		matched := service.MatchIssuedCertificates(subjects, issued)
+		if len(matched) == 0 {
+			matched = service.MatchIssuedCertificates(subjects, service.LoadLiveCertificates(ctx, counts.domains))
+		}
 		status := service.EvaluateCertificateIssuance(subjects, matched, counts.total, counts.active, runtimeConfig, runtimeErrors)
 		responses = append(responses, responseFromModel(profile, subjects, matched, status, counts.total))
 	}

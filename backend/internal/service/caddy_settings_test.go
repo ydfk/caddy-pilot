@@ -51,9 +51,9 @@ func TestCaddySettingsMigratesLegacyDefaults(t *testing.T) {
 		t.Fatal(err)
 	}
 	legacy := []systemsetting.Setting{
-		{Key: caddyVersionCheckURLKey, Value: CaddyLatestReleaseAPI},
-		{Key: caddyDownloadURLKey, Value: legacyCaddyDownloadURL},
-		{Key: caddyChecksumURLKey, Value: ""},
+		{Key: caddyVersionCheckURLKey, Value: CaddyPilotRuntimeManifestURL},
+		{Key: caddyDownloadURLKey, Value: legacyCaddyPilotDownloadURL},
+		{Key: caddyChecksumURLKey, Value: legacyCaddyPilotChecksumURL},
 	}
 	if err := database.Create(&legacy).Error; err != nil {
 		t.Fatal(err)

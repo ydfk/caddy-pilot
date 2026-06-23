@@ -30,6 +30,7 @@ type SiteFormProps = {
   mode: "new" | "edit" | "clone";
   values: SiteFormValues;
   pending: boolean;
+  previewing: boolean;
   credentials: BasicAuthCredential[];
   certificates: CertificateProfile[];
   dnsProviders: DNSProvider[];
@@ -37,13 +38,14 @@ type SiteFormProps = {
   onCreateDNSProvider: (payload: DNSProviderPayload) => Promise<DNSProvider>;
   onCreateCredential: (payload: BasicAuthCredentialPayload) => Promise<BasicAuthCredential>;
   onSave: (values: SiteFormValues, publish: boolean) => Promise<void>;
-  onPreview: (values: SiteFormValues) => void;
+  onPreview: (values: SiteFormValues) => Promise<void>;
 };
 
 export function SiteForm({
   mode,
   values,
   pending,
+  previewing,
   credentials,
   certificates,
   dnsProviders,
@@ -247,8 +249,14 @@ export function SiteForm({
             <X data-icon="inline-start" /> 取消
           </Link>
         </Button>
-        <Button type="button" variant="outline" onClick={form.handleSubmit(onPreview)}>
-          <Braces data-icon="inline-start" /> 预览 Caddy JSON
+        <Button
+          type="button"
+          variant="outline"
+          disabled={previewing}
+          onClick={form.handleSubmit((data) => void onPreview(data))}
+        >
+          {previewing ? <Spinner data-icon="inline-start" /> : <Braces data-icon="inline-start" />}
+          预览配置
         </Button>
         <Button
           type="button"

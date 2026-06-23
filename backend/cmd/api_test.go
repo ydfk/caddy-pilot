@@ -21,6 +21,7 @@ func TestOpenAPIContainsCaddyPilotRoutes(t *testing.T) {
 	}
 	for _, route := range []string{
 		"/api/proxy-sites:", "/api/caddy/publish:",
+		"/api/proxy-sites/preview:", "/api/proxy-sites/import/nginx:",
 		"/api/caddy/settings:",
 		"/api/caddy/upload:", "/api/caddy/update-tasks/current:",
 		"/api/logs:",

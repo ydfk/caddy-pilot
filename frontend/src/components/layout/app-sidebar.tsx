@@ -23,7 +23,7 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { useAuthStore } from "@/store/auth-store";
-import { navigationGroups, primaryNavigation } from "./navigation";
+import { navigationGroups, primaryNavigation, trailingNavigation } from "./navigation";
 
 export function AppSidebar() {
   const location = useLocation();
@@ -91,6 +91,20 @@ export function AppSidebar() {
                       </SidebarMenuSubItem>
                     ))}
                   </SidebarMenuSub>
+                </SidebarMenuItem>
+              ))}
+              {trailingNavigation.map((item) => (
+                <SidebarMenuItem key={item.url}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location.pathname.startsWith(item.url)}
+                    tooltip={item.title}
+                  >
+                    <NavLink to={item.url}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>

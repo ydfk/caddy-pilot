@@ -1,4 +1,4 @@
-name: 发布 Docker 镜像与 Release
+name: 构建 Docker 镜像与 Release
 
 on:
   push:
@@ -9,48 +9,8 @@ permissions:
   contents: write
 
 jobs:
-  test:
-    name: 测试
-    runs-on: ubuntu-latest
-    steps:
-      - name: 检出代码
-        uses: actions/checkout@v4
-
-      - name: 配置 Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: 1.25.11
-          cache-dependency-path: |
-            backend/go.sum
-            caddy-modules/alidns/go.sum
-
-      - name: 测试后端与 Caddy 模块
-        run: |
-          cd backend && go test ./...
-          cd ../caddy-modules/alidns && go test ./...
-
-      - name: 配置 pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.6.2
-
-      - name: 配置 Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22.14.0
-          cache: pnpm
-          cache-dependency-path: frontend/pnpm-lock.yaml
-
-      - name: 测试并构建前端
-        working-directory: frontend
-        run: |
-          pnpm install --frozen-lockfile
-          pnpm test:run
-          pnpm build
-
   publish:
     name: 构建、推送并创建 Release
-    needs: test
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
@@ -104,45 +64,10 @@ jobs:
           provenance: false
           sbom: false
 
-      - name: 配置 Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: 1.25.11
-          cache: false
-
-      - name: 准备 Caddy 运行时资产
-        env:
-          IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/caddy-pilot:${{ steps.version.outputs.version }}
-          CADDY_VERSION: 2.11.4
+      - name: 准备 Release 资产
         run: |
-          mkdir -p dist/linux dist/windows
-          docker pull "$IMAGE"
-          container=$(docker create "$IMAGE")
-          docker cp "$container:/usr/bin/caddy" dist/linux/caddy
-          docker rm "$container"
-          go install github.com/caddyserver/xcaddy/cmd/xcaddy@v0.4.5
-          GOOS=windows GOARCH=amd64 xcaddy build v2.11.4 \
-            --output dist/windows/caddy.exe \
-            --with github.com/caddy-dns/alidns="$(pwd)/caddy-modules/alidns"
-          chmod 0755 dist/linux/caddy
-          tar -C dist/linux -czf "dist/caddy_${CADDY_VERSION}_linux_amd64.tar.gz" caddy
-          (cd dist/windows && zip -9 "../caddy_${CADDY_VERSION}_windows_amd64.zip" caddy.exe)
-          rm -rf dist/linux dist/windows
+          mkdir -p dist
           cp docker-compose.prod.yml dist/docker-compose.prod.yml
-          (cd dist && sha512sum caddy_* > sha512sums.txt)
-          base="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}"
-          cat > dist/caddy-runtime-manifest.json <<EOF
-          {
-            "version": "2.11.4",
-            "release_tag": "${GITHUB_REF_NAME}",
-            "assets": {
-              "linux_amd64": {"url": "${base}/caddy_${CADDY_VERSION}_linux_amd64.tar.gz", "format": "tar.gz"},
-              "windows_amd64": {"url": "${base}/caddy_${CADDY_VERSION}_windows_amd64.zip", "format": "zip"}
-            },
-            "sha512_url": "${base}/sha512sums.txt",
-            "required_modules": ["dns.providers.alidns"]
-          }
-          EOF
 
       - name: 创建或更新 GitHub Release
         env:
@@ -153,6 +78,9 @@ jobs:
             gh release edit "$GITHUB_REF_NAME" \
               --title "CaddyPilot ${GITHUB_REF_NAME}" \
               --prerelease="$PRERELEASE"
+            while read -r asset; do
+              [[ -z "$asset" ]] || gh release delete-asset "$GITHUB_REF_NAME" "$asset" --yes
+            done < <(gh release view "$GITHUB_REF_NAME" --json assets --jq '.assets[].name')
           elif [[ "$PRERELEASE" == "true" ]]; then
             gh release create "$GITHUB_REF_NAME" --title "CaddyPilot ${GITHUB_REF_NAME}" --generate-notes --prerelease
           else

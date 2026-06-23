@@ -31,7 +31,9 @@
 | POST | `/api/proxy-sites/{id}/clone` | 克隆，可覆盖域名和上游 |
 | POST | `/api/proxy-sites/{id}/enable` | 启用 |
 | POST | `/api/proxy-sites/{id}/disable` | 停用 |
-| POST | `/api/proxy-sites/{id}/preview` | 站点路由 JSON 片段 |
+| POST | `/api/proxy-sites/{id}/preview` | 已保存站点的 Caddy JSON 与 Caddyfile 预览 |
+| POST | `/api/proxy-sites/preview` | 尚未保存站点草稿的 Caddy JSON 与 Caddyfile 预览 |
+| POST | `/api/proxy-sites/import/nginx` | 导入 Nginx server/upstream 配置为停用站点 |
 
 数组字段在 API 中使用 JSON 数组，在 SQLite 中编码为 JSON string。站点名称由首个域名兼容生成。克隆接口无论原站点状态如何都会生成 `enabled=false` 的新记录。
 

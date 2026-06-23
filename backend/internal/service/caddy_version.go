@@ -45,7 +45,7 @@ type CaddyVersionService struct {
 func NewCaddyVersionService() *CaddyVersionService {
 	service := &CaddyVersionService{
 		Binary:      environmentValue("CADDY_BINARY", "caddy"),
-		ReleaseAPI:  CaddyPilotRuntimeManifestURL,
+		ReleaseAPI:  CaddyLatestReleaseAPI,
 		DownloadURL: DefaultCaddyDownloadURL,
 		ChecksumURL: DefaultCaddyChecksumURL,
 		GOOS:        runtime.GOOS,

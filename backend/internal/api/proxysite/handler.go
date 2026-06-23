@@ -125,6 +125,18 @@ func Preview(ctx context.Context, input *SiteIDInput) (*PreviewOutput, error) {
 	if err != nil {
 		return nil, err
 	}
+	return previewSite(ctx, site)
+}
+
+func PreviewDraft(ctx context.Context, input *SiteInput) (*PreviewOutput, error) {
+	site, err := siteFromPayload(input.Body)
+	if err != nil {
+		return nil, huma.Error400BadRequest(err.Error())
+	}
+	return previewSite(ctx, site)
+}
+
+func previewSite(ctx context.Context, site model.ProxySite) (*PreviewOutput, error) {
 	sites := []model.ProxySite{site}
 	if err := service.ResolveBasicAuthCredentials(ctx, db.DB, sites); err != nil {
 		return nil, huma.Error400BadRequest(err.Error())
@@ -140,7 +152,11 @@ func Preview(ctx context.Context, input *SiteIDInput) (*PreviewOutput, error) {
 	if err != nil {
 		return nil, huma.Error500InternalServerError("编码站点配置失败")
 	}
-	return &PreviewOutput{Body: PreviewResponse{CaddyJSON: payload}}, nil
+	caddyfile, err := caddygen.GenerateSiteCaddyfile(sites[0])
+	if err != nil {
+		return nil, huma.Error500InternalServerError("生成站点 Caddyfile 失败")
+	}
+	return &PreviewOutput{Body: PreviewResponse{CaddyJSON: payload, Caddyfile: string(caddyfile)}}, nil
 }
 
 func setEnabled(_ context.Context, input *SiteIDInput, enabled bool) (*SiteOutput, error) {
@@ -178,6 +194,10 @@ func siteFromPayload(payload SitePayload) (model.ProxySite, error) {
 	}
 	certificateType := defaultString(strings.TrimSpace(payload.CertificateType), "single")
 	challengeType := defaultString(strings.TrimSpace(payload.ACMEChallengeType), "http")
+	httpsRedirectPort := normalizedHTTPSRedirectPort(payload.HTTPSRedirectPort)
+	if httpsRedirectPort < 1 || httpsRedirectPort > 65535 {
+		return model.ProxySite{}, errors.New("HTTPS 跳转端口必须在 1 到 65535 之间")
+	}
 	certificateDomain := strings.TrimSpace(payload.CertificateDomain)
 	if certificateType != "single" && certificateType != "wildcard" {
 		return model.ProxySite{}, errors.New("不支持的证书类型")
@@ -233,6 +253,7 @@ func siteFromPayload(payload SitePayload) (model.ProxySite, error) {
 		UpstreamTLSInsecureSkipVerify: payload.UpstreamTLSInsecureSkipVerify,
 		EnableHTTPS:                   payload.EnableHTTPS,
 		ForceHTTPS:                    payload.ForceHTTPS,
+		HTTPSRedirectPort:             httpsRedirectPort,
 		CertificateType:               certificateType,
 		CertificateDomain:             certificateDomain,
 		ACMEChallengeType:             challengeType,

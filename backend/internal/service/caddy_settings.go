@@ -12,10 +12,11 @@ import (
 )
 
 const (
-	caddyVersionCheckURLKey = "caddy.version_check_url"
-	caddyDownloadURLKey     = "caddy.download_url"
-	caddyChecksumURLKey     = "caddy.checksum_url"
-	legacyCaddyDownloadURL  = "https://caddyserver.com/api/download?os={os}&arch={arch}&p=github.com/caddy-dns/alidns&v={version}"
+	caddyVersionCheckURLKey     = "caddy.version_check_url"
+	caddyDownloadURLKey         = "caddy.download_url"
+	caddyChecksumURLKey         = "caddy.checksum_url"
+	legacyCaddyPilotDownloadURL = "https://github.com/ydfk/caddy-pilot/releases/latest/download/caddy_{version}_{os}_{arch}.{ext}"
+	legacyCaddyPilotChecksumURL = "https://github.com/ydfk/caddy-pilot/releases/latest/download/sha512sums.txt"
 )
 
 type CaddySettings struct {
@@ -26,7 +27,7 @@ type CaddySettings struct {
 
 func DefaultCaddySettings() CaddySettings {
 	return CaddySettings{
-		VersionCheckURL: CaddyPilotRuntimeManifestURL,
+		VersionCheckURL: CaddyLatestReleaseAPI,
 		DownloadURL:     DefaultCaddyDownloadURL,
 		ChecksumURL:     DefaultCaddyChecksumURL,
 	}
@@ -50,7 +51,7 @@ func LoadCaddySettings(database *gorm.DB) (CaddySettings, error) {
 			settings.ChecksumURL = record.Value
 		}
 	}
-	if isLegacyDefaultSettings(settings) {
+	if isCaddyPilotDefaultSettings(settings) {
 		settings = DefaultCaddySettings()
 		if err := saveCaddySettings(database, settings); err != nil {
 			return settings, fmt.Errorf("迁移 Caddy 默认更新源失败: %w", err)
@@ -81,9 +82,10 @@ func saveCaddySettings(database *gorm.DB, settings CaddySettings) error {
 	}).Create(&records).Error
 }
 
-func isLegacyDefaultSettings(settings CaddySettings) bool {
-	return settings.VersionCheckURL == CaddyLatestReleaseAPI &&
-		settings.DownloadURL == legacyCaddyDownloadURL && settings.ChecksumURL == ""
+func isCaddyPilotDefaultSettings(settings CaddySettings) bool {
+	return settings.VersionCheckURL == CaddyPilotRuntimeManifestURL &&
+		settings.DownloadURL == legacyCaddyPilotDownloadURL &&
+		settings.ChecksumURL == legacyCaddyPilotChecksumURL
 }
 
 func validateCaddySettings(settings CaddySettings) error {
@@ -93,7 +95,7 @@ func validateCaddySettings(settings CaddySettings) error {
 	if err := validateHTTPURL("下载地址", settings.DownloadURL, false); err != nil {
 		return err
 	}
-	return validateHTTPURL("SHA-512 清单地址", settings.ChecksumURL, false)
+	return validateHTTPURL("SHA-512 清单地址", settings.ChecksumURL, true)
 }
 
 func validateHTTPURL(name, value string, optional bool) error {

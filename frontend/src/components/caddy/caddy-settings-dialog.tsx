@@ -74,10 +74,9 @@ export function CaddySettingsDialog({ settings, trigger, onSave }: Props) {
             <div className="flex gap-3 rounded-lg border border-primary/20 bg-primary/[0.035] p-3 text-sm">
               <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
               <p>
-                <span className="font-medium">SHA-512 用于校验下载文件完整性。</span>
+                <span className="font-medium">固定安装包建议使用 SHA-512 校验。</span>
                 <span className="mt-1 block text-xs text-muted-foreground">
-                  系统下载 Caddy
-                  后计算文件摘要，并与清单中的摘要对比，可发现下载损坏或文件被替换。该清单是安装前的必需校验。
+                  官方动态构建服务没有固定清单时可留空；自定义静态下载源应提供匹配的摘要列表。
                 </span>
               </p>
             </div>
@@ -91,7 +90,7 @@ export function CaddySettingsDialog({ settings, trigger, onSave }: Props) {
                 required
               />
               <FieldDescription>
-                支持 CaddyPilot 运行时 manifest、GitHub Release 响应，或包含 version、update_url 的 JSON。
+                默认使用 Caddy 官方 GitHub Release，也兼容包含 version、update_url 的 JSON。
               </FieldDescription>
             </Field>
             <Field>
@@ -114,10 +113,9 @@ export function CaddySettingsDialog({ settings, trigger, onSave }: Props) {
                 className="font-mono text-xs"
                 value={values.checksum_url}
                 onChange={(event) => update("checksum_url", event.target.value)}
-                required
               />
               <FieldDescription>
-                提供安装包 SHA-512 摘要列表；未通过校验的文件不会安装。
+                可选。填写后安装包必须通过 SHA-512 校验才能安装。
               </FieldDescription>
             </Field>
           </FieldGroup>

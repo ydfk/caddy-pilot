@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"go-fiber-starter/internal/api/auth"
@@ -38,7 +39,7 @@ func TestProxySiteLifecycle(t *testing.T) {
 		t.Fatalf("创建站点状态码为 %d", createdResponse.StatusCode)
 	}
 	created := decodeProxySiteResponse(t, createdResponse)
-	if created.Name != "示例站点" || !created.Enabled {
+	if created.Name != "示例站点" || !created.Enabled || created.HTTPSRedirectPort != 443 {
 		t.Fatalf("创建结果不正确: %+v", created)
 	}
 
@@ -67,8 +68,8 @@ func TestProxySiteLifecycle(t *testing.T) {
 	}
 	var preview PreviewResponse
 	decodeProxySiteJSON(t, previewResponse, &preview)
-	if !bytes.Contains(preview.CaddyJSON, []byte("reverse_proxy")) {
-		t.Fatalf("预览配置缺少 reverse_proxy: %s", preview.CaddyJSON)
+	if !bytes.Contains(preview.CaddyJSON, []byte("reverse_proxy")) || !strings.Contains(preview.Caddyfile, "reverse_proxy") {
+		t.Fatalf("预览配置缺少 JSON 或 Caddyfile reverse_proxy: %+v", preview)
 	}
 
 	deleteResponse := proxySiteRequest(t, app, http.MethodDelete, "/api/proxy-sites/"+created.ID.String(), nil, token)
@@ -83,6 +84,24 @@ func TestProxySiteLifecycle(t *testing.T) {
 	}
 	if !deleted.DeletedAt.Valid {
 		t.Fatal("站点未执行软删除")
+	}
+}
+
+func TestImportNginxCreatesDisabledSites(t *testing.T) {
+	app, token := setupProxySiteTestApp(t)
+	payload := map[string]string{"config": `server {
+		listen 443 ssl;
+		server_name imported.example.com;
+		location / { proxy_pass http://127.0.0.1:9000; }
+	}`}
+	response := proxySiteRequest(t, app, http.MethodPost, "/api/proxy-sites/import/nginx", payload, token)
+	if response.StatusCode != http.StatusCreated {
+		t.Fatalf("导入 Nginx 状态码为 %d", response.StatusCode)
+	}
+	var imported NginxImportResponse
+	decodeProxySiteJSON(t, response, &imported)
+	if len(imported.Sites) != 1 || imported.Sites[0].Enabled || imported.Sites[0].Domains[0] != "imported.example.com" {
+		t.Fatalf("导入结果不正确: %+v", imported)
 	}
 }
 

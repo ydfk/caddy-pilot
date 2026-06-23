@@ -21,6 +21,7 @@ export const siteFormSchema = z
     enabled: z.boolean(),
     enableHTTPS: z.boolean(),
     forceHTTPS: z.boolean(),
+    httpsRedirectPort: z.number().int().min(1).max(65535),
     certificateType: z.enum(["single", "wildcard"]),
     certificateDomain: z.string().max(253),
     acmeChallengeType: z.enum(["http", "dns"]),
@@ -65,6 +66,7 @@ export const defaultSiteValues: SiteFormValues = {
   enabled: false,
   enableHTTPS: true,
   forceHTTPS: true,
+  httpsRedirectPort: 443,
   certificateType: "single",
   certificateDomain: "",
   acmeChallengeType: "http",
@@ -92,6 +94,7 @@ export function formValuesFromSite(site: ProxySite, clone: boolean): SiteFormVal
     enabled: clone ? false : site.enabled,
     enableHTTPS: site.enable_https,
     forceHTTPS: site.force_https,
+    httpsRedirectPort: site.https_redirect_port || 443,
     certificateType: site.certificate_type || "single",
     certificateDomain: site.certificate_domain,
     acmeChallengeType: site.acme_challenge_type || "http",
@@ -122,6 +125,7 @@ export function payloadFromForm(values: SiteFormValues, forceDisabled = false): 
     enabled: forceDisabled ? false : values.enabled,
     enable_https: values.enableHTTPS,
     force_https: values.forceHTTPS,
+    https_redirect_port: values.httpsRedirectPort,
     certificate_type: values.certificateType,
     certificate_domain: values.certificateDomain.trim(),
     acme_challenge_type: values.certificateType === "wildcard" ? "dns" : values.acmeChallengeType,
@@ -143,36 +147,6 @@ export function payloadFromForm(values: SiteFormValues, forceDisabled = false): 
     basic_auth_credential_ids: values.basicAuthCredentialIDs,
     advanced_json: values.advancedJSON.trim(),
   };
-}
-
-export function draftPreview(values: SiteFormValues) {
-  const transport = draftTransport(values);
-  return {
-    match: [{ host: compactItems(values.domains) }],
-    handle: [
-      {
-        handler: "reverse_proxy",
-        upstreams: compactItems(values.upstreams).map((dial) => ({ dial })),
-        ...(transport ? { transport } : {}),
-      },
-    ],
-    enabled: values.enabled,
-    note: "草稿片段；完整配置会在发布前由后端生成并注入管理入口。",
-  };
-}
-
-function draftTransport(values: SiteFormValues) {
-  if (values.upstreamType === "https") {
-    return {
-      protocol: "http",
-      tls: {
-        ...(values.upstreamTLSServerName ? { server_name: values.upstreamTLSServerName } : {}),
-        ...(values.upstreamTLSInsecureSkipVerify ? { insecure_skip_verify: true } : {}),
-      },
-    };
-  }
-  if (values.upstreamType === "h2c") return { protocol: "http", versions: ["h2c"] };
-  return null;
 }
 
 function compactItems(value: string[]) {

@@ -12,6 +12,8 @@ import (
 func RegisterRoutes(api huma.API) {
 	register(api, huma.Operation{OperationID: "list-proxy-sites", Method: http.MethodGet, Path: "/api/proxy-sites", Summary: "代理站点列表"}, List)
 	register(api, huma.Operation{OperationID: "create-proxy-site", Method: http.MethodPost, Path: "/api/proxy-sites", Summary: "新增代理站点", DefaultStatus: http.StatusCreated}, Create)
+	register(api, huma.Operation{OperationID: "preview-proxy-site-draft", Method: http.MethodPost, Path: "/api/proxy-sites/preview", Summary: "预览站点草稿配置"}, PreviewDraft)
+	register(api, huma.Operation{OperationID: "import-nginx-proxy-sites", Method: http.MethodPost, Path: "/api/proxy-sites/import/nginx", Summary: "导入 Nginx 代理配置", DefaultStatus: http.StatusCreated}, ImportNginx)
 	register(api, huma.Operation{OperationID: "get-proxy-site", Method: http.MethodGet, Path: "/api/proxy-sites/{id}", Summary: "代理站点详情"}, Get)
 	register(api, huma.Operation{OperationID: "update-proxy-site", Method: http.MethodPut, Path: "/api/proxy-sites/{id}", Summary: "编辑代理站点"}, Update)
 	register(api, huma.Operation{OperationID: "delete-proxy-site", Method: http.MethodDelete, Path: "/api/proxy-sites/{id}", Summary: "删除代理站点", DefaultStatus: http.StatusNoContent}, Delete)
