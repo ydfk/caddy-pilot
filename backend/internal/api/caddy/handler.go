@@ -38,6 +38,7 @@ func Version(ctx context.Context, _ *struct{}) (*VersionOutput, error) {
 	versionService := service.NewCaddyVersionService()
 	versionService.ReleaseAPI = settings.VersionCheckURL
 	versionService.DownloadURL = settings.DownloadURL
+	versionService.ChecksumURL = settings.ChecksumURL
 	info, err := versionService.Check(ctx)
 	if err != nil {
 		return nil, huma.Error500InternalServerError(err.Error())
@@ -98,13 +99,18 @@ func Update(ctx context.Context, input *UpdateInput) (*UpdateOutput, error) {
 	if err != nil {
 		return nil, huma.Error500InternalServerError(err.Error())
 	}
+	versionService := service.NewCaddyVersionService()
+	versionService.ReleaseAPI = settings.VersionCheckURL
+	versionService.DownloadURL = settings.DownloadURL
+	versionService.ChecksumURL = settings.ChecksumURL
+	info, checkErr := versionService.Check(ctx)
+	if checkErr == nil && (target == "" || normalizeTarget(target) == normalizeTarget(info.LatestVersion)) {
+		settings.DownloadURL = info.DownloadURL
+		settings.ChecksumURL = info.ChecksumURL
+	}
 	if target == "" {
-		versionService := service.NewCaddyVersionService()
-		versionService.ReleaseAPI = settings.VersionCheckURL
-		versionService.DownloadURL = settings.DownloadURL
-		info, err := versionService.Check(ctx)
-		if err != nil {
-			return nil, huma.Error500InternalServerError(err.Error())
+		if checkErr != nil {
+			return nil, huma.Error500InternalServerError(checkErr.Error())
 		}
 		target = info.LatestVersion
 	}
@@ -112,7 +118,7 @@ func Update(ctx context.Context, input *UpdateInput) (*UpdateOutput, error) {
 		return nil, huma.Error400BadRequest("无法确定 Caddy 目标版本")
 	}
 
-	task, err := service.ManagedCaddyUpdateTasks().Start("download", target, func(updateContext context.Context, report func(string, int64, int64)) (string, error) {
+	task, err := service.ManagedCaddyUpdateTasks().Start("download", target, func(updateContext context.Context, report func(service.CaddyUpdateProgress)) (string, error) {
 		runtimeInfo, updateErr := manager.Update(updateContext, target, settings, report)
 		if updateErr != nil {
 			logger.Error("托管 Caddy 更新到 %s 失败: %v", target, updateErr)
@@ -130,6 +136,10 @@ func Update(ctx context.Context, input *UpdateInput) (*UpdateOutput, error) {
 	}}, nil
 }
 
+func normalizeTarget(version string) string {
+	return strings.TrimPrefix(strings.TrimSpace(version), "v")
+}
+
 func Upload(_ context.Context, input *UploadInput) (*UpdateOutput, error) {
 	manager := service.ManagedCaddy()
 	if manager == nil {
@@ -140,7 +150,7 @@ func Upload(_ context.Context, input *UploadInput) (*UpdateOutput, error) {
 	if err != nil {
 		return nil, huma.Error400BadRequest(err.Error())
 	}
-	task, err := service.ManagedCaddyUpdateTasks().Start("upload", "", func(updateContext context.Context, report func(string, int64, int64)) (string, error) {
+	task, err := service.ManagedCaddyUpdateTasks().Start("upload", "", func(updateContext context.Context, report func(service.CaddyUpdateProgress)) (string, error) {
 		runtimeInfo, updateErr := manager.UpdateUpload(updateContext, uploadPath, file.Filename, report)
 		if updateErr != nil {
 			logger.Error("安装上传的 Caddy 失败: %v", updateErr)

@@ -66,3 +66,26 @@ func TestCaddyVersionServiceSupportsCustomResponseAndUpdateURL(t *testing.T) {
 		t.Fatalf("自定义版本服务结果不正确: %+v, %v", info, err)
 	}
 }
+
+func TestCaddyVersionServiceReadsRuntimeManifest(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		_, _ = writer.Write([]byte(`{
+			"version":"2.11.4",
+			"release_tag":"v1.2.3",
+			"assets":{"windows_amd64":{"url":"https://mirror.example/caddy.zip"}},
+			"sha512_url":"https://mirror.example/sha512sums.txt"
+		}`))
+	}))
+	defer server.Close()
+	service := NewCaddyVersionService()
+	service.ReleaseAPI = server.URL
+	service.HTTPClient = server.Client()
+	service.GOOS = "windows"
+	service.GOARCH = "amd64"
+	service.currentVersion = func(context.Context) (string, error) { return "2.10.0", nil }
+
+	info, err := service.Check(context.Background())
+	if err != nil || info.LatestVersion != "2.11.4" || info.DownloadURL != "https://mirror.example/caddy.zip" || info.ChecksumURL != "https://mirror.example/sha512sums.txt" {
+		t.Fatalf("运行时 manifest 解析失败: %+v, %v", info, err)
+	}
+}

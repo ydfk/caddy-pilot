@@ -34,8 +34,8 @@ func TestStartupCaddyConfigPrefersActiveFile(t *testing.T) {
 }
 
 func TestCaddyUpdateTasksRecordsFailure(t *testing.T) {
-	tasks := &CaddyUpdateTasks{}
-	task, err := tasks.Start("download", "2.11.4", func(context.Context, func(string, int64, int64)) (string, error) {
+	tasks := NewCaddyUpdateTasks(filepath.Join(t.TempDir(), "task.json"))
+	task, err := tasks.Start("download", "2.11.4", func(context.Context, func(CaddyUpdateProgress)) (string, error) {
 		return "", context.DeadlineExceeded
 	})
 	if err != nil || task.Status != "queued" {

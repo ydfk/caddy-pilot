@@ -128,17 +128,13 @@ func (manager *CaddyManager) Restart(ctx context.Context) error {
 	return manager.startLocked(ctx, runtimeInfo, protectedConfig)
 }
 
-func (manager *CaddyManager) Update(ctx context.Context, version string, settings CaddySettings, report func(string, int64, int64)) (CaddyRuntimeInfo, error) {
+func (manager *CaddyManager) Update(ctx context.Context, version string, settings CaddySettings, report func(CaddyUpdateProgress)) (CaddyRuntimeInfo, error) {
 	manager.mu.Lock()
 	defer manager.mu.Unlock()
 	manager.Installer.DownloadURL = settings.DownloadURL
 	manager.Installer.ChecksumURL = settings.ChecksumURL
-	manager.Installer.Progress = func(downloaded, total int64) { report("downloading", downloaded, total) }
-	manager.Installer.Stage = func(status string) { report(status, 0, 0) }
-	defer func() {
-		manager.Installer.Progress = nil
-		manager.Installer.Stage = nil
-	}()
+	manager.Installer.Progress = report
+	defer func() { manager.Installer.Progress = nil }()
 	currentConfig, err := manager.Admin.GetConfig(ctx)
 	if err != nil {
 		return CaddyRuntimeInfo{}, fmt.Errorf("更新前读取 Caddy 配置失败: %w", err)
@@ -151,16 +147,16 @@ func (manager *CaddyManager) Update(ctx context.Context, version string, setting
 	if err != nil {
 		return CaddyRuntimeInfo{}, err
 	}
-	report("restarting", 0, 0)
+	report(CaddyUpdateProgress{Stage: "restarting"})
 	return manager.switchRuntimeLocked(ctx, nextRuntime, protectedConfig)
 }
 
-func (manager *CaddyManager) UpdateUpload(ctx context.Context, uploadPath, filename string, report func(string, int64, int64)) (CaddyRuntimeInfo, error) {
+func (manager *CaddyManager) UpdateUpload(ctx context.Context, uploadPath, filename string, report func(CaddyUpdateProgress)) (CaddyRuntimeInfo, error) {
 	manager.mu.Lock()
 	defer manager.mu.Unlock()
 	defer os.Remove(uploadPath)
-	manager.Installer.Stage = func(status string) { report(status, 0, 0) }
-	defer func() { manager.Installer.Stage = nil }()
+	manager.Installer.Progress = report
+	defer func() { manager.Installer.Progress = nil }()
 	currentConfig, err := manager.Admin.GetConfig(ctx)
 	if err != nil {
 		return CaddyRuntimeInfo{}, fmt.Errorf("更新前读取 Caddy 配置失败: %w", err)
@@ -173,7 +169,7 @@ func (manager *CaddyManager) UpdateUpload(ctx context.Context, uploadPath, filen
 	if err != nil {
 		return CaddyRuntimeInfo{}, err
 	}
-	report("restarting", 0, 0)
+	report(CaddyUpdateProgress{Stage: "restarting"})
 	return manager.switchRuntimeLocked(ctx, nextRuntime, protectedConfig)
 }
 

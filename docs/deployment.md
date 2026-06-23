@@ -44,15 +44,15 @@ docker compose -f docker-compose.prod.yml up -d
 
 密钥保存到 `/data/.caddypilot-secrets`，文件权限为 `0600`。容器重建和镜像升级会继续使用原密钥，Compose 不需要也不应该重复声明这些内部配置。
 
-版本校验地址和下载地址不参与容器正常启动：镜像已经包含带阿里云 DNS 模块的 Caddy。国内网络无法访问 GitHub 或 Caddy 官方服务时，只会影响“检查更新”和“后端更新”，不会影响已有站点运行。
+版本校验地址和下载地址不参与容器正常启动：镜像已经包含带阿里云 DNS 审计模块的 Caddy 2.11.4。国内网络无法访问 GitHub 时，只会影响“检查更新”和“在线更新”，不会影响已有站点运行。
 
 这三个地址在“Caddy 管理 → 更新源设置”中修改并保存到 SQLite，不再使用 Docker 环境变量：
 
-- `CADDY_VERSION_CHECK_URL`：返回 `tag_name`，或返回 `version` 与 `update_url` 的 JSON 地址。
-- `CADDY_DOWNLOAD_URL`：支持 `{version}`、`{os}`、`{arch}`、`{ext}` 占位符的可信下载源。
-- `CADDY_CHECKSUM_URL`：自定义下载源对应的 SHA-512 清单，生产环境使用镜像源时建议同时配置。
+- 版本校验地址：默认读取 CaddyPilot Release 的运行时 manifest，也兼容返回 `tag_name` 或 `version` 的 JSON。
+- Caddy 下载地址：支持 `{version}`、`{os}`、`{arch}`、`{ext}` 占位符的可信下载源。
+- SHA-512 清单地址：安装前强制校验下载文件，自定义镜像必须同时提供兼容清单。
 
-普通部署无需修改。国内部署更推荐直接更新 CaddyPilot Docker 镜像；只有确实需要界面内热更新 Caddy 时，再配置可信的国内镜像地址。
+在线下载支持断点续传和最多三次退避重试，页面刷新后仍会恢复任务进度或最后一次失败原因。普通部署无需修改；国内部署可配置可信镜像，或使用“上传 Caddy 安装包”作为兜底。
 
 ## 检查
 

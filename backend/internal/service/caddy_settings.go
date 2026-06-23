@@ -15,6 +15,7 @@ const (
 	caddyVersionCheckURLKey = "caddy.version_check_url"
 	caddyDownloadURLKey     = "caddy.download_url"
 	caddyChecksumURLKey     = "caddy.checksum_url"
+	legacyCaddyDownloadURL  = "https://caddyserver.com/api/download?os={os}&arch={arch}&p=github.com/caddy-dns/alidns&v={version}"
 )
 
 type CaddySettings struct {
@@ -25,7 +26,7 @@ type CaddySettings struct {
 
 func DefaultCaddySettings() CaddySettings {
 	return CaddySettings{
-		VersionCheckURL: CaddyLatestReleaseAPI,
+		VersionCheckURL: CaddyPilotRuntimeManifestURL,
 		DownloadURL:     DefaultCaddyDownloadURL,
 		ChecksumURL:     DefaultCaddyChecksumURL,
 	}
@@ -49,6 +50,12 @@ func LoadCaddySettings(database *gorm.DB) (CaddySettings, error) {
 			settings.ChecksumURL = record.Value
 		}
 	}
+	if isLegacyDefaultSettings(settings) {
+		settings = DefaultCaddySettings()
+		if err := saveCaddySettings(database, settings); err != nil {
+			return settings, fmt.Errorf("迁移 Caddy 默认更新源失败: %w", err)
+		}
+	}
 	return settings, nil
 }
 
@@ -59,6 +66,10 @@ func SaveCaddySettings(database *gorm.DB, settings CaddySettings) error {
 	if err := validateCaddySettings(settings); err != nil {
 		return err
 	}
+	return saveCaddySettings(database, settings)
+}
+
+func saveCaddySettings(database *gorm.DB, settings CaddySettings) error {
 	records := []systemsetting.Setting{
 		{Key: caddyVersionCheckURLKey, Value: settings.VersionCheckURL},
 		{Key: caddyDownloadURLKey, Value: settings.DownloadURL},
@@ -70,6 +81,11 @@ func SaveCaddySettings(database *gorm.DB, settings CaddySettings) error {
 	}).Create(&records).Error
 }
 
+func isLegacyDefaultSettings(settings CaddySettings) bool {
+	return settings.VersionCheckURL == CaddyLatestReleaseAPI &&
+		settings.DownloadURL == legacyCaddyDownloadURL && settings.ChecksumURL == ""
+}
+
 func validateCaddySettings(settings CaddySettings) error {
 	if err := validateHTTPURL("版本校验地址", settings.VersionCheckURL, false); err != nil {
 		return err
@@ -77,7 +93,7 @@ func validateCaddySettings(settings CaddySettings) error {
 	if err := validateHTTPURL("下载地址", settings.DownloadURL, false); err != nil {
 		return err
 	}
-	return validateHTTPURL("校验和地址", settings.ChecksumURL, true)
+	return validateHTTPURL("SHA-512 清单地址", settings.ChecksumURL, false)
 }
 
 func validateHTTPURL(name, value string, optional bool) error {
@@ -88,7 +104,7 @@ func validateHTTPURL(name, value string, optional bool) error {
 		return fmt.Errorf("%s不能为空", name)
 	}
 	normalized := strings.NewReplacer(
-		"{version}", "2.10.0", "{os}", "linux", "{arch}", "amd64", "{ext}", "tar.gz",
+		"{version}", DefaultCaddyVersion, "{os}", "linux", "{arch}", "amd64", "{ext}", "tar.gz",
 	).Replace(value)
 	parsed, err := url.ParseRequestURI(normalized)
 	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" {

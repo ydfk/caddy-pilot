@@ -42,9 +42,13 @@ export type CaddyUpdateTask = {
     | "succeeded"
     | "failed";
   target_version?: string;
+  stage?: string;
   progress: number;
+  attempt?: number;
+  effective_url?: string;
   downloaded_bytes?: number;
   total_bytes?: number;
+  http_status?: number;
   error_message?: string;
 };
 

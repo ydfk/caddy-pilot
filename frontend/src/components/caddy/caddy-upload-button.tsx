@@ -35,7 +35,7 @@ export function CaddyUploadButton({
         onClick={() => inputRef.current?.click()}
       >
         <Upload data-icon="inline-start" />
-        手动上传
+        上传 Caddy 安装包
       </Button>
     </>
   );

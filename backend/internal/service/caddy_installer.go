@@ -3,14 +3,10 @@ package service
 import (
 	"archive/tar"
 	"archive/zip"
-	"bufio"
 	"compress/gzip"
 	"context"
-	"crypto/sha512"
-	"encoding/hex"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -20,27 +16,27 @@ import (
 )
 
 const (
-	DefaultCaddyVersion     = "2.10.0"
-	DefaultCaddyDownloadURL = "https://caddyserver.com/api/download?os={os}&arch={arch}&p=github.com/caddy-dns/alidns&v={version}"
-	DefaultCaddyChecksumURL = ""
+	DefaultCaddyVersion     = "2.11.4"
+	DefaultCaddyDownloadURL = "https://github.com/ydfk/caddy-pilot/releases/latest/download/caddy_{version}_{os}_{arch}.{ext}"
+	DefaultCaddyChecksumURL = "https://github.com/ydfk/caddy-pilot/releases/latest/download/sha512sums.txt"
 	MaxCaddyUploadSize      = 128 << 20
 )
 
 type CaddyInstaller struct {
 	RuntimeDir  string
-	HTTPClient  *http.Client
+	HTTPClient  HTTPDoer
 	GOOS        string
 	GOARCH      string
 	DownloadURL string
 	ChecksumURL string
-	Progress    func(downloaded, total int64)
-	Stage       func(status string)
+	Progress    func(CaddyUpdateProgress)
+	RetryDelay  time.Duration
 }
 
 func NewCaddyInstaller() *CaddyInstaller {
 	return &CaddyInstaller{
 		RuntimeDir:  environmentValue("CADDYPILOT_RUNTIME_DIR", filepath.Join("data", "runtime")),
-		HTTPClient:  &http.Client{Timeout: 30 * time.Minute},
+		HTTPClient:  newCaddyHTTPClient(),
 		GOOS:        runtime.GOOS,
 		GOARCH:      runtime.GOARCH,
 		DownloadURL: DefaultCaddyDownloadURL,
@@ -114,19 +110,17 @@ func (installer *CaddyInstaller) Install(ctx context.Context, version string) (C
 	}
 
 	archivePath := filepath.Join(filepath.Dir(target), "caddy-download."+installer.archiveExtension())
-	installer.reportStage("downloading")
+	installer.report(CaddyUpdateProgress{Stage: "downloading"})
 	if err := installer.download(ctx, version, archivePath); err != nil {
 		return CaddyRuntimeInfo{}, err
 	}
 	defer os.Remove(archivePath)
-	if installer.ChecksumURL != "" {
-		installer.reportStage("verifying")
-		if err := installer.verifyChecksum(ctx, version, archivePath); err != nil {
-			return CaddyRuntimeInfo{}, err
-		}
+	installer.report(CaddyUpdateProgress{Stage: "verifying"})
+	if err := installer.verifyChecksum(ctx, version, archivePath); err != nil {
+		return CaddyRuntimeInfo{}, err
 	}
 	if installer.isDirectBinaryDownload() {
-		installer.reportStage("installing")
+		installer.report(CaddyUpdateProgress{Stage: "installing"})
 		source, err := os.Open(archivePath)
 		if err != nil {
 			return CaddyRuntimeInfo{}, err
@@ -137,7 +131,7 @@ func (installer *CaddyInstaller) Install(ctx context.Context, version string) (C
 		}
 		return inspectCaddyBinary(ctx, target)
 	}
-	installer.reportStage("installing")
+	installer.report(CaddyUpdateProgress{Stage: "installing"})
 	if err := installer.extractBinary(archivePath, target); err != nil {
 		return CaddyRuntimeInfo{}, err
 	}
@@ -146,49 +140,6 @@ func (installer *CaddyInstaller) Install(ctx context.Context, version string) (C
 
 func (installer *CaddyInstaller) isDirectBinaryDownload() bool {
 	return strings.Contains(installer.DownloadURL, "caddyserver.com/api/download")
-}
-
-func (installer *CaddyInstaller) verifyChecksum(ctx context.Context, version, archivePath string) error {
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, installer.checksumURL(version), nil)
-	if err != nil {
-		return fmt.Errorf("创建 Caddy 校验和请求失败: %w", err)
-	}
-	request.Header.Set("User-Agent", "CaddyPilot")
-	response, err := installer.HTTPClient.Do(request)
-	if err != nil {
-		return fmt.Errorf("下载 Caddy 校验和失败: %w", err)
-	}
-	defer response.Body.Close()
-	if response.StatusCode != http.StatusOK {
-		return fmt.Errorf("下载 Caddy 校验和失败: 校验服务返回 %d", response.StatusCode)
-	}
-	wantedName := installer.archiveName(version)
-	wantedHash := ""
-	scanner := bufio.NewScanner(io.LimitReader(response.Body, 1<<20))
-	for scanner.Scan() {
-		fields := strings.Fields(scanner.Text())
-		if len(fields) >= 2 && strings.TrimPrefix(fields[len(fields)-1], "*") == wantedName {
-			wantedHash = fields[0]
-			break
-		}
-	}
-	if wantedHash == "" {
-		return fmt.Errorf("Caddy 校验和文件中缺少 %s", wantedName)
-	}
-	file, err := os.Open(archivePath)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	hash := sha512.New()
-	if _, err := io.Copy(hash, file); err != nil {
-		return err
-	}
-	actualHash := hex.EncodeToString(hash.Sum(nil))
-	if !strings.EqualFold(actualHash, wantedHash) {
-		return fmt.Errorf("Caddy 下载文件校验失败")
-	}
-	return nil
 }
 
 func (installer *CaddyInstaller) Select(version string) error {
@@ -223,40 +174,6 @@ func (installer *CaddyInstaller) selectedBinary() (string, bool) {
 	return path, err == nil
 }
 
-func (installer *CaddyInstaller) download(ctx context.Context, version, destination string) error {
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, installer.downloadURL(version), nil)
-	if err != nil {
-		return fmt.Errorf("创建 Caddy 下载请求失败: %w", err)
-	}
-	request.Header.Set("User-Agent", "CaddyPilot")
-	response, err := installer.HTTPClient.Do(request)
-	if err != nil {
-		return fmt.Errorf("下载 Caddy %s 失败: %w", version, err)
-	}
-	defer response.Body.Close()
-	if response.StatusCode != http.StatusOK {
-		return fmt.Errorf("下载 Caddy %s 失败: 下载服务返回 %d", version, response.StatusCode)
-	}
-
-	file, err := os.Create(destination)
-	if err != nil {
-		return fmt.Errorf("创建 Caddy 下载文件失败: %w", err)
-	}
-	defer file.Close()
-	reader := io.Reader(response.Body)
-	if installer.Progress != nil {
-		reader = &progressReader{reader: response.Body, total: response.ContentLength, report: installer.Progress}
-	}
-	written, err := io.Copy(file, io.LimitReader(reader, MaxCaddyUploadSize+1))
-	if err != nil {
-		return fmt.Errorf("保存 Caddy 下载文件失败: %w", err)
-	}
-	if written > MaxCaddyUploadSize {
-		return fmt.Errorf("Caddy 下载文件超过 128 MiB 限制")
-	}
-	return nil
-}
-
 func (installer *CaddyInstaller) SaveUpload(source io.Reader) (string, error) {
 	directory := filepath.Join(installer.RuntimeDir, "caddy", "uploads")
 	if err := os.MkdirAll(directory, 0o700); err != nil {
@@ -283,7 +200,7 @@ func (installer *CaddyInstaller) SaveUpload(source io.Reader) (string, error) {
 }
 
 func (installer *CaddyInstaller) InstallUpload(ctx context.Context, uploadPath, filename string) (CaddyRuntimeInfo, error) {
-	installer.reportStage("verifying")
+	installer.report(CaddyUpdateProgress{Stage: "verifying"})
 	directory, err := os.MkdirTemp(filepath.Join(installer.RuntimeDir, "caddy"), ".install-")
 	if err != nil {
 		return CaddyRuntimeInfo{}, fmt.Errorf("创建 Caddy 安装目录失败: %w", err)
@@ -326,9 +243,9 @@ func (installer *CaddyInstaller) InstallUpload(ctx context.Context, uploadPath, 
 	return inspectCaddyBinary(ctx, target)
 }
 
-func (installer *CaddyInstaller) reportStage(status string) {
-	if installer.Stage != nil {
-		installer.Stage(status)
+func (installer *CaddyInstaller) report(progress CaddyUpdateProgress) {
+	if installer.Progress != nil {
+		installer.Progress(progress)
 	}
 }
 
@@ -471,20 +388,6 @@ func replaceFile(source, destination string) error {
 		_ = os.Remove(backup)
 	}
 	return nil
-}
-
-type progressReader struct {
-	reader     io.Reader
-	total      int64
-	downloaded int64
-	report     func(downloaded, total int64)
-}
-
-func (reader *progressReader) Read(payload []byte) (int, error) {
-	count, err := reader.reader.Read(payload)
-	reader.downloaded += int64(count)
-	reader.report(reader.downloaded, reader.total)
-	return count, err
 }
 
 func samePath(left, right string) bool {

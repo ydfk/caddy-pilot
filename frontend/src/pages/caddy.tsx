@@ -7,7 +7,6 @@ import {
   getCaddyStatus,
   getCaddyUpdateTask,
   getCaddyVersion,
-  getCurrentCaddyConfig,
   saveCaddySettings,
   updateManagedCaddy,
   uploadManagedCaddy,
@@ -19,7 +18,6 @@ import {
 } from "@/api/caddy";
 import { ConfigManagement } from "@/components/caddy/config-management";
 import { RuntimeCard } from "@/components/caddy/runtime-card";
-import { JSONDialog } from "@/components/json-dialog";
 import { PageHeader } from "@/components/page-header";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -33,34 +31,43 @@ export default function CaddyPage() {
     runtime_in_sync: false,
     persistent_config_in_sync: false,
   });
-  const [currentConfig, setCurrentConfig] = useState<unknown>(null);
-  const [loading, setLoading] = useState(true);
   const [checkingVersion, setCheckingVersion] = useState(false);
   const [updatingVersion, setUpdatingVersion] = useState(false);
   const [updateTask, setUpdateTask] = useState<CaddyUpdateTask | null>(null);
   const [historyKey, setHistoryKey] = useState(0);
 
   const refresh = useCallback(async () => {
-    setLoading(true);
     const results = await Promise.allSettled([
       getCaddyStatus(),
       getCaddyVersion(),
       getCaddySettings(),
       getCaddyChangeStatus(),
+      getCaddyUpdateTask(),
     ]);
     if (results[0].status === "fulfilled") setStatus(results[0].value);
     if (results[1].status === "fulfilled") setVersion(results[1].value);
     if (results[2].status === "fulfilled") setSettings(results[2].value);
     if (results[3].status === "fulfilled") setChangeStatus(results[3].value);
+    if (results[4].status === "fulfilled") {
+      const task = results[4].value;
+      setUpdateTask(task);
+      setUpdatingVersion(!["idle", "succeeded", "failed"].includes(task.status));
+    }
     const failure = results.find((result) => result.status === "rejected");
     if (failure?.status === "rejected")
       toast.error(
         failure.reason instanceof Error ? failure.reason.message : "读取 Caddy 工作台失败"
       );
-    setLoading(false);
   }, []);
 
   useEffect(() => void refresh(), [refresh]);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      getCaddyStatus().then(setStatus).catch(() => undefined);
+    }, 10000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (!updatingVersion) return;
@@ -82,14 +89,6 @@ export default function CaddyPage() {
     }, 2000);
     return () => window.clearInterval(timer);
   }, [refresh, updatingVersion]);
-
-  async function showCurrentConfig() {
-    try {
-      setCurrentConfig((await getCurrentCaddyConfig()).caddy_json);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "读取当前配置失败");
-    }
-  }
 
   async function checkVersion() {
     setCheckingVersion(true);
@@ -168,12 +167,9 @@ export default function CaddyPage() {
         status={status}
         version={version}
         settings={settings}
-        loading={loading}
         checkingVersion={checkingVersion}
         updatingVersion={updatingVersion}
         updateTask={updateTask}
-        onRefresh={refresh}
-        onShowConfig={showCurrentConfig}
         onCheckVersion={checkVersion}
         onUpdateVersion={updateVersion}
         onUploadVersion={uploadVersion}
@@ -184,13 +180,6 @@ export default function CaddyPage() {
         status={changeStatus}
         refreshKey={historyKey}
         onChanged={refreshAfterConfigChange}
-      />
-      <JSONDialog
-        open={currentConfig !== null}
-        onOpenChange={(open) => !open && setCurrentConfig(null)}
-        title="当前 Caddy JSON"
-        description="从托管 Caddy 实时读取。"
-        value={currentConfig}
       />
     </div>
   );

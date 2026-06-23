@@ -184,7 +184,7 @@ Environment variables for development:
 | `CADDY_VERSION` | `2.11.4` | Native development bootstrap version |
 | `VITE_PROXY_HOST` | `http://127.0.0.1:25610` | Vite dev proxy target |
 
-Caddy version-check, download, and checksum URLs are managed from **Caddy 管理 → 更新源设置** and stored in SQLite. Docker environment variables are not required.
+Caddy version-check, download, and required SHA-512 checksum URLs are managed from **Caddy 管理 → 更新源** and stored in SQLite. The default source is the CaddyPilot Release runtime manifest. Downloads resume after interruption, retry up to three times, and persist task details under `data/runtime/caddy/update-task.json`. Docker environment variables are not required.
 
 Project-level Windows commands are centralized under `scripts/`:
 

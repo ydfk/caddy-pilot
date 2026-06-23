@@ -41,3 +41,28 @@ func TestCaddySettingsRejectInvalidURL(t *testing.T) {
 		t.Fatal("应拒绝非 HTTP 下载地址")
 	}
 }
+
+func TestCaddySettingsMigratesLegacyDefaults(t *testing.T) {
+	database, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := database.AutoMigrate(&systemsetting.Setting{}); err != nil {
+		t.Fatal(err)
+	}
+	legacy := []systemsetting.Setting{
+		{Key: caddyVersionCheckURLKey, Value: CaddyLatestReleaseAPI},
+		{Key: caddyDownloadURLKey, Value: legacyCaddyDownloadURL},
+		{Key: caddyChecksumURLKey, Value: ""},
+	}
+	if err := database.Create(&legacy).Error; err != nil {
+		t.Fatal(err)
+	}
+	settings, err := LoadCaddySettings(database)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if settings != DefaultCaddySettings() {
+		t.Fatalf("旧默认源未迁移: %+v", settings)
+	}
+}

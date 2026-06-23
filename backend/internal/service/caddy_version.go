@@ -8,11 +8,15 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"time"
 )
 
-const CaddyLatestReleaseAPI = "https://api.github.com/repos/caddyserver/caddy/releases/latest"
+const (
+	CaddyLatestReleaseAPI        = "https://api.github.com/repos/caddyserver/caddy/releases/latest"
+	CaddyPilotRuntimeManifestURL = "https://github.com/ydfk/caddy-pilot/releases/latest/download/caddy-runtime-manifest.json"
+)
 
 type CaddyVersionInfo struct {
 	CurrentVersion  string
@@ -21,6 +25,7 @@ type CaddyVersionInfo struct {
 	BinaryPath      string
 	VersionCheckURL string
 	DownloadURL     string
+	ChecksumURL     string
 	UpdateURL       string
 	ReleaseURL      string
 	ErrorMessage    string
@@ -31,15 +36,21 @@ type CaddyVersionService struct {
 	ReleaseAPI     string
 	HTTPClient     *http.Client
 	DownloadURL    string
+	ChecksumURL    string
+	GOOS           string
+	GOARCH         string
 	currentVersion func(context.Context) (string, error)
 }
 
 func NewCaddyVersionService() *CaddyVersionService {
 	service := &CaddyVersionService{
 		Binary:      environmentValue("CADDY_BINARY", "caddy"),
-		ReleaseAPI:  CaddyLatestReleaseAPI,
+		ReleaseAPI:  CaddyPilotRuntimeManifestURL,
 		DownloadURL: DefaultCaddyDownloadURL,
-		HTTPClient:  &http.Client{Timeout: 5 * time.Second},
+		ChecksumURL: DefaultCaddyChecksumURL,
+		GOOS:        runtime.GOOS,
+		GOARCH:      runtime.GOARCH,
+		HTTPClient:  &http.Client{Timeout: 30 * time.Second},
 	}
 	service.currentVersion = service.readCurrentVersion
 	return service
@@ -55,11 +66,12 @@ func (service *CaddyVersionService) Check(ctx context.Context) (CaddyVersionInfo
 		CurrentVersion:  current,
 		VersionCheckURL: service.ReleaseAPI,
 		DownloadURL:     service.DownloadURL,
+		ChecksumURL:     service.ChecksumURL,
 	}
 	if path, lookupErr := exec.LookPath(service.Binary); lookupErr == nil {
 		info.BinaryPath = path
 	}
-	latest, releaseURL, err := service.readLatestRelease(ctx)
+	latest, releaseURL, assetURL, checksumURL, err := service.readLatestRelease(ctx)
 	if err != nil {
 		info.ErrorMessage = err.Error()
 		return info, nil
@@ -67,6 +79,12 @@ func (service *CaddyVersionService) Check(ctx context.Context) (CaddyVersionInfo
 
 	info.LatestVersion = latest
 	info.ReleaseURL = releaseURL
+	if assetURL != "" {
+		info.DownloadURL = assetURL
+	}
+	if checksumURL != "" {
+		info.ChecksumURL = checksumURL
+	}
 	info.UpdateAvailable = normalizeVersion(current) != normalizeVersion(latest)
 	return info, nil
 }
@@ -83,35 +101,40 @@ func (service *CaddyVersionService) readCurrentVersion(ctx context.Context) (str
 	return normalizeVersion(fields[0]), nil
 }
 
-func (service *CaddyVersionService) readLatestRelease(ctx context.Context) (string, string, error) {
+func (service *CaddyVersionService) readLatestRelease(ctx context.Context) (string, string, string, string, error) {
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, service.ReleaseAPI, nil)
 	if err != nil {
-		return "", "", fmt.Errorf("创建 Caddy 版本请求失败: %w", err)
+		return "", "", "", "", fmt.Errorf("创建 Caddy 版本请求失败: %w", err)
 	}
 	request.Header.Set("Accept", "application/vnd.github+json")
 	request.Header.Set("User-Agent", "CaddyPilot")
 
 	response, err := service.HTTPClient.Do(request)
 	if err != nil {
-		return "", "", fmt.Errorf("检查 Caddy 更新失败: %w", err)
+		return "", "", "", "", fmt.Errorf("检查 Caddy 更新失败: %w", err)
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
-		return "", "", fmt.Errorf("检查 Caddy 更新失败: 版本服务返回 %d", response.StatusCode)
+		return "", "", "", "", fmt.Errorf("检查 Caddy 更新失败: 版本服务返回 %d", response.StatusCode)
 	}
 
 	body, err := io.ReadAll(io.LimitReader(response.Body, 1<<20))
 	if err != nil {
-		return "", "", fmt.Errorf("读取 Caddy 版本响应失败: %w", err)
+		return "", "", "", "", fmt.Errorf("读取 Caddy 版本响应失败: %w", err)
 	}
 	var release struct {
-		TagName   string `json:"tag_name"`
-		HTMLURL   string `json:"html_url"`
-		Version   string `json:"version"`
-		UpdateURL string `json:"update_url"`
+		TagName    string `json:"tag_name"`
+		HTMLURL    string `json:"html_url"`
+		Version    string `json:"version"`
+		UpdateURL  string `json:"update_url"`
+		ReleaseTag string `json:"release_tag"`
+		SHA512URL  string `json:"sha512_url"`
+		Assets     map[string]struct {
+			URL string `json:"url"`
+		} `json:"assets"`
 	}
 	if err := json.Unmarshal(body, &release); err != nil {
-		return "", "", fmt.Errorf("解析 Caddy 版本响应失败: %w", err)
+		return "", "", "", "", fmt.Errorf("解析 Caddy 版本响应失败: %w", err)
 	}
 	version := release.TagName
 	if strings.TrimSpace(version) == "" {
@@ -121,10 +144,14 @@ func (service *CaddyVersionService) readLatestRelease(ctx context.Context) (stri
 	if strings.TrimSpace(updateURL) == "" {
 		updateURL = release.UpdateURL
 	}
-	if strings.TrimSpace(version) == "" {
-		return "", "", fmt.Errorf("Caddy 最新版本为空")
+	if updateURL == "" && release.ReleaseTag != "" {
+		updateURL = "https://github.com/ydfk/caddy-pilot/releases/tag/" + release.ReleaseTag
 	}
-	return normalizeVersion(version), updateURL, nil
+	if strings.TrimSpace(version) == "" {
+		return "", "", "", "", fmt.Errorf("Caddy 最新版本为空")
+	}
+	asset := release.Assets[service.GOOS+"_"+service.GOARCH]
+	return normalizeVersion(version), updateURL, asset.URL, release.SHA512URL, nil
 }
 
 func normalizeVersion(version string) string {

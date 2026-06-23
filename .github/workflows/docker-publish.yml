@@ -113,7 +113,7 @@ jobs:
       - name: 准备 Caddy 运行时资产
         env:
           IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/caddy-pilot:${{ steps.version.outputs.version }}
-          VERSION: ${{ steps.version.outputs.version }}
+          CADDY_VERSION: 2.11.4
         run: |
           mkdir -p dist/linux dist/windows
           docker pull "$IMAGE"
@@ -125,8 +125,8 @@ jobs:
             --output dist/windows/caddy.exe \
             --with github.com/caddy-dns/alidns="$(pwd)/caddy-modules/alidns"
           chmod 0755 dist/linux/caddy
-          tar -C dist/linux -czf "dist/caddy_${VERSION}_linux_amd64.tar.gz" caddy
-          (cd dist/windows && zip -9 "../caddy_${VERSION}_windows_amd64.zip" caddy.exe)
+          tar -C dist/linux -czf "dist/caddy_${CADDY_VERSION}_linux_amd64.tar.gz" caddy
+          (cd dist/windows && zip -9 "../caddy_${CADDY_VERSION}_windows_amd64.zip" caddy.exe)
           rm -rf dist/linux dist/windows
           cp docker-compose.prod.yml dist/docker-compose.prod.yml
           (cd dist && sha512sum caddy_* > sha512sums.txt)
@@ -136,8 +136,8 @@ jobs:
             "version": "2.11.4",
             "release_tag": "${GITHUB_REF_NAME}",
             "assets": {
-              "linux_amd64": {"url": "${base}/caddy_${VERSION}_linux_amd64.tar.gz", "format": "tar.gz"},
-              "windows_amd64": {"url": "${base}/caddy_${VERSION}_windows_amd64.zip", "format": "zip"}
+              "linux_amd64": {"url": "${base}/caddy_${CADDY_VERSION}_linux_amd64.tar.gz", "format": "tar.gz"},
+              "windows_amd64": {"url": "${base}/caddy_${CADDY_VERSION}_windows_amd64.zip", "format": "zip"}
             },
             "sha512_url": "${base}/sha512sums.txt",
             "required_modules": ["dns.providers.alidns"]

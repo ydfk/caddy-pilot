@@ -19,12 +19,12 @@ func TestCaddyInstallerBuildsPlatformDownloadURL(t *testing.T) {
 		DownloadURL: DefaultCaddyDownloadURL,
 		ChecksumURL: DefaultCaddyChecksumURL,
 	}
-	want := "https://caddyserver.com/api/download?os=windows&arch=amd64&p=github.com/caddy-dns/alidns&v=2.10.0"
-	if got := installer.downloadURL("2.10.0"); got != want {
+	want := "https://github.com/ydfk/caddy-pilot/releases/latest/download/caddy_2.11.4_windows_amd64.zip"
+	if got := installer.downloadURL("2.11.4"); got != want {
 		t.Fatalf("下载地址不正确: %s", got)
 	}
-	checksumWant := ""
-	if got := installer.checksumURL("2.10.0"); got != checksumWant {
+	checksumWant := "https://github.com/ydfk/caddy-pilot/releases/latest/download/sha512sums.txt"
+	if got := installer.checksumURL("2.11.4"); got != checksumWant {
 		t.Fatalf("校验和地址不正确: %s", got)
 	}
 }
