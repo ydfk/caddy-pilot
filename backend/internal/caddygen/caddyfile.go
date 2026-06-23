@@ -123,6 +123,14 @@ func writeSiteHandlers(output *strings.Builder, site proxysite.ProxySite, upstre
 	if err != nil {
 		return fmt.Errorf("解析响应头失败: %w", err)
 	}
+	if site.EnableSecurityHeaders {
+		if _, exists := responseHeaders["X-Content-Type-Options"]; !exists {
+			responseHeaders["X-Content-Type-Options"] = "nosniff"
+		}
+		if _, exists := responseHeaders["Referrer-Policy"]; !exists {
+			responseHeaders["Referrer-Policy"] = "strict-origin-when-cross-origin"
+		}
+	}
 	for _, key := range sortedKeys(responseHeaders) {
 		fmt.Fprintf(output, "%sheader %s %s\n", indent, key, quoteCaddyfile(responseHeaders[key]))
 	}
@@ -139,6 +147,42 @@ func writeSiteHandlers(output *strings.Builder, site proxysite.ProxySite, upstre
 			fmt.Fprintf(output, "%s}\n", indent)
 		}
 	}
+	switch site.SiteType {
+	case "static":
+		writeStaticFiles(output, site, indent, false)
+		return nil
+	case "spa":
+		apiPath := site.APIPath
+		if apiPath == "" {
+			apiPath = "/api/*"
+		}
+		fmt.Fprintf(output, "%shandle %s {\n", indent, apiPath)
+		if err := writeReverseProxy(output, site, upstreams, indent+"\t"); err != nil {
+			return err
+		}
+		fmt.Fprintf(output, "%s}\n", indent)
+		fmt.Fprintf(output, "%shandle {\n", indent)
+		writeStaticFiles(output, site, indent+"\t", true)
+		fmt.Fprintf(output, "%s}\n", indent)
+		return nil
+	default:
+		return writeReverseProxy(output, site, upstreams, indent)
+	}
+}
+
+func writeStaticFiles(output *strings.Builder, site proxysite.ProxySite, indent string, spa bool) {
+	fmt.Fprintf(output, "%sroot * %s\n", indent, quoteCaddyfile(site.RootPath))
+	if site.EnableAssetCache {
+		fmt.Fprintf(output, "%sheader /assets/* Cache-Control %s\n", indent, quoteCaddyfile("public, max-age=31536000, immutable"))
+		fmt.Fprintf(output, "%sheader /index.html Cache-Control %s\n", indent, quoteCaddyfile("no-cache"))
+	}
+	if spa {
+		fmt.Fprintf(output, "%stry_files {path} /index.html\n", indent)
+	}
+	fmt.Fprintf(output, "%sfile_server\n", indent)
+}
+
+func writeReverseProxy(output *strings.Builder, site proxysite.ProxySite, upstreams []string, indent string) error {
 	fmt.Fprintf(output, "%sreverse_proxy %s", indent, strings.Join(caddyfileUpstreams(site.UpstreamType, upstreams), " "))
 	requestHeaders, err := decodeStringMap(site.RequestHeaders)
 	if err != nil {

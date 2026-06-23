@@ -200,8 +200,23 @@ func findSite(id string) (model.ProxySite, error) {
 func siteFromPayload(payload SitePayload) (model.ProxySite, error) {
 	domains := compactStrings(payload.Domains)
 	upstreams := compactStrings(payload.Upstreams)
-	if len(domains) == 0 || len(upstreams) == 0 {
-		return model.ProxySite{}, errors.New("域名和上游不能为空")
+	if len(domains) == 0 {
+		return model.ProxySite{}, errors.New("域名不能为空")
+	}
+	siteType := normalizedSiteType(strings.TrimSpace(payload.SiteType))
+	if !validSiteType(siteType) {
+		return model.ProxySite{}, errors.New("不支持的站点类型")
+	}
+	rootPath := strings.TrimSpace(payload.RootPath)
+	apiPath := defaultString(strings.TrimSpace(payload.APIPath), "/api/*")
+	if siteType != "static" && len(upstreams) == 0 {
+		return model.ProxySite{}, errors.New("反向代理和 SPA 站点必须配置上游")
+	}
+	if siteType != "proxy" && rootPath == "" {
+		return model.ProxySite{}, errors.New("静态目录和 SPA 站点必须配置文件根目录")
+	}
+	if siteType == "spa" && !strings.HasPrefix(apiPath, "/") {
+		return model.ProxySite{}, errors.New("API 路径必须以 / 开头")
 	}
 	upstreamType := normalizedUpstreamType(strings.TrimSpace(payload.UpstreamType))
 	if !validUpstreamType(upstreamType) {
@@ -257,8 +272,13 @@ func siteFromPayload(payload SitePayload) (model.ProxySite, error) {
 	return model.ProxySite{
 		Name:                          name,
 		Description:                   strings.TrimSpace(payload.Description),
+		SiteType:                      siteType,
 		Domains:                       encodedDomains,
 		Upstreams:                     encodedUpstreams,
+		RootPath:                      rootPath,
+		APIPath:                       apiPath,
+		EnableSecurityHeaders:         payload.EnableSecurityHeaders,
+		EnableAssetCache:              payload.EnableAssetCache,
 		UpstreamType:                  upstreamType,
 		UpstreamTLSServerName:         strings.TrimSpace(payload.UpstreamTLSServerName),
 		UpstreamTLSInsecureSkipVerify: payload.UpstreamTLSInsecureSkipVerify,
@@ -287,6 +307,15 @@ func siteFromPayload(payload SitePayload) (model.ProxySite, error) {
 func validUpstreamType(value string) bool {
 	switch value {
 	case "http", "https", "h2c", "unix":
+		return true
+	default:
+		return false
+	}
+}
+
+func validSiteType(value string) bool {
+	switch value {
+	case "proxy", "static", "spa":
 		return true
 	default:
 		return false

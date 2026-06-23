@@ -11,8 +11,13 @@ type ProxySite struct {
 	base.BaseModel
 	Name                          string         `gorm:"size:128;not null" json:"name"`
 	Description                   string         `gorm:"type:text" json:"description"`
+	SiteType                      string         `gorm:"size:16;not null;default:proxy" json:"site_type"`
 	Domains                       string         `gorm:"type:text;not null" json:"domains"`
 	Upstreams                     string         `gorm:"type:text;not null" json:"upstreams"`
+	RootPath                      string         `gorm:"size:1024" json:"root_path"`
+	APIPath                       string         `gorm:"size:256;not null;default:'/api/*'" json:"api_path"`
+	EnableSecurityHeaders         bool           `gorm:"not null;default:false" json:"enable_security_headers"`
+	EnableAssetCache              bool           `gorm:"not null;default:false" json:"enable_asset_cache"`
 	UpstreamType                  string         `gorm:"size:16;not null;default:http" json:"upstream_type"`
 	UpstreamTLSServerName         string         `gorm:"size:253" json:"upstream_tls_server_name"`
 	UpstreamTLSInsecureSkipVerify bool           `gorm:"not null;default:false" json:"upstream_tls_insecure_skip_verify"`

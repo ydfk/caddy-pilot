@@ -46,6 +46,14 @@ CADDYPILOT_HTTPS_PORT=18443
 
 2019 没有宿主机映射。**不要将 Caddy Admin API 2019 端口暴露到公网。** 使用 HTTP-01 签发证书时，公网仍需能访问标准 80 端口；非标准映射更适合 DNS-01 或由上层网关转发 80/443 的部署。
 
+静态目录或 SPA 站点的 `root_path` 是容器内路径，需要在 Compose 中额外挂载只读目录，例如：
+
+```yaml
+volumes:
+  - ./data:/data
+  - /srv/www:/var/www:ro
+```
+
 ## 自动管理的内部配置
 
 镜像内部自动设置后端地址、Caddy Admin API、数据库路径、运行时目录和管理入口。首次启动还会生成两份独立随机密钥：

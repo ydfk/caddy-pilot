@@ -2,11 +2,7 @@ import { useState } from "react";
 import { AlertTriangle, Braces, Download, FileText, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 
-import {
-  getCurrentCaddyConfig,
-  previewCaddyfile,
-  type CaddyChangeStatus,
-} from "@/api/caddy";
+import { getCurrentCaddyConfig, previewCaddyfile, type CaddyChangeStatus } from "@/api/caddy";
 import { rollbackConfigVersion } from "@/api/config-versions";
 import { ConfigHistory } from "@/components/caddy/config-history";
 import { DeploymentPipeline } from "@/components/caddy/deployment-pipeline";
@@ -68,7 +64,8 @@ export function ConfigManagement({
 
   async function exportJSON() {
     const value = await loadCurrentJSON(false);
-    if (value !== null) downloadText("caddy-current.json", JSON.stringify(value, null, 2), "application/json");
+    if (value !== null)
+      downloadText("caddy-current.json", JSON.stringify(value, null, 2), "application/json");
   }
 
   async function exportCaddyfile() {
@@ -111,10 +108,16 @@ export function ConfigManagement({
               <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600" />
               <div>
                 <p className="font-medium">Caddy 当前 JSON 与持久化版本不一致</p>
-                <p className="text-xs text-muted-foreground">重新应用最近成功版本可恢复受管状态。</p>
+                <p className="text-xs text-muted-foreground">
+                  重新应用最近成功版本可恢复受管状态。
+                </p>
               </div>
             </div>
-            <Button size="sm" onClick={() => void repair()} disabled={repairing || !status.latest_version_id}>
+            <Button
+              size="sm"
+              onClick={() => void repair()}
+              disabled={repairing || !status.latest_version_id}
+            >
               {repairing ? <Spinner /> : <RotateCcw />}
               重新应用最新版本
             </Button>
@@ -122,7 +125,11 @@ export function ConfigManagement({
         </CardContent>
       ) : null}
       <DeploymentPipeline dirty={status.dirty} onPublished={onChanged} />
-      <ConfigHistory refreshKey={refreshKey} activeVersion={status.active_version} onRollback={onChanged} />
+      <ConfigHistory
+        refreshKey={refreshKey}
+        activeVersion={status.active_version}
+        onRollback={onChanged}
+      />
       <JSONDialog
         open={currentJSON !== null}
         onOpenChange={(open) => !open && setCurrentJSON(null)}
@@ -134,7 +141,7 @@ export function ConfigManagement({
         open={Boolean(caddyfile)}
         onOpenChange={(open) => !open && setCaddyfile("")}
         title="Caddyfile 阅读视图"
-        description="已通过托管 Caddy adapt 校验，仅用于阅读和导出，不支持编辑导入；高级策略请查看 JSON。"
+        description="由同一站点模型完整生成，并通过托管 Caddy adapt 回 JSON 校验；不支持编辑导入。"
         value={caddyfile}
         filename="Caddyfile"
       />

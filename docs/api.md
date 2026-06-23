@@ -37,6 +37,14 @@
 
 数组字段在 API 中使用 JSON 数组，在 SQLite 中编码为 JSON string。站点名称由首个域名兼容生成。克隆接口无论原站点状态如何都会生成 `enabled=false` 的新记录。
 
+`site_type` 支持：
+
+- `proxy`：传统反向代理，`upstream_type` 继续表示 HTTP、HTTPS、h2c 或 Unix Socket 协议。
+- `static`：从 `root_path` 提供静态文件，不要求 `upstreams`。
+- `spa`：`api_path` 匹配的请求反代到 `upstreams`，其余请求从 `root_path` 提供并 fallback 到 `index.html`。
+
+静态和 SPA 模式可通过 `enable_security_headers` 与 `enable_asset_cache` 开启常用安全头和静态资源缓存策略。
+
 ## Basic Auth 密码本
 
 | 方法 | 路径 | 说明 |

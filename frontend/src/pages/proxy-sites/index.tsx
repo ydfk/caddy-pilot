@@ -275,7 +275,8 @@ export default function ProxySitesPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>域名</TableHead>
-                    <TableHead>上游</TableHead>
+                    <TableHead>类型</TableHead>
+                    <TableHead>目标</TableHead>
                     <TableHead>HTTPS</TableHead>
                     <TableHead>状态</TableHead>
                     <TableHead>更新时间</TableHead>
@@ -295,9 +296,16 @@ export default function ProxySitesPage() {
                           </span>
                         ) : null}
                       </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{siteTypeLabel(site.site_type)}</Badge>
+                      </TableCell>
                       <TableCell className="max-w-56">
                         <span className="block truncate font-mono text-xs">
-                          {site.upstreams.join(", ")}
+                          {site.site_type === "static"
+                            ? site.root_path
+                            : site.site_type === "spa"
+                              ? `${site.api_path} → ${site.upstreams.join(", ")}`
+                              : site.upstreams.join(", ")}
                         </span>
                       </TableCell>
                       <TableCell>
@@ -422,4 +430,10 @@ export default function ProxySitesPage() {
       />
     </div>
   );
+}
+
+function siteTypeLabel(siteType: ProxySite["site_type"]) {
+  if (siteType === "static") return "静态目录";
+  if (siteType === "spa") return "SPA + API";
+  return "反向代理";
 }

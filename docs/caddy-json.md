@@ -50,9 +50,11 @@
 
 请求 Header 写入 `reverse_proxy.headers.request.set`。多个上游写为多个 `dial`，由 Caddy 执行负载分配。HTTP 使用默认 transport；HTTPS 增加 TLS、SNI 和可选的跳过校验；h2c 使用 `versions: ["h2c"]`；Unix Socket 使用 `unix/` 网络地址。WebSocket 无需额外配置。
 
+站点工作模式与上游协议相互独立：`proxy` 生成反向代理；`static` 生成 root vars 与 file_server；`spa` 先生成 API path 路由，再生成静态根目录、可选缓存头、`try_files` rewrite 与 file_server fallback。
+
 ## Caddyfile 阅读视图
 
-系统可从同一份结构化站点配置生成 Caddyfile，并调用托管 Caddy 的 `adapt` 命令校验语法。该内容用于阅读、版本留存和导出，不支持编辑或导入；无法一一表达的 `advanced_json` 和通配符 TLS policy 会以注释提示。发布、回滚、管理入口保护和运行一致性比较始终以 Caddy JSON 为准。
+Caddy 官方只提供 Caddyfile 到 JSON 的配置适配器，不提供 JSON 到 Caddyfile 的反向适配器。系统因此从同一份结构化站点模型分别生成完整 JSON 和 Caddyfile，再调用托管 Caddy 的 `adapt` 将 Caddyfile 转回 JSON 校验。该内容用于阅读、版本留存和导出，不支持编辑或导入；Caddyfile 无法表达的通配符证书自动管理策略会明确写为注释。发布、回滚、管理入口保护和运行一致性比较始终以 Caddy JSON 为准。
 
 ## HTTPS 与证书
 

@@ -37,7 +37,9 @@ export function SiteConfigPreviewDialog({ open, onOpenChange, title, preview }: 
       <DialogContent className="max-h-[88vh] max-w-5xl overflow-hidden">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>同一站点配置的只读 JSON 与 Caddyfile 视图。</DialogDescription>
+          <DialogDescription>
+            JSON 与 Caddyfile 由同一站点模型完整生成；Caddyfile 会再适配为 JSON 校验语义。
+          </DialogDescription>
         </DialogHeader>
         <Tabs defaultValue="json" className="min-h-0">
           <TabsList>

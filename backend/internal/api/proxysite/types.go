@@ -12,8 +12,13 @@ import (
 type SitePayload struct {
 	Name                          string            `json:"name,omitempty" maxLength:"128" doc:"兼容字段，留空时使用首个域名"`
 	Description                   string            `json:"description" maxLength:"2000" doc:"站点描述"`
+	SiteType                      string            `json:"site_type,omitempty" doc:"站点工作模式：proxy、static 或 spa"`
 	Domains                       []string          `json:"domains" minItems:"1" doc:"域名列表"`
-	Upstreams                     []string          `json:"upstreams" minItems:"1" doc:"上游地址列表"`
+	Upstreams                     []string          `json:"upstreams" doc:"上游地址列表"`
+	RootPath                      string            `json:"root_path,omitempty" maxLength:"1024" doc:"静态文件根目录"`
+	APIPath                       string            `json:"api_path,omitempty" maxLength:"256" doc:"SPA 的 API 路径匹配器"`
+	EnableSecurityHeaders         bool              `json:"enable_security_headers,omitempty" doc:"启用常用安全响应头"`
+	EnableAssetCache              bool              `json:"enable_asset_cache,omitempty" doc:"启用静态资源长期缓存"`
 	UpstreamType                  string            `json:"upstream_type" enum:"http,https,h2c,unix" doc:"上游连接类型"`
 	UpstreamTLSServerName         string            `json:"upstream_tls_server_name" doc:"HTTPS 上游 TLS Server Name"`
 	UpstreamTLSInsecureSkipVerify bool              `json:"upstream_tls_insecure_skip_verify" doc:"跳过 HTTPS 上游证书校验"`
@@ -71,8 +76,13 @@ type SiteResponse struct {
 	ID                            uuid.UUID         `json:"id"`
 	Name                          string            `json:"name"`
 	Description                   string            `json:"description"`
+	SiteType                      string            `json:"site_type"`
 	Domains                       []string          `json:"domains"`
 	Upstreams                     []string          `json:"upstreams"`
+	RootPath                      string            `json:"root_path"`
+	APIPath                       string            `json:"api_path"`
+	EnableSecurityHeaders         bool              `json:"enable_security_headers"`
+	EnableAssetCache              bool              `json:"enable_asset_cache"`
 	UpstreamType                  string            `json:"upstream_type"`
 	UpstreamTLSServerName         string            `json:"upstream_tls_server_name"`
 	UpstreamTLSInsecureSkipVerify bool              `json:"upstream_tls_insecure_skip_verify"`
@@ -154,6 +164,11 @@ func newSiteResponse(site model.ProxySite) (SiteResponse, error) {
 		ID:                            site.Id,
 		Name:                          site.Name,
 		Description:                   site.Description,
+		SiteType:                      normalizedSiteType(site.SiteType),
+		RootPath:                      site.RootPath,
+		APIPath:                       defaultString(site.APIPath, "/api/*"),
+		EnableSecurityHeaders:         site.EnableSecurityHeaders,
+		EnableAssetCache:              site.EnableAssetCache,
 		EnableHTTPS:                   site.EnableHTTPS,
 		UpstreamType:                  normalizedUpstreamType(site.UpstreamType),
 		UpstreamTLSServerName:         site.UpstreamTLSServerName,
@@ -206,6 +221,10 @@ func normalizedUpstreamType(value string) string {
 		return "http"
 	}
 	return value
+}
+
+func normalizedSiteType(value string) string {
+	return defaultString(value, "proxy")
 }
 
 func defaultString(value, fallback string) string {

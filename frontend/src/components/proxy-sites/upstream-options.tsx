@@ -2,7 +2,14 @@ import { Controller, type Control } from "react-hook-form";
 
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import type { SiteFormValues } from "./site-form-data";
 
@@ -13,15 +20,19 @@ export function UpstreamOptions({ control }: { control: Control<SiteFormValues> 
       name="upstreamType"
       render={({ field }) => (
         <Field>
-          <FieldLabel>上游类型</FieldLabel>
+          <FieldLabel>上游协议</FieldLabel>
           <Select value={field.value} onValueChange={field.onChange}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent><SelectGroup>
-              <SelectItem value="http">HTTP · 常规明文服务</SelectItem>
-              <SelectItem value="https">HTTPS · TLS 上游</SelectItem>
-              <SelectItem value="h2c">h2c · 明文 HTTP/2 / gRPC</SelectItem>
-              <SelectItem value="unix">Unix Socket · 套接字文件</SelectItem>
-            </SelectGroup></SelectContent>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value="http">HTTP · 常规明文服务</SelectItem>
+                <SelectItem value="https">HTTPS · TLS 上游</SelectItem>
+                <SelectItem value="h2c">h2c · 明文 HTTP/2 / gRPC</SelectItem>
+                <SelectItem value="unix">Unix Socket · 套接字文件</SelectItem>
+              </SelectGroup>
+            </SelectContent>
           </Select>
         </Field>
       )}

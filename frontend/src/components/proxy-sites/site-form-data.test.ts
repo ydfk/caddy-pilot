@@ -7,6 +7,7 @@ import {
   formValuesFromSite,
   matchingWildcardProfile,
   payloadFromForm,
+  siteFormSchema,
 } from "./site-form-data";
 
 describe("代理站点表单转换", () => {
@@ -49,6 +50,27 @@ describe("代理站点表单转换", () => {
     );
     expect(matchingWildcardProfile(["deep.app.example.com"], [broad])).toBeUndefined();
   });
+
+  test("静态站点不要求上游，SPA 要求目录和 API 上游", () => {
+    const staticResult = siteFormSchema.safeParse({
+      ...defaultSiteValues,
+      siteType: "static",
+      domains: ["static.example.com"],
+      upstreams: [],
+      rootPath: "/var/www/example",
+    });
+    expect(staticResult.success).toBe(true);
+
+    const spaResult = siteFormSchema.safeParse({
+      ...defaultSiteValues,
+      siteType: "spa",
+      domains: ["app.example.com"],
+      rootPath: "/var/www/app/dist",
+      apiPath: "/api/*",
+      upstreams: ["127.0.0.1:3000"],
+    });
+    expect(spaResult.success).toBe(true);
+  });
 });
 
 function sampleCertificate(id: string, subjects: string[]): CertificateProfile {
@@ -73,8 +95,13 @@ function sampleSite(): ProxySite {
     id: "site-id",
     name: "示例站点",
     description: "",
+    site_type: "proxy",
     domains: ["example.com"],
     upstreams: ["127.0.0.1:3000"],
+    root_path: "",
+    api_path: "/api/*",
+    enable_security_headers: false,
+    enable_asset_cache: false,
     upstream_type: "http",
     upstream_tls_server_name: "",
     upstream_tls_insecure_skip_verify: false,

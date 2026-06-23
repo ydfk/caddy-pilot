@@ -56,7 +56,8 @@ func ImportNginx(ctx context.Context, input *NginxImportInput) (*NginxImportOutp
 func importedSitePayload(site nginximport.Site) SitePayload {
 	return SitePayload{
 		Name: site.Domains[0], Description: "从 Nginx 配置导入",
-		Domains: site.Domains, Upstreams: site.Upstreams, UpstreamType: site.UpstreamType,
+		SiteType: "proxy",
+		Domains:  site.Domains, Upstreams: site.Upstreams, UpstreamType: site.UpstreamType,
 		EnableHTTPS: site.EnableHTTPS, ForceHTTPS: site.ForceHTTPS,
 		CertificateType: "single", ACMEChallengeType: "http",
 		EnableGzip: site.EnableGzip, EnableLog: site.EnableLog, EnableWS: true,

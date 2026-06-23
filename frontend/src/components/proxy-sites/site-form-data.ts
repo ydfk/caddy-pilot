@@ -11,12 +11,15 @@ const optionalJSON = z
 export const siteFormSchema = z
   .object({
     description: z.string().max(2000),
+    siteType: z.enum(["proxy", "static", "spa"]),
     domains: z
       .array(z.string())
       .refine((value) => compactItems(value).length > 0, "至少填写一个域名"),
-    upstreams: z
-      .array(z.string())
-      .refine((value) => compactItems(value).length > 0, "至少填写一个上游"),
+    upstreams: z.array(z.string()),
+    rootPath: z.string().max(1024),
+    apiPath: z.string().max(256),
+    enableSecurityHeaders: z.boolean(),
+    enableAssetCache: z.boolean(),
     upstreamType: z.enum(["http", "https", "h2c", "unix"]),
     upstreamTLSServerName: z.string().max(253),
     upstreamTLSInsecureSkipVerify: z.boolean(),
@@ -40,6 +43,15 @@ export const siteFormSchema = z
     advancedJSON: optionalJSON,
   })
   .superRefine((values, context) => {
+    if (values.siteType !== "static" && compactItems(values.upstreams).length === 0) {
+      context.addIssue({ code: "custom", path: ["upstreams"], message: "至少填写一个上游" });
+    }
+    if (values.siteType !== "proxy" && !values.rootPath.trim()) {
+      context.addIssue({ code: "custom", path: ["rootPath"], message: "请填写静态文件根目录" });
+    }
+    if (values.siteType === "spa" && !values.apiPath.trim().startsWith("/")) {
+      context.addIssue({ code: "custom", path: ["apiPath"], message: "API 路径必须以 / 开头" });
+    }
     if (values.certificateType === "wildcard" && !values.certificateProfileID) {
       context.addIssue({
         code: "custom",
@@ -60,8 +72,13 @@ export type SiteFormValues = z.infer<typeof siteFormSchema>;
 
 export const defaultSiteValues: SiteFormValues = {
   description: "",
+  siteType: "proxy",
   domains: [""],
   upstreams: [""],
+  rootPath: "",
+  apiPath: "/api/*",
+  enableSecurityHeaders: true,
+  enableAssetCache: true,
   upstreamType: "http",
   upstreamTLSServerName: "",
   upstreamTLSInsecureSkipVerify: false,
@@ -88,8 +105,13 @@ export const defaultSiteValues: SiteFormValues = {
 export function formValuesFromSite(site: ProxySite, clone: boolean): SiteFormValues {
   return {
     description: site.description,
+    siteType: site.site_type || "proxy",
     domains: site.domains.length ? site.domains : [""],
     upstreams: site.upstreams.length ? site.upstreams : [""],
+    rootPath: site.root_path,
+    apiPath: site.api_path || "/api/*",
+    enableSecurityHeaders: site.enable_security_headers,
+    enableAssetCache: site.enable_asset_cache,
     upstreamType: site.upstream_type || "http",
     upstreamTLSServerName: site.upstream_tls_server_name,
     upstreamTLSInsecureSkipVerify: site.upstream_tls_insecure_skip_verify,
@@ -118,8 +140,13 @@ export function payloadFromForm(values: SiteFormValues, forceDisabled = false): 
   return {
     name: "",
     description: values.description.trim(),
+    site_type: values.siteType,
     domains: compactItems(values.domains),
     upstreams: compactItems(values.upstreams),
+    root_path: values.rootPath.trim(),
+    api_path: values.apiPath.trim() || "/api/*",
+    enable_security_headers: values.enableSecurityHeaders,
+    enable_asset_cache: values.enableAssetCache,
     upstream_type: values.upstreamType,
     upstream_tls_server_name: values.upstreamTLSServerName.trim(),
     upstream_tls_insecure_skip_verify: values.upstreamTLSInsecureSkipVerify,

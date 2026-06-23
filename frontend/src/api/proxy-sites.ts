@@ -3,8 +3,13 @@ import { apiRequest } from "./client";
 export type ProxySitePayload = {
   name: string;
   description: string;
+  site_type: "proxy" | "static" | "spa";
   domains: string[];
   upstreams: string[];
+  root_path: string;
+  api_path: string;
+  enable_security_headers: boolean;
+  enable_asset_cache: boolean;
   upstream_type: "http" | "https" | "h2c" | "unix";
   upstream_tls_server_name: string;
   upstream_tls_insecure_skip_verify: boolean;

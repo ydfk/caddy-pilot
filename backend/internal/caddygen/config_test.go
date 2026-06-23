@@ -55,6 +55,48 @@ func TestGenerateSupportsMultipleUpstreams(t *testing.T) {
 	}
 }
 
+func TestGenerateSupportsStaticFileSite(t *testing.T) {
+	site := testSite(true, nil)
+	site.SiteType = "static"
+	site.RootPath = "/var/www/example"
+	payload, err := Generate([]proxysite.ProxySite{site})
+	if err != nil {
+		t.Fatalf("生成静态站点失败: %v", err)
+	}
+	compact := compactJSON(payload)
+	for _, expected := range []string{`"handler":"vars","root":"/var/www/example"`, `"handler":"file_server"`} {
+		if !bytes.Contains(compact, []byte(expected)) {
+			t.Fatalf("静态站点缺少 %s: %s", expected, payload)
+		}
+	}
+	if bytes.Contains(compact, []byte(`"dial":"127.0.0.1:3000"`)) {
+		t.Fatalf("静态站点不应包含业务上游: %s", payload)
+	}
+}
+
+func TestGenerateSupportsSPAWithAPIAndCacheHeaders(t *testing.T) {
+	site := testSite(true, []string{"127.0.0.1:3000"})
+	site.SiteType = "spa"
+	site.RootPath = "/var/www/app/dist"
+	site.APIPath = "/api/*"
+	site.EnableSecurityHeaders = true
+	site.EnableAssetCache = true
+	payload, err := Generate([]proxysite.ProxySite{site})
+	if err != nil {
+		t.Fatalf("生成 SPA 站点失败: %v", err)
+	}
+	compact := compactJSON(payload)
+	for _, expected := range []string{
+		`"path":["/api/*"]`, `"handler":"reverse_proxy"`, `"root":"/var/www/app/dist"`,
+		`"try_files":["{http.request.uri.path}","/index.html"]`,
+		`"X-Content-Type-Options":["nosniff"]`, `"Cache-Control":["public, max-age=31536000, immutable"]`,
+	} {
+		if !bytes.Contains(compact, []byte(expected)) {
+			t.Fatalf("SPA 站点缺少 %s: %s", expected, payload)
+		}
+	}
+}
+
 func TestGenerateEnablesPerSiteAccessLog(t *testing.T) {
 	t.Setenv("CADDYPILOT_LOG_DIR", "/data/logs")
 	site := testSite(true, []string{"127.0.0.1:3000"})

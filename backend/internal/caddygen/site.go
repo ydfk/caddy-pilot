@@ -32,23 +32,16 @@ func GenerateSiteRoute(site proxysite.ProxySite) (map[string]any, error) {
 		matchers["remote_ip"] = map[string]any{"ranges": allowedIPs}
 	}
 
-	handlers := make([]map[string]any, 0, 4)
-	if len(responseHeaders) > 0 {
-		handlers = append(handlers, responseHeaderHandler(responseHeaders))
+	routes, err := siteRoutes(site, upstreamValues, requestHeaders, responseHeaders, basicAuthUsers)
+	if err != nil {
+		return nil, err
 	}
-	if site.EnableGzip {
-		handlers = append(handlers, encodeHandler())
-	}
-	if site.BasicAuthEnabled && len(basicAuthUsers) > 0 {
-		handlers = append(handlers, basicAuthHandler(basicAuthUsers))
-	}
-	handlers = append(handlers, reverseProxyHandler(site, upstreamValues, requestHeaders))
 
 	return map[string]any{
 		"match": []map[string]any{matchers},
 		"handle": []map[string]any{{
 			"handler": "subroute",
-			"routes":  []map[string]any{{"handle": handlers}},
+			"routes":  routes,
 		}},
 		"terminal": true,
 	}, nil
@@ -66,14 +59,101 @@ func decodeSiteLists(site proxysite.ProxySite) ([]string, []string, []string, er
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("解析上游失败: %w", err)
 	}
-	if len(upstreams) == 0 {
-		return nil, nil, nil, fmt.Errorf("上游不能为空")
-	}
 	allowedIPs, err := decodeStringList(site.AllowedIPs)
 	if err != nil {
 		return nil, nil, nil, fmt.Errorf("解析 IP 白名单失败: %w", err)
 	}
 	return domains, upstreams, allowedIPs, nil
+}
+
+func siteRoutes(site proxysite.ProxySite, upstreams []string, requestHeaders, responseHeaders, basicAuthUsers map[string]string) ([]map[string]any, error) {
+	siteType := site.SiteType
+	if siteType == "" {
+		siteType = "proxy"
+	}
+	if siteType != "static" && len(upstreams) == 0 {
+		return nil, fmt.Errorf("上游不能为空")
+	}
+	if siteType != "proxy" && strings.TrimSpace(site.RootPath) == "" {
+		return nil, fmt.Errorf("文件根目录不能为空")
+	}
+
+	commonHandlers := commonSiteHandlers(site, responseHeaders, basicAuthUsers)
+	if siteType == "proxy" {
+		commonHandlers = append(commonHandlers, reverseProxyHandler(site, upstreams, requestHeaders))
+		return []map[string]any{{"handle": commonHandlers}}, nil
+	}
+
+	routes := make([]map[string]any, 0, 7)
+	if len(commonHandlers) > 0 {
+		routes = append(routes, map[string]any{"handle": commonHandlers})
+	}
+	if siteType == "spa" {
+		apiPath := site.APIPath
+		if apiPath == "" {
+			apiPath = "/api/*"
+		}
+		routes = append(routes, map[string]any{
+			"match": []map[string]any{{"path": []string{apiPath}}},
+			"handle": []map[string]any{{
+				"handler": "subroute",
+				"routes":  []map[string]any{{"handle": []map[string]any{reverseProxyHandler(site, upstreams, requestHeaders)}}},
+			}},
+			"terminal": true,
+		})
+	}
+	routes = append(routes, staticFileRoutes(site)...)
+	return routes, nil
+}
+
+func commonSiteHandlers(site proxysite.ProxySite, responseHeaders, basicAuthUsers map[string]string) []map[string]any {
+	headers := make(map[string]string, len(responseHeaders)+2)
+	if site.EnableSecurityHeaders {
+		headers["X-Content-Type-Options"] = "nosniff"
+		headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+	}
+	for name, value := range responseHeaders {
+		headers[name] = value
+	}
+	handlers := make([]map[string]any, 0, 3)
+	if len(headers) > 0 {
+		handlers = append(handlers, responseHeaderHandler(headers))
+	}
+	if site.EnableGzip {
+		handlers = append(handlers, encodeHandler())
+	}
+	if site.BasicAuthEnabled && len(basicAuthUsers) > 0 {
+		handlers = append(handlers, basicAuthHandler(basicAuthUsers))
+	}
+	return handlers
+}
+
+func staticFileRoutes(site proxysite.ProxySite) []map[string]any {
+	routes := []map[string]any{{"handle": []map[string]any{{"handler": "vars", "root": site.RootPath}}}}
+	if site.EnableAssetCache {
+		routes = append(routes,
+			matchedResponseHeaderRoute([]string{"/index.html"}, "Cache-Control", "no-cache"),
+			matchedResponseHeaderRoute([]string{"/assets/*"}, "Cache-Control", "public, max-age=31536000, immutable"),
+		)
+	}
+	if site.SiteType == "spa" {
+		routes = append(routes, map[string]any{
+			"match":  []map[string]any{{"file": map[string]any{"try_files": []string{"{http.request.uri.path}", "/index.html"}}}},
+			"handle": []map[string]any{{"handler": "rewrite", "uri": "{http.matchers.file.relative}"}},
+		})
+	}
+	routes = append(routes, map[string]any{
+		"handle":   []map[string]any{{"handler": "file_server"}},
+		"terminal": true,
+	})
+	return routes
+}
+
+func matchedResponseHeaderRoute(paths []string, name, value string) map[string]any {
+	return map[string]any{
+		"match":  []map[string]any{{"path": paths}},
+		"handle": []map[string]any{responseHeaderHandler(map[string]string{name: value})},
+	}
 }
 
 func reverseProxyHandler(site proxysite.ProxySite, upstreamValues []string, requestHeaders map[string]string) map[string]any {

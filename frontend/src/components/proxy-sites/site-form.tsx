@@ -22,6 +22,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { SiteCoreOptions, SiteOptions } from "./site-options";
 import { matchingWildcardProfile, siteFormSchema, type SiteFormValues } from "./site-form-data";
+import { SiteModeOptions } from "./site-mode-options";
 import { UpstreamOptions, UpstreamTLSOptions } from "./upstream-options";
 import { CredentialSelector } from "./credential-selector";
 import { CertificateOptions } from "./certificate-options";
@@ -60,6 +61,7 @@ export function SiteForm({
   const errors = form.formState.errors;
   const cloneMode = mode === "clone";
   const basicAuthEnabled = form.watch("basicAuthEnabled");
+  const siteType = form.watch("siteType");
   const upstreamType = form.watch("upstreamType");
   const enableHTTPS = form.watch("enableHTTPS");
   const certificateType = form.watch("certificateType");
@@ -92,11 +94,12 @@ export function SiteForm({
       <Card className="border-primary/20 shadow-sm">
         <CardHeader>
           <CardTitle>核心配置</CardTitle>
-          <CardDescription>域名和上游是代理站点的核心配置。</CardDescription>
+          <CardDescription>选择站点处理方式，再配置域名、目录或上游。</CardDescription>
         </CardHeader>
         <CardContent>
           <FieldGroup className="gap-5">
-            <UpstreamOptions control={form.control} />
+            <SiteModeOptions control={form.control} errors={errors} siteType={siteType} />
+            {siteType !== "static" ? <UpstreamOptions control={form.control} /> : null}
             <div className="grid gap-4 md:grid-cols-2">
               <Controller
                 control={form.control}
@@ -114,29 +117,45 @@ export function SiteForm({
                   />
                 )}
               />
-              <Controller
-                control={form.control}
-                name="upstreams"
-                render={({ field }) => (
-                  <StringListField
-                    id="upstreams"
-                    label="上游地址"
-                    value={field.value}
-                    onChange={field.onChange}
-                    placeholder={upstreamType === "unix" ? "/run/app.sock" : "127.0.0.1:3000"}
-                    addLabel="添加上游"
-                    description={
-                      upstreamType === "unix"
-                        ? "每项一个套接字路径。"
-                        : "多个上游由 Caddy 自动负载分配。每项填写 host:port。"
-                    }
-                    error={errors.upstreams?.message}
-                  />
-                )}
-              />
+              {siteType !== "static" ? (
+                <Controller
+                  control={form.control}
+                  name="upstreams"
+                  render={({ field }) => (
+                    <StringListField
+                      id="upstreams"
+                      label={siteType === "spa" ? "API 上游地址" : "上游地址"}
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder={upstreamType === "unix" ? "/run/app.sock" : "127.0.0.1:3000"}
+                      addLabel="添加上游"
+                      description={
+                        upstreamType === "unix"
+                          ? "每项一个套接字路径。"
+                          : "多个上游由 Caddy 自动负载分配。每项填写 host:port。"
+                      }
+                      error={errors.upstreams?.message}
+                    />
+                  )}
+                />
+              ) : null}
             </div>
 
-            {upstreamType === "https" ? <UpstreamTLSOptions control={form.control} /> : null}
+            <Field data-invalid={Boolean(errors.description) || undefined}>
+              <FieldLabel htmlFor="description">备注说明</FieldLabel>
+              <Textarea
+                id="description"
+                rows={2}
+                placeholder="可选，例如用途、维护人或部署位置"
+                {...form.register("description")}
+              />
+              <FieldDescription>仅用于管理展示，不会写入 Caddy 配置。</FieldDescription>
+              <FieldError>{errors.description?.message}</FieldError>
+            </Field>
+
+            {siteType !== "static" && upstreamType === "https" ? (
+              <UpstreamTLSOptions control={form.control} />
+            ) : null}
 
             <SiteCoreOptions control={form.control} cloneMode={cloneMode} />
             {enableHTTPS ? (
@@ -232,17 +251,6 @@ export function SiteForm({
             <AccordionTrigger>高级配置 · Header 与扩展 JSON</AccordionTrigger>
             <AccordionContent>
               <FieldGroup>
-                <Field>
-                  <FieldLabel htmlFor="description">备注说明</FieldLabel>
-                  <Textarea
-                    id="description"
-                    rows={2}
-                    placeholder="可选，例如用途、维护人或部署位置"
-                    {...form.register("description")}
-                  />
-                  <FieldDescription>仅用于管理展示，不会写入 Caddy 配置。</FieldDescription>
-                  <FieldError>{errors.description?.message}</FieldError>
-                </Field>
                 <div className="grid gap-4 md:grid-cols-2">
                   <JSONField
                     id="requestHeaders"

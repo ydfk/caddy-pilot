@@ -41,3 +41,33 @@ func TestGenerateCaddyfileMarksAdvancedJSONAsReadOnly(t *testing.T) {
 		t.Fatalf("高级 JSON 提示缺失: %v\n%s", err, payload)
 	}
 }
+
+func TestGenerateCaddyfileIncludesStaticAndSPAContent(t *testing.T) {
+	staticSite := testSite(true, nil)
+	staticSite.Name = "静态站点"
+	staticSite.Domains = mustJSON([]string{"static.example.com"})
+	staticSite.SiteType = "static"
+	staticSite.RootPath = "/var/www/example"
+	spaSite := testSite(true, []string{"127.0.0.1:3000"})
+	spaSite.Name = "SPA 站点"
+	spaSite.Domains = mustJSON([]string{"app.example.com"})
+	spaSite.SiteType = "spa"
+	spaSite.RootPath = "/var/www/app/dist"
+	spaSite.APIPath = "/api/*"
+	spaSite.EnableSecurityHeaders = true
+	spaSite.EnableAssetCache = true
+
+	payload, err := GenerateCaddyfile([]proxysite.ProxySite{staticSite, spaSite})
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(payload)
+	for _, expected := range []string{
+		`root * "/var/www/example"`, "file_server", "handle /api/*", "reverse_proxy 127.0.0.1:3000",
+		`root * "/var/www/app/dist"`, "try_files {path} /index.html", "X-Content-Type-Options", "/assets/* Cache-Control",
+	} {
+		if !strings.Contains(text, expected) {
+			t.Fatalf("Caddyfile 缺少 %q:\n%s", expected, text)
+		}
+	}
+}

@@ -3,6 +3,7 @@ package proxysite
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -36,7 +37,8 @@ func TestProxySiteLifecycle(t *testing.T) {
 	payload := validSitePayload("示例站点")
 	createdResponse := proxySiteRequest(t, app, http.MethodPost, "/api/proxy-sites", payload, token)
 	if createdResponse.StatusCode != http.StatusCreated {
-		t.Fatalf("创建站点状态码为 %d", createdResponse.StatusCode)
+		body, _ := io.ReadAll(createdResponse.Body)
+		t.Fatalf("创建站点状态码为 %d: %s", createdResponse.StatusCode, body)
 	}
 	created := decodeProxySiteResponse(t, createdResponse)
 	if created.Name != "示例站点" || !created.Enabled {
@@ -117,6 +119,25 @@ func TestImportNginxCreatesDisabledSites(t *testing.T) {
 	decodeProxySiteJSON(t, response, &imported)
 	if len(imported.Sites) != 1 || imported.Sites[0].Enabled || imported.Sites[0].Domains[0] != "imported.example.com" {
 		t.Fatalf("导入结果不正确: %+v", imported)
+	}
+}
+
+func TestCreateStaticSiteWithoutUpstream(t *testing.T) {
+	app, token := setupProxySiteTestApp(t)
+	payload := validSitePayload("静态站点")
+	payload["site_type"] = "static"
+	payload["upstreams"] = []string{}
+	payload["root_path"] = "/var/www/example"
+	payload["enable_security_headers"] = true
+	payload["enable_asset_cache"] = true
+	response := proxySiteRequest(t, app, http.MethodPost, "/api/proxy-sites", payload, token)
+	if response.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(response.Body)
+		t.Fatalf("创建静态站点状态码为 %d: %s", response.StatusCode, body)
+	}
+	created := decodeProxySiteResponse(t, response)
+	if created.SiteType != "static" || created.RootPath != "/var/www/example" || len(created.Upstreams) != 0 {
+		t.Fatalf("静态站点结果不正确: %+v", created)
 	}
 }
 
