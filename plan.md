@@ -109,8 +109,8 @@ CaddyPilot 是一个用于可视化管理 Caddy 反向代理配置的轻量 Web 
 
 ### 2026-06-23 Release、Caddy 更新与管理界面收敛
 
-- [ ] Tag 镜像发布成功后创建正式或预发布 GitHub Release，并附加 amd64 运行时资产、校验清单、manifest 与生产 Compose。
-- [ ] 镜像内置 Caddy 升级到 2.11.4，Linux 与 Windows 运行时包含阿里云 DNS 和 DNS 审计模块。
+- [x] Tag 镜像发布成功后创建正式或预发布 GitHub Release，并附加 amd64 运行时资产、校验清单、manifest 与生产 Compose。
+- [x] 镜像内置 Caddy 升级到 2.11.4，Linux 与 Windows 运行时包含阿里云 DNS 和 DNS 审计模块。
 - [ ] 默认更新源迁移到 CaddyPilot Release manifest，下载支持断点续传、重试、强制 SHA-512 校验与详细失败信息。
 - [ ] 更新任务持久化，页面刷新后恢复进度或最后失败原因，并收敛 Caddy 运行时版本操作布局。
 - [ ] 增加脱敏的 DNS Provider 业务调用日志，并在日志页面提供独立标签。

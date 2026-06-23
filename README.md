@@ -181,7 +181,7 @@ Environment variables for development:
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `CADDY_VERSION` | `2.10.0` | Native development bootstrap version |
+| `CADDY_VERSION` | `2.11.4` | Native development bootstrap version |
 | `VITE_PROXY_HOST` | `http://127.0.0.1:25610` | Vite dev proxy target |
 
 Caddy version-check, download, and checksum URLs are managed from **Caddy 管理 → 更新源设置** and stored in SQLite. Docker environment variables are not required.
@@ -198,7 +198,7 @@ Project-level Windows commands are centralized under `scripts/`:
 
 ## Docker image releases
 
-Pushing a semantic version tag such as `v1.2.3` publishes multi-architecture images to Docker Hub. Configure repository secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` first. Stable tags also update `latest`; prerelease tags such as `v1.2.3-rc.1` do not.
+Pushing a semantic version tag such as `v1.2.3` runs tests, publishes the Linux amd64 image to Docker Hub, and then creates a GitHub Release. The Release includes Linux and Windows amd64 Caddy 2.11.4 runtimes with the AliDNS audit module, a SHA-512 checksum list, runtime manifest, and production Compose file. Configure repository secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` first. Stable tags update `latest` and create a formal Release; tags such as `v1.2.3-rc.1` create a Prerelease.
 
 ---
 
