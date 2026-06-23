@@ -31,6 +31,20 @@ func TestReadEntriesSupportsInitialTailAndCursor(t *testing.T) {
 	}
 }
 
+func TestReadEntriesReturnsNewestFirst(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "system.log")
+	payload := "{\"msg\":\"old\"}\n{\"msg\":\"new\"}\n"
+	if err := os.WriteFile(path, []byte(payload), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	file, _ := os.Open(path)
+	entries, _, err := readEntries(file, 0, 10)
+	file.Close()
+	if err != nil || len(entries) != 2 || entries[0].Message != "new" || entries[1].Message != "old" {
+		t.Fatalf("日志未按新到旧返回: %+v, %v", entries, err)
+	}
+}
+
 func TestDNSLogFilteringAndCredentialSanitizing(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "caddy.log")
 	payload := "{\"ts\":1,\"level\":\"info\",\"msg\":\"unrelated\"}\n" +

@@ -81,6 +81,10 @@ export const uploadManagedCaddy = (file: File) => {
 export const getCaddyChangeStatus = () => apiRequest<CaddyChangeStatus>("/api/caddy/change-status");
 export const previewCaddyConfig = () =>
   apiRequest<CaddyJSONResponse>("/api/caddy/preview", { method: "POST" });
+export const previewCaddyfile = () =>
+  apiRequest<{ caddyfile: string; valid: boolean }>("/api/caddy/preview-caddyfile", {
+    method: "POST",
+  });
 export const validateCaddyConfig = () =>
   apiRequest<{ valid: boolean }>("/api/caddy/validate", { method: "POST" });
 export const publishCaddyConfig = (reason = "手动发布") =>

@@ -25,7 +25,7 @@ func TestOpenAPIContainsCaddyPilotRoutes(t *testing.T) {
 		"/api/caddy/upload:", "/api/caddy/update-tasks/current:",
 		"/api/logs:",
 		"/api/system/info:",
-		"/api/config-versions/{id}/rollback:", "/api/dashboard/summary:",
+		"/api/config-versions/{id}/rollback:", "/api/dashboard/summary:", "/api/caddy/preview-caddyfile:",
 	} {
 		if !strings.Contains(string(payload), route) {
 			t.Fatalf("OpenAPI 缺少路由 %s", route)

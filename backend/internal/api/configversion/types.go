@@ -24,6 +24,7 @@ type VersionDetail struct {
 	VersionSummary
 	BusinessConfig json.RawMessage `json:"business_config"`
 	CaddyJSON      json.RawMessage `json:"caddy_json"`
+	Caddyfile      *string         `json:"caddyfile,omitempty"`
 	ErrorMessage   string          `json:"error_message"`
 }
 
@@ -43,10 +44,15 @@ func newVersionSummary(version model.ConfigVersion) VersionSummary {
 }
 
 func newVersionDetail(version model.ConfigVersion) VersionDetail {
+	var caddyfile *string
+	if version.Caddyfile != "" {
+		caddyfile = &version.Caddyfile
+	}
 	return VersionDetail{
 		VersionSummary: newVersionSummary(version),
 		BusinessConfig: safeRawJSON(version.BusinessConfig),
 		CaddyJSON:      safeRawJSON(version.CaddyJSON),
+		Caddyfile:      caddyfile,
 		ErrorMessage:   version.ErrorMessage,
 	}
 }

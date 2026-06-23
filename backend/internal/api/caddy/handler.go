@@ -182,6 +182,14 @@ func Preview(ctx context.Context, _ *struct{}) (*JSONOutput, error) {
 	return &JSONOutput{Body: JSONResponse{CaddyJSON: payload}}, nil
 }
 
+func PreviewCaddyfile(ctx context.Context, _ *struct{}) (*CaddyfileOutput, error) {
+	payload, err := service.NewConfigService(db.DB, nil).PreviewCaddyfile(ctx)
+	if err != nil {
+		return nil, huma.Error400BadRequest(err.Error())
+	}
+	return &CaddyfileOutput{Body: CaddyfileResponse{Caddyfile: string(payload), Valid: true}}, nil
+}
+
 func ChangeStatus(ctx context.Context, _ *struct{}) (*ChangeStatusOutput, error) {
 	status, err := service.NewConfigService(db.DB, newCaddyAdmin()).ChangeStatus(ctx)
 	if err != nil {

@@ -46,17 +46,26 @@ func NewConfigService(database *gorm.DB, caddy CaddyAdmin) *ConfigService {
 }
 
 func (service *ConfigService) Preview(ctx context.Context) ([]byte, error) {
-	sites, err := service.enabledSites(ctx)
+	sites, err := service.resolvedSites(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if err := ResolveBasicAuthCredentials(ctx, service.DB, sites); err != nil {
-		return nil, err
-	}
-	if err := ResolveCertificateProfiles(ctx, service.DB, sites); err != nil {
-		return nil, err
-	}
 	return caddygen.Generate(sites)
+}
+
+func (service *ConfigService) PreviewCaddyfile(ctx context.Context) ([]byte, error) {
+	sites, err := service.resolvedSites(ctx)
+	if err != nil {
+		return nil, err
+	}
+	payload, err := caddygen.GenerateCaddyfile(sites)
+	if err != nil {
+		return nil, err
+	}
+	if err := ValidateCaddyfile(ctx, payload); err != nil {
+		return nil, err
+	}
+	return payload, nil
 }
 
 func (service *ConfigService) ChangeStatus(ctx context.Context) (ConfigChangeStatus, error) {
@@ -133,12 +142,16 @@ func (service *ConfigService) Publish(ctx context.Context, reason string) (confi
 		return configversion.ConfigVersion{}, err
 	}
 	caddyJSON, generateErr := caddygen.Generate(sites)
-	version, err := service.createAttempt(ctx, defaultReason(reason, "手动发布"), businessConfig, caddyJSON)
+	caddyfile, caddyfileErr := caddygen.GenerateCaddyfile(sites)
+	version, err := service.createAttempt(ctx, defaultReason(reason, "手动发布"), businessConfig, caddyJSON, caddyfile)
 	if err != nil {
 		return version, err
 	}
 	if generateErr != nil {
 		return service.failAttempt(ctx, version, generateErr)
+	}
+	if caddyfileErr != nil {
+		return service.failAttempt(ctx, version, caddyfileErr)
 	}
 	if !caddygen.HasManagementEntry(caddyJSON) {
 		return service.failAttempt(ctx, version, errors.New("生成配置缺少 CaddyPilot 管理入口"))
@@ -163,6 +176,7 @@ func (service *ConfigService) Rollback(ctx context.Context, id uint) (configvers
 		fmt.Sprintf("回滚到版本 %d", target.Version),
 		[]byte(target.BusinessConfig),
 		protectedJSON,
+		[]byte(target.Caddyfile),
 	)
 	if err != nil {
 		return version, err
@@ -197,7 +211,7 @@ func (service *ConfigService) enabledSites(ctx context.Context) ([]proxysite.Pro
 	return sites, nil
 }
 
-func (service *ConfigService) createAttempt(ctx context.Context, reason string, businessConfig, caddyJSON []byte) (configversion.ConfigVersion, error) {
+func (service *ConfigService) createAttempt(ctx context.Context, reason string, businessConfig, caddyJSON, caddyfile []byte) (configversion.ConfigVersion, error) {
 	versionNumber, err := service.nextVersion(ctx)
 	if err != nil {
 		return configversion.ConfigVersion{}, err
@@ -207,12 +221,27 @@ func (service *ConfigService) createAttempt(ctx context.Context, reason string, 
 		Reason:         reason,
 		BusinessConfig: string(businessConfig),
 		CaddyJSON:      string(caddyJSON),
+		Caddyfile:      string(caddyfile),
 		Status:         ConfigStatusDraft,
 	}
 	if err := service.DB.WithContext(ctx).Create(&version).Error; err != nil {
 		return version, fmt.Errorf("保存配置版本失败: %w", err)
 	}
 	return version, nil
+}
+
+func (service *ConfigService) resolvedSites(ctx context.Context) ([]proxysite.ProxySite, error) {
+	sites, err := service.enabledSites(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err := ResolveBasicAuthCredentials(ctx, service.DB, sites); err != nil {
+		return nil, err
+	}
+	if err := ResolveCertificateProfiles(ctx, service.DB, sites); err != nil {
+		return nil, err
+	}
+	return sites, nil
 }
 
 func (service *ConfigService) nextVersion(ctx context.Context) (uint, error) {

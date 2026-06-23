@@ -20,7 +20,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardContent } from "@/components/ui/card";
 import {
   Empty,
   EmptyDescription,
@@ -42,12 +42,10 @@ export function ConfigHistory({
   refreshKey,
   onRollback,
   activeVersion,
-  embedded,
 }: {
   refreshKey: number;
   onRollback: () => Promise<void>;
   activeVersion?: number;
-  embedded?: boolean;
 }) {
   const [versions, setVersions] = useState<ConfigVersionSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,12 +79,8 @@ export function ConfigHistory({
   }
 
   return (
-    <Card className={embedded ? "rounded-none border-0 border-t shadow-none" : undefined}>
-      <CardHeader>
-        <CardTitle>配置版本</CardTitle>
-        <CardDescription>发布和回滚历史与运行状态放在同一个工作台。</CardDescription>
-      </CardHeader>
-      <CardContent>
+    <>
+      <CardContent className="border-t pt-5">
         {loading ? (
           <div className="grid gap-3">
             {Array.from({ length: 4 }, (_, index) => (
@@ -174,6 +168,6 @@ export function ConfigHistory({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Card>
+    </>
   );
 }

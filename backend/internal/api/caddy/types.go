@@ -16,6 +16,15 @@ type JSONOutput struct {
 	Body JSONResponse
 }
 
+type CaddyfileResponse struct {
+	Caddyfile string `json:"caddyfile"`
+	Valid     bool   `json:"valid"`
+}
+
+type CaddyfileOutput struct {
+	Body CaddyfileResponse
+}
+
 type StatusResponse struct {
 	Online       bool   `json:"online"`
 	ErrorMessage string `json:"error_message,omitempty"`

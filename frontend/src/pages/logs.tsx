@@ -33,9 +33,7 @@ export default function LogsPage() {
       try {
         const response = await listLogs(source, reset ? 0 : cursor);
         setCursor(response.next_cursor);
-        setEntries((current) =>
-          reset ? response.entries : [...current, ...response.entries].slice(-1000)
-        );
+        setEntries((current) => mergeLogEntries(current, response.entries, reset));
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "读取日志失败");
       } finally {
@@ -170,6 +168,10 @@ export default function LogsPage() {
       </Card>
     </div>
   );
+}
+
+export function mergeLogEntries(current: LogEntry[], incoming: LogEntry[], reset: boolean) {
+  return (reset ? incoming : [...incoming, ...current]).slice(0, 1000);
 }
 
 function formatTime(value?: string) {

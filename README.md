@@ -29,7 +29,7 @@ All configuration changes are versioned. If a publish fails, your previous worki
 - **Proxy site management** — create, edit, clone, soft-delete, enable/disable reverse proxy sites
 - **Typed upstreams** — HTTP, HTTPS, h2c, and Unix Socket with type-specific settings
 - **Access & certificates** — reusable Basic Auth password vault plus single-domain or wildcard certificates with Aliyun DNS-01
-- **Config preview & publish** — see the exact Caddy JSON before it goes live; push to Caddy Admin API in one step
+- **Config preview & publish** — publish protected JSON while previewing and exporting a validated, read-only Caddyfile view
 - **Version history & rollback** — every publish is recorded; diff, inspect, or rollback to any previous version
 - **Dashboard** — at-a-glance status: site counts, Caddy health, last publish time
 - **Unified Caddy workbench** — runtime health, validate/publish flow, config history, and Caddy updates in one place
@@ -42,7 +42,7 @@ All configuration changes are versioned. If a publish fails, your previous worki
 
 MVP scope is intentionally narrow. CaddyPilot does **not** handle:
 
-Multi-node clusters, role-based access, Caddyfile import/export, DNS providers other than Aliyun, Layer 4 routing, automatic container discovery, advanced log analytics, or full Caddy config visualization.
+Multi-node clusters, role-based access, editable Caddyfile import, DNS providers other than Aliyun, Layer 4 routing, automatic container discovery, advanced log analytics, or full Caddy config visualization.
 
 ---
 

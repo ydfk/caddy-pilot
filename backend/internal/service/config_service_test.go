@@ -42,13 +42,13 @@ func TestConfigServicePublishAndRollbackKeepManagementEntry(t *testing.T) {
 	if err != nil {
 		t.Fatalf("发布配置失败: %v", err)
 	}
-	if published.Status != ConfigStatusPublished || !caddygen.HasManagementEntry(fake.loaded) {
+	if published.Status != ConfigStatusPublished || published.Caddyfile == "" || !caddygen.HasManagementEntry(fake.loaded) {
 		t.Fatalf("发布状态或管理入口不正确: %+v", published)
 	}
 
 	legacy := configversion.ConfigVersion{
 		Version: 100, Reason: "旧配置", BusinessConfig: "[]",
-		CaddyJSON: `{"apps":{"http":{"servers":{}}}}`, Status: ConfigStatusPublished,
+		CaddyJSON: `{"apps":{"http":{"servers":{}}}}`, Caddyfile: ":8080 {}", Status: ConfigStatusPublished,
 	}
 	if err := database.Create(&legacy).Error; err != nil {
 		t.Fatalf("创建历史配置失败: %v", err)
@@ -57,7 +57,7 @@ func TestConfigServicePublishAndRollbackKeepManagementEntry(t *testing.T) {
 	if err != nil {
 		t.Fatalf("回滚配置失败: %v", err)
 	}
-	if rolledBack.Status != ConfigStatusRollback || !caddygen.HasManagementEntry(fake.loaded) {
+	if rolledBack.Status != ConfigStatusRollback || rolledBack.Caddyfile != legacy.Caddyfile || !caddygen.HasManagementEntry(fake.loaded) {
 		t.Fatalf("回滚状态或管理入口不正确: %+v", rolledBack)
 	}
 }

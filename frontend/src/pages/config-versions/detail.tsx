@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, RotateCcw } from "lucide-react";
+import { ArrowLeft, Download, RotateCcw } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -102,10 +102,34 @@ export default function ConfigVersionDetailPage() {
           <Tabs defaultValue="caddy">
             <TabsList>
               <TabsTrigger value="caddy">Caddy JSON</TabsTrigger>
+              <TabsTrigger value="caddyfile">Caddyfile</TabsTrigger>
               <TabsTrigger value="business">Business Config</TabsTrigger>
             </TabsList>
             <TabsContent value="caddy">
               <JSONBlock value={version.caddy_json} />
+            </TabsContent>
+            <TabsContent value="caddyfile">
+              {version.caddyfile ? (
+                <div className="mt-4 grid gap-3">
+                  <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                    <span>只读留存视图；发布和回滚仍使用上方 Caddy JSON。</span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => downloadCaddyfile(version.caddyfile!, version.version)}
+                    >
+                      <Download /> 导出
+                    </Button>
+                  </div>
+                  <pre className="max-h-[62vh] overflow-auto rounded-lg bg-muted p-4 font-mono text-xs leading-relaxed">
+                    {version.caddyfile}
+                  </pre>
+                </div>
+              ) : (
+                <p className="mt-4 rounded-lg border border-dashed p-5 text-sm text-muted-foreground">
+                  该版本未保存 Caddyfile
+                </p>
+              )}
             </TabsContent>
             <TabsContent value="business">
               <JSONBlock value={version.business_config} />
@@ -115,6 +139,15 @@ export default function ConfigVersionDetailPage() {
       </Card>
     </div>
   );
+}
+
+function downloadCaddyfile(content: string, version: number) {
+  const url = URL.createObjectURL(new Blob([content], { type: "text/plain;charset=utf-8" }));
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = `Caddyfile.v${version}`;
+  anchor.click();
+  URL.revokeObjectURL(url);
 }
 
 function JSONBlock({ value }: { value: unknown }) {

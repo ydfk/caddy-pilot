@@ -11,6 +11,7 @@ export type ConfigVersionSummary = {
 export type ConfigVersion = ConfigVersionSummary & {
   business_config: unknown;
   caddy_json: unknown;
+  caddyfile?: string;
   error_message: string;
 };
 

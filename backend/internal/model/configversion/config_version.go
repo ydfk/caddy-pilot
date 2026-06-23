@@ -8,6 +8,7 @@ type ConfigVersion struct {
 	Reason         string     `gorm:"size:255" json:"reason"`
 	BusinessConfig string     `gorm:"type:text;not null" json:"business_config"`
 	CaddyJSON      string     `gorm:"type:text;not null" json:"caddy_json"`
+	Caddyfile      string     `gorm:"type:text" json:"caddyfile,omitempty"`
 	Status         string     `gorm:"size:32;not null;index" json:"status"`
 	ErrorMessage   string     `gorm:"type:text" json:"error_message"`
 	PublishedAt    *time.Time `json:"published_at"`

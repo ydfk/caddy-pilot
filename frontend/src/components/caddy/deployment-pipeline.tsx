@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { Braces, CheckCircle2, Rocket, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Rocket, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
-import { previewCaddyConfig, publishCaddyConfig, validateCaddyConfig } from "@/api/caddy";
-import { JSONDialog } from "@/components/json-dialog";
+import { publishCaddyConfig, validateCaddyConfig } from "@/api/caddy";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,33 +14,24 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 
-type Props = {
+export function DeploymentPipeline({
+  dirty,
+  onPublished,
+}: {
   dirty: boolean;
-  latestVersion?: number;
   onPublished: () => Promise<void>;
-  embedded?: boolean;
-};
-
-export function DeploymentPipeline({ dirty, latestVersion, onPublished, embedded }: Props) {
+}) {
   const [validated, setValidated] = useState(false);
   const [validating, setValidating] = useState(false);
   const [publishing, setPublishing] = useState(false);
-  const [preview, setPreview] = useState<unknown>(null);
   const [reason, setReason] = useState("");
 
-  async function showPreview() {
-    try {
-      setPreview((await previewCaddyConfig()).caddy_json);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "生成预览失败");
-    }
-  }
+  if (!dirty) return null;
 
   async function validate() {
     setValidating(true);
@@ -73,127 +63,58 @@ export function DeploymentPipeline({ dirty, latestVersion, onPublished, embedded
   }
 
   return (
-    <Card
-      className={
-        embedded
-          ? "overflow-hidden rounded-none border-0 shadow-none"
-          : "overflow-hidden border-primary/20"
-      }
-    >
-      <CardHeader className="border-b bg-primary/[0.035]">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <CardTitle>配置发布</CardTitle>
-            <CardDescription>校验通过后才开放发布，两个动作保持连续。</CardDescription>
+    <CardContent className="border-b pt-5">
+      <div className="mb-3 flex items-center gap-2 text-sm font-medium text-amber-700">
+        <span className="size-2 rounded-full bg-amber-500" />
+        检测到站点修改，请连续完成校验与发布
+      </div>
+      <div className="grid gap-3 md:grid-cols-[1fr_auto_1fr] md:items-center">
+        <div className="flex items-center gap-3 rounded-lg border bg-muted/20 p-3">
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-foreground text-xs text-background">
+            1
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium">校验配置</p>
+            <p className="text-xs text-muted-foreground">检查 JSON 结构和管理入口</p>
           </div>
-          <Badge variant={dirty ? "secondary" : "outline"}>
-            {dirty ? "存在未发布修改" : latestVersion ? `已同步 v${latestVersion}` : "暂无发布"}
-          </Badge>
+          <Button size="sm" variant={validated ? "outline" : "secondary"} onClick={() => void validate()} disabled={validating}>
+            {validating ? <Spinner /> : validated ? <CheckCircle2 /> : <ShieldCheck />}
+            {validated ? "重新校验" : "校验"}
+          </Button>
         </div>
-      </CardHeader>
-      <CardContent className="pt-5">
-        {dirty ? (
-          <div className="grid gap-4">
-            <div className="grid gap-3 md:grid-cols-[1fr_auto_1fr] md:items-stretch">
-              <div
-                className={`rounded-xl border p-4 ${validated ? "border-emerald-500/40 bg-emerald-500/5" : "bg-muted/20"}`}
-              >
-                <div className="flex items-center gap-2 text-sm font-semibold">
-                  <span className="flex size-6 items-center justify-center rounded-full bg-foreground text-xs text-background">
-                    1
-                  </span>
-                  校验配置
-                </div>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  生成完整 JSON 并执行结构与管理入口检查。
-                </p>
-                <Button
-                  className="mt-4 w-full"
-                  variant={validated ? "outline" : "secondary"}
-                  onClick={() => void validate()}
-                  disabled={validating}
-                >
-                  {validating ? (
-                    <Spinner data-icon="inline-start" />
-                  ) : validated ? (
-                    <CheckCircle2 data-icon="inline-start" />
-                  ) : (
-                    <ShieldCheck data-icon="inline-start" />
-                  )}
-                  {validated ? "重新校验" : "开始校验"}
-                </Button>
-              </div>
-              <div className="hidden items-center text-muted-foreground md:flex">→</div>
-              <div
-                className={`rounded-xl border p-4 ${validated ? "bg-primary/[0.035]" : "bg-muted/10 opacity-70"}`}
-              >
-                <div className="flex items-center gap-2 text-sm font-semibold">
-                  <span className="flex size-6 items-center justify-center rounded-full bg-foreground text-xs text-background">
-                    2
-                  </span>
-                  发布配置
-                </div>
-                <Input
-                  className="mt-3"
-                  value={reason}
-                  onChange={(event) => setReason(event.target.value)}
-                  placeholder="发布说明（可选）"
-                  disabled={!validated}
-                />
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button className="mt-3 w-full" disabled={!validated || publishing}>
-                      {publishing ? (
-                        <Spinner data-icon="inline-start" />
-                      ) : (
-                        <Rocket data-icon="inline-start" />
-                      )}
-                      发布到 Caddy
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>发布已校验的配置？</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        系统会创建配置版本并加载到托管 Caddy，管理入口会受到保护。
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>取消</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => void publish()}>确认发布</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </div>
-            <Button variant="ghost" className="w-fit" onClick={() => void showPreview()}>
-              <Braces data-icon="inline-start" />
-              预览待发布 JSON
-            </Button>
-          </div>
-        ) : (
-          <div className="flex flex-col items-start gap-3 rounded-xl border border-dashed p-5">
-            <div className="flex items-center gap-2 font-medium text-emerald-600">
-              <CheckCircle2 className="size-4" />
-              站点配置与已发布版本一致
-            </div>
-            <p className="text-sm text-muted-foreground">
-              只有站点内容发生变化后，才需要重新校验和发布。
-            </p>
-            <Button variant="outline" size="sm" onClick={() => void showPreview()}>
-              <Braces data-icon="inline-start" />
-              查看生成 JSON
-            </Button>
-          </div>
-        )}
-      </CardContent>
-      <JSONDialog
-        open={preview !== null}
-        onOpenChange={(open) => !open && setPreview(null)}
-        title="待发布 Caddy JSON"
-        description="当前业务配置生成结果，预览不会发布。"
-        value={preview}
-      />
-    </Card>
+        <span className="hidden text-muted-foreground md:block">→</span>
+        <div className={`flex items-center gap-2 rounded-lg border p-3 ${validated ? "bg-primary/[0.035]" : "bg-muted/10 opacity-70"}`}>
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-foreground text-xs text-background">
+            2
+          </span>
+          <Input
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            placeholder="发布说明（可选）"
+            disabled={!validated}
+          />
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button size="sm" disabled={!validated || publishing}>
+                {publishing ? <Spinner /> : <Rocket />}
+                发布
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>发布已校验的配置？</AlertDialogTitle>
+                <AlertDialogDescription>
+                  系统会创建配置版本并加载 JSON 到托管 Caddy，管理入口会受到保护。
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>取消</AlertDialogCancel>
+                <AlertDialogAction onClick={() => void publish()}>确认发布</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      </div>
+    </CardContent>
   );
 }

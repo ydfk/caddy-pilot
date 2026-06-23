@@ -50,6 +50,10 @@
 
 请求 Header 写入 `reverse_proxy.headers.request.set`。多个上游写为多个 `dial`，由 Caddy 执行负载分配。HTTP 使用默认 transport；HTTPS 增加 TLS、SNI 和可选的跳过校验；h2c 使用 `versions: ["h2c"]`；Unix Socket 使用 `unix/` 网络地址。WebSocket 无需额外配置。
 
+## Caddyfile 阅读视图
+
+系统可从同一份结构化站点配置生成 Caddyfile，并调用托管 Caddy 的 `adapt` 命令校验语法。该内容用于阅读、版本留存和导出，不支持编辑或导入；无法一一表达的 `advanced_json` 和通配符 TLS policy 会以注释提示。发布、回滚、管理入口保护和运行一致性比较始终以 Caddy JSON 为准。
+
 ## HTTPS 与证书
 
 HTTPS server 显式生成 TLS connection policy。域名证书默认使用 HTTP/TLS-ALPN 验证，也可以选择 DNS-01；通配符证书引用系统证书配置并强制使用 DNS-01。阿里云凭据在数据库中加密保存，生成 JSON 只写入按 Provider ID 隔离的环境变量占位符，因此 AccessKey 不会进入配置版本。全局关闭 Caddy 自动 HTTP 跳转，由生成器按站点的 `force_https` 显式控制。

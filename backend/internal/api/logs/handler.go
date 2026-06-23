@@ -75,6 +75,9 @@ func readFilteredEntries(file *os.File, cursor int64, limit int, include func(En
 			entries = append(entries, entry)
 		}
 	}
+	for left, right := 0, len(entries)-1; left < right; left, right = left+1, right-1 {
+		entries[left], entries[right] = entries[right], entries[left]
+	}
 	return entries, offset, scanner.Err()
 }
 

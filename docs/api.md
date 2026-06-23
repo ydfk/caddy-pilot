@@ -77,9 +77,12 @@
 | GET | `/api/caddy/update-tasks/current` | 获取当前更新任务阶段、进度和失败原因 |
 | GET | `/api/caddy/change-status` | 动态比较业务配置、持久化配置与 Caddy 当前 JSON |
 | POST | `/api/caddy/preview` | 生成完整 JSON，不发布 |
+| POST | `/api/caddy/preview-caddyfile` | 从结构化站点生成只读 Caddyfile，并调用托管 Caddy `adapt` 校验语法 |
 | POST | `/api/caddy/validate` | 对生成配置执行 JSON 与管理入口基础校验 |
 | POST | `/api/caddy/publish` | 生成版本并调用 `/load` |
 | GET | `/api/caddy/current-config` | 调用 Caddy `GET /config/` |
+
+配置版本详情可选返回 `caddyfile`。旧版本没有留存内容时省略该字段；发布和回滚始终使用 `caddy_json`。
 
 发布请求体：
 
