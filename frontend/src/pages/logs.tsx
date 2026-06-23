@@ -79,6 +79,7 @@ export default function LogsPage() {
               <TabsList>
                 <TabsTrigger value="system">系统日志</TabsTrigger>
                 <TabsTrigger value="caddy">Caddy 日志</TabsTrigger>
+                <TabsTrigger value="dns">DNS Provider</TabsTrigger>
               </TabsList>
             </Tabs>
             <div className="flex flex-wrap gap-2">
@@ -131,6 +132,11 @@ export default function LogsPage() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
+          {source === "dns" ? (
+            <div className="border-b bg-amber-500/5 px-3 py-2 text-xs text-muted-foreground">
+              DNS Provider 审计日志会记录域名、记录名称、类型和 TXT 值，但不会记录 AccessKey、Token、签名或认证头。
+            </div>
+          ) : null}
           <div className="h-[min(68vh,720px)] overflow-auto bg-zinc-950 p-3 font-mono text-xs text-zinc-300">
             {filtered.length ? (
               filtered.map((entry) => (
@@ -140,7 +146,14 @@ export default function LogsPage() {
                 >
                   <span className="text-zinc-500">{formatTime(entry.timestamp)}</span>
                   <span className={levelClass(entry.level)}>{entry.level || "LOG"}</span>
-                  <span className="break-all whitespace-pre-wrap">{entry.message}</span>
+                  <span className="break-all whitespace-pre-wrap">
+                    {entry.message}
+                    {entry.fields && Object.keys(entry.fields).length ? (
+                      <span className="mt-1 block text-zinc-500">
+                        {JSON.stringify(entry.fields)}
+                      </span>
+                    ) : null}
+                  </span>
                 </div>
               ))
             ) : (

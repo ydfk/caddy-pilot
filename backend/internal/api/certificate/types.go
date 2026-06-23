@@ -38,6 +38,10 @@ type CertificateProfileResponse struct {
 	CreatedAt          time.Time                   `json:"created_at"`
 	UpdatedAt          time.Time                   `json:"updated_at"`
 	IssuedCertificates []IssuedCertificateResponse `json:"issued_certificates"`
+	IssuanceState      string                      `json:"issuance_state"`
+	IssuanceMessage    string                      `json:"issuance_message"`
+	LastError          string                      `json:"last_error,omitempty"`
+	UsageCount         int                         `json:"usage_count"`
 }
 
 type IssuedCertificateResponse struct {
@@ -52,12 +56,14 @@ type IssuedCertificateResponse struct {
 type CertificateProfileOutput struct{ Body CertificateProfileResponse }
 type CertificateProfileListOutput struct{ Body []CertificateProfileResponse }
 
-func responseFromModel(profile model.CertificateProfile, subjects []string, issued []service.IssuedCertificate) CertificateProfileResponse {
+func responseFromModel(profile model.CertificateProfile, subjects []string, issued []service.IssuedCertificate, runtime service.CertificateIssuanceStatus, usageCount int) CertificateProfileResponse {
 	response := CertificateProfileResponse{
 		ID: profile.Id, Name: profile.Name, CertificateType: profile.CertificateType,
 		Subjects: subjects, ChallengeType: profile.ChallengeType, DNSProviderID: profile.DNSProviderID,
 		Enabled: profile.Enabled, CreatedAt: profile.CreatedAt, UpdatedAt: profile.UpdatedAt,
 		IssuedCertificates: make([]IssuedCertificateResponse, 0, len(issued)),
+		IssuanceState:      runtime.State, IssuanceMessage: runtime.Message,
+		LastError: runtime.LastError, UsageCount: usageCount,
 	}
 	for _, certificate := range issued {
 		response.IssuedCertificates = append(response.IssuedCertificates, IssuedCertificateResponse{

@@ -11,7 +11,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go" alt="Go version">
   <img src="https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react" alt="React version">
-  <img src="https://img.shields.io/badge/Caddy-2.10-00B247?style=flat&logo=caddy" alt="Caddy">
+  <img src="https://img.shields.io/badge/Caddy-2.11.4-00B247?style=flat&logo=caddy" alt="Caddy">
   <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Docker-Compose-2496ED?style=flat&logo=docker" alt="Docker">
 </p>
@@ -34,7 +34,7 @@ All configuration changes are versioned. If a publish fails, your previous worki
 - **Dashboard** — at-a-glance status: site counts, Caddy health, last publish time
 - **Unified Caddy workbench** — runtime health, validate/publish flow, config history, and Caddy updates in one place
 - **System identity** — the global sidebar shows the CaddyPilot version embedded from the release Tag
-- **Runtime observability** — inspect issued certificate metadata and follow system or Caddy process logs online
+- **Runtime observability** — inspect certificate issuance state and follow system, Caddy, or credential-safe DNS Provider audit logs online
 - **Self-protecting** — the management port (`:8080`) is never removed from generated configs, so the UI always stays reachable
 - **Single system** — Caddy + Go API + React ship together; users never install or start Caddy separately
 

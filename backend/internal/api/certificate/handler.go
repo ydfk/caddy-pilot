@@ -16,43 +16,39 @@ import (
 	"gorm.io/gorm"
 )
 
-func List(_ context.Context, _ *struct{}) (*CertificateProfileListOutput, error) {
+func List(ctx context.Context, _ *struct{}) (*CertificateProfileListOutput, error) {
 	var profiles []model.CertificateProfile
 	if err := db.DB.Order("created_at DESC").Find(&profiles).Error; err != nil {
 		return nil, huma.Error500InternalServerError("查询证书配置失败")
 	}
-	output := &CertificateProfileListOutput{Body: make([]CertificateProfileResponse, 0, len(profiles))}
-	issued, err := service.LoadIssuedCertificates()
+	responses, err := buildCertificateResponses(ctx, profiles)
 	if err != nil {
-		return nil, huma.Error500InternalServerError("读取 Caddy 证书失败", err)
+		return nil, huma.Error500InternalServerError("读取证书运行状态失败", err)
 	}
-	for _, profile := range profiles {
-		subjects, err := decodeSubjects(profile.Subjects)
-		if err != nil {
-			return nil, huma.Error500InternalServerError("解析证书域名失败")
-		}
-		output.Body = append(output.Body, responseFromModel(profile, subjects, service.MatchIssuedCertificates(subjects, issued)))
-	}
-	return output, nil
+	return &CertificateProfileListOutput{Body: responses}, nil
 }
 
-func Create(_ context.Context, input *CertificateProfileCreateInput) (*CertificateProfileOutput, error) {
-	profile, subjects, err := profileFromPayload(input.Body)
+func Create(ctx context.Context, input *CertificateProfileCreateInput) (*CertificateProfileOutput, error) {
+	profile, _, err := profileFromPayload(input.Body)
 	if err != nil {
 		return nil, huma.Error400BadRequest(err.Error())
 	}
 	if err := db.DB.Create(&profile).Error; err != nil {
 		return nil, huma.Error500InternalServerError("创建证书配置失败", err)
 	}
-	return &CertificateProfileOutput{Body: responseFromModel(profile, subjects, nil)}, nil
+	responses, err := buildCertificateResponses(ctx, []model.CertificateProfile{profile})
+	if err != nil {
+		return nil, huma.Error500InternalServerError("读取证书运行状态失败", err)
+	}
+	return &CertificateProfileOutput{Body: responses[0]}, nil
 }
 
-func Update(_ context.Context, input *CertificateProfileUpdateInput) (*CertificateProfileOutput, error) {
+func Update(ctx context.Context, input *CertificateProfileUpdateInput) (*CertificateProfileOutput, error) {
 	existing, err := find(input.ID)
 	if err != nil {
 		return nil, err
 	}
-	profile, subjects, payloadErr := profileFromPayload(input.Body)
+	profile, _, payloadErr := profileFromPayload(input.Body)
 	if payloadErr != nil {
 		return nil, huma.Error400BadRequest(payloadErr.Error())
 	}
@@ -60,7 +56,58 @@ func Update(_ context.Context, input *CertificateProfileUpdateInput) (*Certifica
 	if err := db.DB.Model(&existing).Select("*").Omit("id", "created_at", "deleted_at").Updates(&profile).Error; err != nil {
 		return nil, huma.Error500InternalServerError("更新证书配置失败", err)
 	}
-	return &CertificateProfileOutput{Body: responseFromModel(profile, subjects, nil)}, nil
+	responses, err := buildCertificateResponses(ctx, []model.CertificateProfile{profile})
+	if err != nil {
+		return nil, huma.Error500InternalServerError("读取证书运行状态失败", err)
+	}
+	return &CertificateProfileOutput{Body: responses[0]}, nil
+}
+
+type certificateUsage struct {
+	total  int
+	active int
+}
+
+func buildCertificateResponses(ctx context.Context, profiles []model.CertificateProfile) ([]CertificateProfileResponse, error) {
+	issued, err := service.LoadIssuedCertificates()
+	if err != nil {
+		return nil, err
+	}
+	var sites []proxysite.ProxySite
+	if err := db.DB.WithContext(ctx).Find(&sites).Error; err != nil {
+		return nil, err
+	}
+	usage := make(map[string]certificateUsage)
+	for _, site := range sites {
+		if site.CertificateProfileID == nil {
+			continue
+		}
+		key := site.CertificateProfileID.String()
+		value := usage[key]
+		value.total++
+		if site.Enabled {
+			value.active++
+		}
+		usage[key] = value
+	}
+	client := service.CaddyAdmin(service.NewCaddyClient())
+	if managed := service.ManagedCaddy(); managed != nil {
+		client = managed
+	}
+	runtimeConfig, _ := client.GetConfig(ctx)
+	runtimeErrors := service.LoadRecentCertificateErrors()
+	responses := make([]CertificateProfileResponse, 0, len(profiles))
+	for _, profile := range profiles {
+		subjects, decodeErr := decodeSubjects(profile.Subjects)
+		if decodeErr != nil {
+			return nil, decodeErr
+		}
+		matched := service.MatchIssuedCertificates(subjects, issued)
+		counts := usage[profile.Id.String()]
+		status := service.EvaluateCertificateIssuance(subjects, matched, counts.total, counts.active, runtimeConfig, runtimeErrors)
+		responses = append(responses, responseFromModel(profile, subjects, matched, status, counts.total))
+	}
+	return responses, nil
 }
 
 func Delete(_ context.Context, input *CertificateProfileIDInput) (*struct{}, error) {

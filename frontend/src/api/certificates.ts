@@ -11,6 +11,17 @@ export type CertificateProfile = {
   created_at: string;
   updated_at: string;
   issued_certificates: IssuedCertificate[];
+  issuance_state:
+    | "unused"
+    | "pending_publish"
+    | "issuing"
+    | "failed"
+    | "issued"
+    | "expiring"
+    | "expired";
+  issuance_message: string;
+  last_error?: string;
+  usage_count: number;
 };
 
 export type IssuedCertificate = {
@@ -24,7 +35,14 @@ export type IssuedCertificate = {
 
 export type CertificateProfilePayload = Omit<
   CertificateProfile,
-  "id" | "created_at" | "updated_at" | "issued_certificates"
+  | "id"
+  | "created_at"
+  | "updated_at"
+  | "issued_certificates"
+  | "issuance_state"
+  | "issuance_message"
+  | "last_error"
+  | "usage_count"
 >;
 
 export const listCertificates = () => apiRequest<CertificateProfile[]>("/api/certificates");

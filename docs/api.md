@@ -50,7 +50,7 @@
 | --- | --- | --- |
 | GET/POST | `/api/dns-providers` | 查询或新增系统 DNS Provider |
 | PUT/DELETE | `/api/dns-providers/{id}` | 编辑或删除未被引用的 Provider |
-| GET/POST | `/api/certificates` | 查询或新增可复用证书配置；列表包含实际签发证书的时间、到期时间和颁发机构 |
+| GET/POST | `/api/certificates` | 查询或新增可复用证书配置；列表包含站点引用数、签发状态、最近错误和实际证书信息 |
 | PUT/DELETE | `/api/certificates/{id}` | 编辑或删除未被站点引用的证书配置 |
 
 ## Caddy 工作台设置
@@ -103,7 +103,7 @@
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| GET | `/api/logs?source=system&cursor=0&limit=200` | 通过游标增量读取系统或 Caddy 进程日志 |
+| GET | `/api/logs?source=system&cursor=0&limit=200` | 通过游标增量读取系统日志；`source` 也可使用 `caddy` 或脱敏后的 `dns` Provider 业务日志 |
 
 ## Dashboard
 

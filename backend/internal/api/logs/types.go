@@ -1,16 +1,17 @@
 package logs
 
 type ListInput struct {
-	Source string `query:"source" enum:"system,caddy" default:"system"`
+	Source string `query:"source" enum:"system,caddy,dns" default:"system"`
 	Cursor int64  `query:"cursor" minimum:"0" default:"0"`
 	Limit  int    `query:"limit" minimum:"1" maximum:"500" default:"200"`
 }
 
 type Entry struct {
-	ID        string `json:"id"`
-	Timestamp string `json:"timestamp,omitempty"`
-	Level     string `json:"level,omitempty"`
-	Message   string `json:"message"`
+	ID        string         `json:"id"`
+	Timestamp string         `json:"timestamp,omitempty"`
+	Level     string         `json:"level,omitempty"`
+	Message   string         `json:"message"`
+	Fields    map[string]any `json:"fields,omitempty"`
 }
 
 type ListResponse struct {

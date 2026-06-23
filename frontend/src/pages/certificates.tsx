@@ -129,6 +129,9 @@ export default function CertificatesPage() {
                       <Badge variant={profile.enabled ? "secondary" : "outline"}>
                         {profile.enabled ? "启用" : "停用"}
                       </Badge>
+                      <Badge variant={issuanceBadgeVariant(profile.issuance_state)}>
+                        {issuanceLabels[profile.issuance_state]}
+                      </Badge>
                     </div>
                     <p className="truncate font-mono text-xs text-muted-foreground">
                       {profile.subjects.join(", ")} · {profile.challenge_type.toUpperCase()}
@@ -165,11 +168,16 @@ export default function CertificatesPage() {
 }
 
 function CertificateRuntimeInfo({ profile }: { profile: CertificateProfile }) {
-  if (!profile.issued_certificates?.length) {
-    return <p className="mt-1 text-xs text-amber-600">等待 Caddy 签发</p>;
-  }
   return (
     <div className="mt-2 grid gap-1">
+      <p className="text-xs text-muted-foreground">
+        {profile.issuance_message} · {profile.usage_count} 个站点引用
+      </p>
+      {profile.last_error ? (
+        <p className="rounded border border-destructive/20 bg-destructive/5 px-2 py-1 text-xs text-destructive">
+          {profile.last_error}
+        </p>
+      ) : null}
       {profile.issued_certificates.map((certificate) => (
         <div
           key={certificate.serial_number}
@@ -187,6 +195,22 @@ function CertificateRuntimeInfo({ profile }: { profile: CertificateProfile }) {
       ))}
     </div>
   );
+}
+
+const issuanceLabels: Record<CertificateProfile["issuance_state"], string> = {
+  unused: "未被使用",
+  pending_publish: "等待发布",
+  issuing: "正在签发",
+  failed: "签发失败",
+  issued: "已签发",
+  expiring: "即将到期",
+  expired: "已过期",
+};
+
+function issuanceBadgeVariant(state: CertificateProfile["issuance_state"]) {
+  if (state === "failed" || state === "expired") return "destructive" as const;
+  if (state === "issued") return "secondary" as const;
+  return "outline" as const;
 }
 
 function formatCertificateTime(value: string) {
