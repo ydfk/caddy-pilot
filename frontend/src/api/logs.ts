@@ -1,6 +1,6 @@
 import { apiRequest } from "./client";
 
-export type LogSource = "system" | "caddy" | "dns";
+export type LogSource = "system" | "caddy" | "dns" | "access";
 export type LogEntry = {
   id: string;
   timestamp?: string;

@@ -42,6 +42,12 @@ func TestProxySiteLifecycle(t *testing.T) {
 	if created.Name != "示例站点" || !created.Enabled {
 		t.Fatalf("创建结果不正确: %+v", created)
 	}
+	listResponse := proxySiteRequest(t, app, http.MethodGet, "/api/proxy-sites?page=1&page_size=1", nil, token)
+	var page SiteListResponse
+	decodeProxySiteJSON(t, listResponse, &page)
+	if page.Total != 1 || page.PageSize != 1 || len(page.Items) != 1 {
+		t.Fatalf("代理站点分页不正确: %+v", page)
+	}
 
 	payload["name"] = "更新站点"
 	updatedResponse := proxySiteRequest(t, app, http.MethodPut, "/api/proxy-sites/"+created.ID.String(), payload, token)

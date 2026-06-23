@@ -110,12 +110,23 @@ func buildCertificateResponses(ctx context.Context, profiles []model.Certificate
 		counts := usage[profile.Id.String()]
 		matched := service.MatchIssuedCertificates(subjects, issued)
 		if len(matched) == 0 {
-			matched = service.MatchIssuedCertificates(subjects, service.LoadLiveCertificates(ctx, counts.domains))
+			probes := certificateProbeDomains(subjects, counts.domains)
+			matched = service.MatchIssuedCertificates(subjects, service.LoadLiveCertificates(ctx, probes))
 		}
 		status := service.EvaluateCertificateIssuance(subjects, matched, counts.total, counts.active, runtimeConfig, runtimeErrors)
 		responses = append(responses, responseFromModel(profile, subjects, matched, status, counts.total))
 	}
 	return responses, nil
+}
+
+func certificateProbeDomains(subjects, siteDomains []string) []string {
+	probes := append([]string{}, siteDomains...)
+	for _, subject := range subjects {
+		if strings.HasPrefix(subject, "*.") {
+			probes = append(probes, "caddypilot-probe."+strings.TrimPrefix(subject, "*."))
+		}
+	}
+	return compactStrings(probes)
 }
 
 func Delete(_ context.Context, input *CertificateProfileIDInput) (*struct{}, error) {

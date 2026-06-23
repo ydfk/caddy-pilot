@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import type { ProxySite, ProxySitePayload } from "@/api/proxy-sites";
+import type { CertificateProfile } from "@/api/certificates";
 
 const jsonObject = z.string().refine(isJSONObject, "请输入有效的 JSON 对象");
 const optionalJSON = z
@@ -9,6 +10,7 @@ const optionalJSON = z
 
 export const siteFormSchema = z
   .object({
+    description: z.string().max(2000),
     domains: z
       .array(z.string())
       .refine((value) => compactItems(value).length > 0, "至少填写一个域名"),
@@ -57,12 +59,13 @@ export const siteFormSchema = z
 export type SiteFormValues = z.infer<typeof siteFormSchema>;
 
 export const defaultSiteValues: SiteFormValues = {
+  description: "",
   domains: [""],
   upstreams: [""],
   upstreamType: "http",
   upstreamTLSServerName: "",
   upstreamTLSInsecureSkipVerify: false,
-  enabled: false,
+  enabled: true,
   enableHTTPS: true,
   forceHTTPS: true,
   certificateType: "single",
@@ -73,7 +76,7 @@ export const defaultSiteValues: SiteFormValues = {
   certificateProfileID: "",
   enableWS: false,
   enableGzip: true,
-  enableLog: false,
+  enableLog: true,
   requestHeaders: "{}",
   responseHeaders: "{}",
   allowedIPs: "",
@@ -84,6 +87,7 @@ export const defaultSiteValues: SiteFormValues = {
 
 export function formValuesFromSite(site: ProxySite, clone: boolean): SiteFormValues {
   return {
+    description: site.description,
     domains: site.domains.length ? site.domains : [""],
     upstreams: site.upstreams.length ? site.upstreams : [""],
     upstreamType: site.upstream_type || "http",
@@ -113,7 +117,7 @@ export function formValuesFromSite(site: ProxySite, clone: boolean): SiteFormVal
 export function payloadFromForm(values: SiteFormValues, forceDisabled = false): ProxySitePayload {
   return {
     name: "",
-    description: "",
+    description: values.description.trim(),
     domains: compactItems(values.domains),
     upstreams: compactItems(values.upstreams),
     upstream_type: values.upstreamType,
@@ -143,6 +147,38 @@ export function payloadFromForm(values: SiteFormValues, forceDisabled = false): 
     basic_auth_credential_ids: values.basicAuthCredentialIDs,
     advanced_json: values.advancedJSON.trim(),
   };
+}
+
+export function matchingWildcardProfile(domains: string[], profiles: CertificateProfile[]) {
+  const normalizedDomains = compactItems(domains).map((domain) => domain.toLowerCase());
+  if (normalizedDomains.length === 0) return undefined;
+  return profiles
+    .filter((profile) => profile.enabled && profile.certificate_type === "wildcard")
+    .map((profile) => ({
+      profile,
+      score: wildcardProfileScore(normalizedDomains, profile.subjects),
+    }))
+    .filter((item) => item.score > 0)
+    .sort((left, right) => right.score - left.score)[0]?.profile;
+}
+
+function wildcardProfileScore(domains: string[], subjects: string[]) {
+  const wildcards = subjects
+    .map((subject) => subject.toLowerCase())
+    .filter((subject) => subject.startsWith("*."));
+  if (
+    !domains.every((domain) => wildcards.some((wildcard) => wildcardCoversDomain(wildcard, domain)))
+  ) {
+    return 0;
+  }
+  return Math.max(...wildcards.map((wildcard) => wildcard.length));
+}
+
+function wildcardCoversDomain(wildcard: string, domain: string) {
+  const suffix = wildcard.slice(1);
+  if (!domain.endsWith(suffix)) return false;
+  const label = domain.slice(0, -suffix.length);
+  return label.length > 0 && !label.includes(".");
 }
 
 function compactItems(value: string[]) {

@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Braces, Save, Send, X } from "lucide-react";
+import { useEffect } from "react";
 import { Controller, useForm, type UseFormRegisterReturn } from "react-hook-form";
 import { Link } from "react-router-dom";
 
@@ -20,7 +21,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { SiteCoreOptions, SiteOptions } from "./site-options";
-import { siteFormSchema, type SiteFormValues } from "./site-form-data";
+import { matchingWildcardProfile, siteFormSchema, type SiteFormValues } from "./site-form-data";
 import { UpstreamOptions, UpstreamTLSOptions } from "./upstream-options";
 import { CredentialSelector } from "./credential-selector";
 import { CertificateOptions } from "./certificate-options";
@@ -63,11 +64,26 @@ export function SiteForm({
   const enableHTTPS = form.watch("enableHTTPS");
   const certificateType = form.watch("certificateType");
   const acmeChallengeType = form.watch("acmeChallengeType");
+  const domains = form.watch("domains");
+  const domainKey = domains.map((domain) => domain.trim().toLowerCase()).join("|");
   const title =
     mode === "new" ? "新增代理站点" : mode === "clone" ? "克隆代理站点" : "编辑代理站点";
   const description = cloneMode
     ? "克隆结果固定为停用状态，确认后再手动启用。"
     : "先完成核心配置，其余选项按需调整。保存不会自动发布。";
+
+  useEffect(() => {
+    if (mode === "edit" || !enableHTTPS) return;
+    const profile = matchingWildcardProfile(domainKey.split("|"), certificates);
+    if (!profile) {
+      form.setValue("certificateType", "single");
+      form.setValue("certificateProfileID", "");
+      return;
+    }
+    form.setValue("certificateType", "wildcard");
+    form.setValue("certificateProfileID", profile.id, { shouldValidate: true });
+    form.setValue("acmeChallengeType", "dns");
+  }, [certificates, domainKey, enableHTTPS, form, mode]);
 
   return (
     <form className="mx-auto flex w-full max-w-6xl flex-col gap-4">
@@ -216,6 +232,17 @@ export function SiteForm({
             <AccordionTrigger>高级配置 · Header 与扩展 JSON</AccordionTrigger>
             <AccordionContent>
               <FieldGroup>
+                <Field>
+                  <FieldLabel htmlFor="description">备注说明</FieldLabel>
+                  <Textarea
+                    id="description"
+                    rows={2}
+                    placeholder="可选，例如用途、维护人或部署位置"
+                    {...form.register("description")}
+                  />
+                  <FieldDescription>仅用于管理展示，不会写入 Caddy 配置。</FieldDescription>
+                  <FieldError>{errors.description?.message}</FieldError>
+                </Field>
                 <div className="grid gap-4 md:grid-cols-2">
                   <JSONField
                     id="requestHeaders"

@@ -21,6 +21,17 @@ type SummaryResponse struct {
 	HTTPSSiteCount    int64      `json:"https_site_count"`
 	LastPublishTime   *time.Time `json:"last_publish_time"`
 	CaddyOnline       bool       `json:"caddy_online"`
+	RequestCount24h   int64      `json:"request_count_24h"`
+	ErrorCount24h     int64      `json:"error_count_24h"`
+	TrafficBytes24h   int64      `json:"traffic_bytes_24h"`
+	TopSites24h       []TopSite  `json:"top_sites_24h"`
+}
+
+type TopSite struct {
+	Domain       string `json:"domain"`
+	RequestCount int64  `json:"request_count"`
+	ErrorCount   int64  `json:"error_count"`
+	Bytes        int64  `json:"bytes"`
 }
 
 type SummaryOutput struct {
@@ -48,6 +59,23 @@ func Summary(ctx context.Context, _ *struct{}) (*SummaryOutput, error) {
 		return nil, huma.Error500InternalServerError("查询最近发布时间失败")
 	}
 	client := service.NewCaddyClient()
+	if managed := service.ManagedCaddy(); managed != nil {
+		client = managed.Admin
+	}
 	response.CaddyOnline = client.GetStatus(ctx) == nil
+	accessStats, err := service.LoadAccessStats(time.Now().Add(-24*time.Hour), 5)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("读取访问统计失败", err)
+	}
+	response.RequestCount24h = accessStats.RequestCount
+	response.ErrorCount24h = accessStats.ErrorCount
+	response.TrafficBytes24h = accessStats.Bytes
+	response.TopSites24h = make([]TopSite, 0, len(accessStats.TopSites))
+	for _, site := range accessStats.TopSites {
+		response.TopSites24h = append(response.TopSites24h, TopSite{
+			Domain: site.Domain, RequestCount: site.RequestCount,
+			ErrorCount: site.ErrorCount, Bytes: site.Bytes,
+		})
+	}
 	return &SummaryOutput{Body: response}, nil
 }

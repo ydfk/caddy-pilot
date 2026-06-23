@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   Braces,
+  ChevronLeft,
+  ChevronRight,
   Copy,
   FileUp,
   Pencil,
   Plus,
-  Rocket,
   Route,
-  ShieldCheck,
   Trash2,
 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -24,6 +24,7 @@ import {
 } from "@/api/proxy-sites";
 import { getCaddyChangeStatus, publishCaddyConfig, validateCaddyConfig } from "@/api/caddy";
 import { NginxImportDialog } from "@/components/proxy-sites/nginx-import-dialog";
+import { ProxySitePublishActions } from "@/components/proxy-sites/proxy-site-publish-actions";
 import { SiteConfigPreviewDialog } from "@/components/proxy-sites/site-config-preview-dialog";
 import { PageHeader } from "@/components/page-header";
 import {
@@ -35,7 +36,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -62,6 +62,9 @@ import {
 
 export default function ProxySitesPage() {
   const [sites, setSites] = useState<ProxySite[]>([]);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(true);
   const [busyID, setBusyID] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<ProxySite | null>(null);
@@ -74,15 +77,17 @@ export default function ProxySitesPage() {
   const loadSites = useCallback(async () => {
     setLoading(true);
     try {
-      const [nextSites, status] = await Promise.all([listProxySites(), getCaddyChangeStatus()]);
-      setSites(nextSites);
+      const [sitePage, status] = await Promise.all([listProxySites(page), getCaddyChangeStatus()]);
+      setSites(sitePage.items);
+      setTotal(sitePage.total);
+      setTotalPages(sitePage.total_pages);
       setHasChanges(status.dirty);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "读取代理站点失败");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page]);
 
   async function refreshChangeStatus() {
     const status = await getCaddyChangeStatus();
@@ -128,7 +133,8 @@ export default function ProxySitesPage() {
     setBusyID(target.id);
     try {
       await deleteProxySite(target.id);
-      setSites((current) => current.filter((item) => item.id !== target.id));
+      if (sites.length === 1 && page > 1) setPage((current) => current - 1);
+      else await loadSites();
       setValidated(false);
       await refreshChangeStatus();
       toast.success("代理站点已删除");
@@ -153,15 +159,30 @@ export default function ProxySitesPage() {
     }
   }
 
-  async function publishConfig() {
+  async function publishConfig(reason = "从代理站点页面发布") {
     setPublishing(true);
     try {
-      const version = await publishCaddyConfig("从代理站点页面发布");
+      const version = await publishCaddyConfig(reason);
       setValidated(false);
       setHasChanges(false);
       toast.success(`配置 v${version.version} 已发布`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "发布配置失败");
+    } finally {
+      setPublishing(false);
+    }
+  }
+
+  async function regenerateConfig() {
+    setPublishing(true);
+    try {
+      await validateCaddyConfig();
+      const version = await publishCaddyConfig("手动重新生成并发布完整配置");
+      setValidated(false);
+      setHasChanges(false);
+      toast.success(`已重新生成并发布配置 v${version.version}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "重新生成配置失败");
     } finally {
       setPublishing(false);
     }
@@ -175,48 +196,15 @@ export default function ProxySitesPage() {
         description="维护域名、上游与发布状态。修改不会自动推送到 Caddy。"
         actions={
           <>
-            {hasChanges ? (
-              <>
-                <Button
-                  variant="outline"
-                  onClick={() => void validateConfig()}
-                  disabled={validating}
-                >
-                  {validating ? (
-                    <Spinner data-icon="inline-start" />
-                  ) : (
-                    <ShieldCheck data-icon="inline-start" />
-                  )}
-                  1. 校验配置
-                </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button disabled={!validated || publishing}>
-                      {publishing ? (
-                        <Spinner data-icon="inline-start" />
-                      ) : (
-                        <Rocket data-icon="inline-start" />
-                      )}
-                      2. 发布
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>发布已校验的站点配置？</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        后端会重新生成完整配置，并安全发布到托管的 Caddy。
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>取消</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => void publishConfig()}>
-                        确认发布
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </>
-            ) : null}
+            <ProxySitePublishActions
+              hasChanges={hasChanges}
+              validated={validated}
+              validating={validating}
+              publishing={publishing}
+              onValidate={() => void validateConfig()}
+              onPublish={() => void publishConfig()}
+              onRegenerate={() => void regenerateConfig()}
+            />
             <NginxImportDialog
               trigger={
                 <Button variant="outline">
@@ -225,14 +213,15 @@ export default function ProxySitesPage() {
               }
               onImport={importNginxConfig}
               onImported={(result) => {
-                setSites((current) => [...result.sites, ...current]);
+                if (page === 1) void loadSites();
+                else setPage(1);
                 toast.success(`已导入 ${result.sites.length} 个停用站点`);
                 if (result.warnings.length > 0) {
                   toast.warning(result.warnings.join("；"));
                 }
               }}
             />
-            <Button variant="secondary" asChild>
+            <Button asChild>
               <Link to="/proxy-sites/new">
                 <Plus data-icon="inline-start" /> 新增站点
               </Link>
@@ -256,7 +245,7 @@ export default function ProxySitesPage() {
       <Card>
         <CardHeader>
           <CardTitle>站点清单</CardTitle>
-          <CardDescription>共 {sites.length} 个未删除站点</CardDescription>
+          <CardDescription>共 {total} 个未删除站点，每页 20 个</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -300,6 +289,11 @@ export default function ProxySitesPage() {
                         <span className="block truncate font-mono text-xs">
                           {site.domains.join(", ")}
                         </span>
+                        {site.description ? (
+                          <span className="mt-1 block truncate text-xs text-muted-foreground">
+                            {site.description}
+                          </span>
+                        ) : null}
                       </TableCell>
                       <TableCell className="max-w-56">
                         <span className="block truncate font-mono text-xs">
@@ -308,7 +302,11 @@ export default function ProxySitesPage() {
                       </TableCell>
                       <TableCell>
                         <Badge variant={site.enable_https ? "secondary" : "outline"}>
-                          {site.enable_https ? "启用" : "关闭"}
+                          {site.enable_https
+                            ? site.certificate_type === "wildcard"
+                              ? "通配符"
+                              : "单域名"
+                            : "关闭"}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -370,6 +368,31 @@ export default function ProxySitesPage() {
               </Table>
             </div>
           )}
+          {!loading && totalPages > 1 ? (
+            <div className="mt-4 flex items-center justify-between border-t pt-4 text-sm">
+              <span className="text-muted-foreground">
+                第 {page} / {totalPages} 页
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page <= 1}
+                  onClick={() => setPage((current) => current - 1)}
+                >
+                  <ChevronLeft /> 上一页
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= totalPages}
+                  onClick={() => setPage((current) => current + 1)}
+                >
+                  下一页 <ChevronRight />
+                </Button>
+              </div>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 

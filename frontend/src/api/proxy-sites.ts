@@ -33,8 +33,16 @@ export type ProxySite = ProxySitePayload & { id: string; created_at: string; upd
 
 export type ProxySitePreview = { caddy_json: unknown; caddyfile: string };
 export type NginxImportResult = { sites: ProxySite[]; warnings: string[] };
+export type ProxySitePage = {
+  items: ProxySite[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+};
 
-export const listProxySites = () => apiRequest<ProxySite[]>("/api/proxy-sites");
+export const listProxySites = (page = 1, pageSize = 20) =>
+  apiRequest<ProxySitePage>(`/api/proxy-sites?page=${page}&page_size=${pageSize}`);
 export const getProxySite = (id: string) => apiRequest<ProxySite>(`/api/proxy-sites/${id}`);
 export const createProxySite = (payload: ProxySitePayload) =>
   apiRequest<ProxySite>("/api/proxy-sites", { method: "POST", body: JSON.stringify(payload) });

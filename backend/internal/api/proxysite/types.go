@@ -42,6 +42,11 @@ type SiteInput struct {
 	Body SitePayload
 }
 
+type SiteListInput struct {
+	Page     int `query:"page" minimum:"1" default:"1"`
+	PageSize int `query:"page_size" minimum:"1" maximum:"100" default:"20"`
+}
+
 type SiteIDInput struct {
 	ID string `path:"id" format:"uuid" doc:"站点 ID"`
 }
@@ -99,7 +104,15 @@ type SiteOutput struct {
 }
 
 type SiteListOutput struct {
-	Body []SiteResponse
+	Body SiteListResponse
+}
+
+type SiteListResponse struct {
+	Items      []SiteResponse `json:"items"`
+	Total      int64          `json:"total"`
+	Page       int            `json:"page"`
+	PageSize   int            `json:"page_size"`
+	TotalPages int            `json:"total_pages"`
 }
 
 type PreviewResponse struct {

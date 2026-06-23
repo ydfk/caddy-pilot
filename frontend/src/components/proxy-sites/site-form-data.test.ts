@@ -1,9 +1,20 @@
 import { describe, expect, test } from "vitest";
 
 import type { ProxySite } from "@/api/proxy-sites";
-import { defaultSiteValues, formValuesFromSite, payloadFromForm } from "./site-form-data";
+import type { CertificateProfile } from "@/api/certificates";
+import {
+  defaultSiteValues,
+  formValuesFromSite,
+  matchingWildcardProfile,
+  payloadFromForm,
+} from "./site-form-data";
 
 describe("代理站点表单转换", () => {
+  test("新增站点默认启用并记录访问日志", () => {
+    expect(defaultSiteValues.enabled).toBe(true);
+    expect(defaultSiteValues.enableLog).toBe(true);
+  });
+
   test("克隆表单始终默认停用", () => {
     const values = formValuesFromSite(sampleSite(), true);
     expect(values.enabled).toBe(false);
@@ -18,6 +29,7 @@ describe("代理站点表单转换", () => {
       responseHeaders: '{"X-Response":"value"}',
       allowedIPs: "127.0.0.1\n10.0.0.0/8",
       enabled: true,
+      description: "内网服务",
     });
 
     expect(payload.name).toBe("");
@@ -26,8 +38,35 @@ describe("代理站点表单转换", () => {
     expect(payload.request_headers).toEqual({ "X-Request": "value" });
     expect(payload.allowed_ips).toEqual(["127.0.0.1", "10.0.0.0/8"]);
     expect(payload.dns_provider).toBe("alidns");
+    expect(payload.description).toBe("内网服务");
+  });
+
+  test("域名优先匹配最具体的通配符证书", () => {
+    const broad = sampleCertificate("broad", ["*.example.com"]);
+    const specific = sampleCertificate("specific", ["*.internal.example.com"]);
+    expect(matchingWildcardProfile(["app.internal.example.com"], [broad, specific])?.id).toBe(
+      "specific"
+    );
+    expect(matchingWildcardProfile(["deep.app.example.com"], [broad])).toBeUndefined();
   });
 });
+
+function sampleCertificate(id: string, subjects: string[]): CertificateProfile {
+  return {
+    id,
+    name: id,
+    certificate_type: "wildcard",
+    subjects,
+    challenge_type: "dns",
+    enabled: true,
+    created_at: "2026-06-20T00:00:00Z",
+    updated_at: "2026-06-20T00:00:00Z",
+    issued_certificates: [],
+    issuance_state: "unused",
+    issuance_message: "",
+    usage_count: 0,
+  };
+}
 
 function sampleSite(): ProxySite {
   return {

@@ -36,9 +36,6 @@ func EvaluateCertificateIssuance(
 	if activeUsageCount == 0 {
 		return CertificateIssuanceStatus{State: "pending_publish", Message: "引用该证书的站点尚未启用"}
 	}
-	if !RuntimeConfigContainsSubjects(runtimeConfig, subjects) {
-		return CertificateIssuanceStatus{State: "pending_publish", Message: "站点修改尚未发布到当前 Caddy 配置"}
-	}
 	if len(issued) > 0 {
 		state := "issued"
 		message := "证书已签发"
@@ -51,6 +48,9 @@ func EvaluateCertificateIssuance(
 			}
 		}
 		return CertificateIssuanceStatus{State: state, Message: message}
+	}
+	if !RuntimeConfigContainsSubjects(runtimeConfig, subjects) {
+		return CertificateIssuanceStatus{State: "pending_publish", Message: "站点修改尚未发布到当前 Caddy 配置"}
 	}
 	if lastError := MatchCertificateError(subjects, errors); lastError != "" {
 		return CertificateIssuanceStatus{State: "failed", Message: "Caddy 最近一次签发尝试失败", LastError: lastError}

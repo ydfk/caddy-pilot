@@ -186,11 +186,13 @@ function CertificateRuntimeInfo({ profile }: { profile: CertificateProfile }) {
           <span className="flex min-w-0 items-center gap-1.5">
             <CalendarClock className="size-3 shrink-0" />
             <span className="truncate">
-              签发 {formatCertificateTime(certificate.issued_at)} · 到期{" "}
-              {formatCertificateTime(certificate.expires_at)}
+              到期 {formatCertificateTime(certificate.expires_at)} · 剩余{" "}
+              {certificateDaysRemaining(certificate.expires_at)} 天
             </span>
           </span>
-          <span className="truncate">{certificate.issuer}</span>
+          <span className="truncate font-mono" title={certificate.serial_number}>
+            {certificate.subjects.join(", ")} · {shortSerial(certificate.serial_number)}
+          </span>
         </div>
       ))}
     </div>
@@ -215,4 +217,12 @@ function issuanceBadgeVariant(state: CertificateProfile["issuance_state"]) {
 
 function formatCertificateTime(value: string) {
   return new Date(value).toLocaleDateString("zh-CN");
+}
+
+function certificateDaysRemaining(value: string) {
+  return Math.max(0, Math.ceil((new Date(value).getTime() - Date.now()) / 86_400_000));
+}
+
+function shortSerial(value: string) {
+  return value.length > 12 ? `${value.slice(0, 6)}…${value.slice(-6)}` : value;
 }

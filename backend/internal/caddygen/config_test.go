@@ -55,6 +55,22 @@ func TestGenerateSupportsMultipleUpstreams(t *testing.T) {
 	}
 }
 
+func TestGenerateEnablesPerSiteAccessLog(t *testing.T) {
+	t.Setenv("CADDYPILOT_LOG_DIR", "/data/logs")
+	site := testSite(true, []string{"127.0.0.1:3000"})
+	site.EnableLog = true
+	payload, err := Generate([]proxysite.ProxySite{site})
+	if err != nil {
+		t.Fatalf("生成访问日志配置失败: %v", err)
+	}
+	compact := compactJSON(payload)
+	for _, expected := range []string{`"http.log.access.sites"`, `"example.com":["sites"]`, `"filename":"/data/logs/access.log"`} {
+		if !bytes.Contains(compact, []byte(expected)) {
+			t.Fatalf("访问日志配置缺少 %s: %s", expected, payload)
+		}
+	}
+}
+
 func TestGenerateSupportsTypedUpstreams(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -163,7 +179,7 @@ func TestGenerateSupportsAliDNSWildcardCertificate(t *testing.T) {
 		t.Fatalf("生成阿里云 DNS-01 配置失败: %v", err)
 	}
 	compact := compactJSON(payload)
-	for _, expected := range []string{`"subjects":["*.example.com"]`, `"name":"alidns"`, `{env.ALIYUN_ACCESS_KEY_ID}`, `{env.ALIYUN_ACCESS_KEY_SECRET}`} {
+	for _, expected := range []string{`"subjects":["*.example.com"]`, `"automate":["*.example.com"]`, `"name":"alidns"`, `{env.ALIYUN_ACCESS_KEY_ID}`, `{env.ALIYUN_ACCESS_KEY_SECRET}`} {
 		if !bytes.Contains(compact, []byte(expected)) {
 			t.Fatalf("DNS-01 配置缺少 %s: %s", expected, payload)
 		}
@@ -185,8 +201,8 @@ func TestGenerateMergesDuplicateWildcardTLSPolicies(t *testing.T) {
 	if err != nil {
 		t.Fatalf("合并重复 TLS 策略失败: %v", err)
 	}
-	if bytes.Count(payload, []byte(`"*.example.com"`)) != 1 {
-		t.Fatalf("通配符 TLS 策略未去重: %s", payload)
+	if bytes.Count(payload, []byte(`"*.example.com"`)) != 2 {
+		t.Fatalf("通配符 TLS 策略未正确生成: %s", payload)
 	}
 }
 

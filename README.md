@@ -220,7 +220,6 @@ Pushing a semantic version tag such as `v1.2.3` builds and publishes the Linux a
 
 - Merge `advanced_json` into generated configs via a controlled allowlist (currently saved but not applied)
 - Add DNS providers beyond Aliyun
-- Expand `enable_log` into per-site access log configuration
 - Auto-restore the last successful business config on restart (currently boots with a backend-generated protected management config)
 
 ---

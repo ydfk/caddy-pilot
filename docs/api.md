@@ -23,7 +23,7 @@
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| GET | `/api/proxy-sites` | 列表 |
+| GET | `/api/proxy-sites?page=1&page_size=20` | 分页列表，默认每页 20 条 |
 | POST | `/api/proxy-sites` | 新增 |
 | GET | `/api/proxy-sites/{id}` | 详情 |
 | PUT | `/api/proxy-sites/{id}` | 全量更新 |
@@ -108,7 +108,7 @@
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| GET | `/api/logs?source=system&cursor=0&limit=200` | 通过游标增量读取系统日志；`source` 也可使用 `caddy` 或脱敏后的 `dns` Provider 业务日志 |
+| GET | `/api/logs?source=system&cursor=0&limit=200` | 通过游标增量读取日志；`source` 也可使用 `caddy`、`access` 或脱敏后的 `dns` Provider 日志 |
 | GET | `/api/logs?source=dns&provider_id={id}` | 读取指定 DNS Provider 的脱敏调用日志 |
 
 ## Dashboard
@@ -121,9 +121,14 @@
   "enabled_site_count": 2,
   "disabled_site_count": 1,
   "https_site_count": 2,
+  "request_count_24h": 1280,
+  "error_count_24h": 3,
+  "traffic_bytes_24h": 73400320,
+  "top_sites_24h": [
+    { "domain": "app.example.com", "request_count": 900, "error_count": 2, "bytes": 52428800 }
+  ],
   "last_publish_time": "2026-06-20T10:00:00+08:00",
-  "caddy_online": true,
-  "caddy_admin_api": "http://127.0.0.1:2019"
+  "caddy_online": true
 }
 ```
 

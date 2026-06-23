@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"math"
 	"strings"
 	"time"
 
@@ -18,21 +19,35 @@ import (
 	"gorm.io/gorm"
 )
 
-func List(_ context.Context, _ *struct{}) (*SiteListOutput, error) {
+func List(_ context.Context, input *SiteListInput) (*SiteListOutput, error) {
+	page, pageSize := input.Page, input.PageSize
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 20
+	}
+	var total int64
+	if err := db.DB.Model(&model.ProxySite{}).Count(&total).Error; err != nil {
+		return nil, huma.Error500InternalServerError("统计代理站点失败")
+	}
 	var sites []model.ProxySite
-	if err := db.DB.Order("created_at DESC").Find(&sites).Error; err != nil {
+	if err := db.DB.Order("created_at DESC").Offset((page - 1) * pageSize).Limit(pageSize).Find(&sites).Error; err != nil {
 		return nil, huma.Error500InternalServerError("查询代理站点失败")
 	}
 
-	output := &SiteListOutput{Body: make([]SiteResponse, 0, len(sites))}
+	items := make([]SiteResponse, 0, len(sites))
 	for _, site := range sites {
 		response, err := newSiteResponse(site)
 		if err != nil {
 			return nil, huma.Error500InternalServerError("解析代理站点失败")
 		}
-		output.Body = append(output.Body, response)
+		items = append(items, response)
 	}
-	return output, nil
+	return &SiteListOutput{Body: SiteListResponse{
+		Items: items, Total: total, Page: page, PageSize: pageSize,
+		TotalPages: int(math.Ceil(float64(total) / float64(pageSize))),
+	}}, nil
 }
 
 func Create(_ context.Context, input *SiteInput) (*SiteOutput, error) {

@@ -26,6 +26,7 @@ func TestEvaluateCertificateIssuanceStates(t *testing.T) {
 		{name: "签发中", usage: 1, active: 1, config: runtimeConfig, expected: "issuing"},
 		{name: "失败", usage: 1, active: 1, config: runtimeConfig, errors: []CertificateRuntimeError{{Payload: `{"domain":"example.com"}`, Message: "acme failed"}}, expected: "failed"},
 		{name: "已签发", usage: 1, active: 1, config: runtimeConfig, issued: []IssuedCertificate{{Status: "valid"}}, expected: "issued"},
+		{name: "实际证书优先于配置探测", usage: 1, active: 1, issued: []IssuedCertificate{{Status: "valid"}}, expected: "issued"},
 		{name: "即将到期", usage: 1, active: 1, config: runtimeConfig, issued: []IssuedCertificate{{Status: "expiring"}}, expected: "expiring"},
 		{name: "已过期", usage: 1, active: 1, config: runtimeConfig, issued: []IssuedCertificate{{Status: "expired"}}, expected: "expired"},
 	}

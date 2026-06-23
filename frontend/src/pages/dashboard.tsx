@@ -1,5 +1,14 @@
 import { useEffect, useState } from "react";
-import { Activity, FileClock, Globe2, LockKeyhole, Power, Route } from "lucide-react";
+import {
+  Activity,
+  ArrowUpDown,
+  FileClock,
+  Globe2,
+  LockKeyhole,
+  Power,
+  Route,
+  ServerCrash,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -11,10 +20,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 
 const metrics = [
-  { key: "site_count", label: "站点总数", icon: Route },
-  { key: "enabled_site_count", label: "启用站点", icon: Power },
-  { key: "disabled_site_count", label: "停用站点", icon: Activity },
-  { key: "https_site_count", label: "HTTPS 站点", icon: LockKeyhole },
+  { key: "site_count", label: "站点总数", icon: Route, format: formatNumber },
+  { key: "enabled_site_count", label: "启用站点", icon: Power, format: formatNumber },
+  { key: "https_site_count", label: "HTTPS 站点", icon: LockKeyhole, format: formatNumber },
+  { key: "request_count_24h", label: "24h 访问量", icon: Activity, format: formatNumber },
+  { key: "error_count_24h", label: "24h 5xx", icon: ServerCrash, format: formatNumber },
+  { key: "traffic_bytes_24h", label: "24h 出站流量", icon: ArrowUpDown, format: formatBytes },
 ] as const;
 
 export default function DashboardPage() {
@@ -34,7 +45,7 @@ export default function DashboardPage() {
         description="代理站点与配置发布状态的即时概览。"
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {metrics.map((metric) => (
           <Card key={metric.key}>
             <CardHeader className="flex-row items-center justify-between">
@@ -44,7 +55,7 @@ export default function DashboardPage() {
             <CardContent>
               {summary ? (
                 <p className="font-mono text-3xl font-semibold tracking-tight">
-                  {summary[metric.key]}
+                  {metric.format(summary[metric.key])}
                 </p>
               ) : (
                 <Skeleton className="h-9 w-20" />
@@ -55,6 +66,47 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="lg:col-span-2">
+          <CardHeader className="flex-row items-start justify-between gap-4">
+            <div>
+              <CardTitle>访问最多的站点</CardTitle>
+              <CardDescription>最近 24 小时，数据来自已开启的站点访问日志</CardDescription>
+            </div>
+            <Badge variant={summary?.error_count_24h ? "destructive" : "outline"}>
+              <ServerCrash className="mr-1 size-3" /> {summary?.error_count_24h ?? 0} 次 5xx
+            </Badge>
+          </CardHeader>
+          <CardContent>
+            {summary?.top_sites_24h.length ? (
+              <div className="grid gap-3">
+                {summary.top_sites_24h.map((site) => {
+                  const maximum = summary.top_sites_24h[0]?.request_count || 1;
+                  return (
+                    <div key={site.domain} className="grid gap-1.5">
+                      <div className="flex items-center justify-between gap-4 text-sm">
+                        <span className="truncate font-mono text-xs">{site.domain}</span>
+                        <span className="shrink-0 text-xs text-muted-foreground">
+                          {formatNumber(site.request_count)} 次 · {formatBytes(site.bytes)}
+                        </span>
+                      </div>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full bg-primary transition-[width]"
+                          style={{ width: `${Math.max(3, (site.request_count / maximum) * 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                暂无访问数据，发布开启访问日志的站点后开始统计。
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -98,4 +150,22 @@ export default function DashboardPage() {
       </div>
     </div>
   );
+}
+
+function formatNumber(value: number) {
+  return new Intl.NumberFormat("zh-CN", { notation: "compact", maximumFractionDigits: 1 }).format(
+    value
+  );
+}
+
+function formatBytes(value: number) {
+  if (value < 1024) return `${value} B`;
+  const units = ["KB", "MB", "GB", "TB"];
+  let size = value / 1024;
+  let unit = units[0];
+  for (let index = 1; index < units.length && size >= 1024; index += 1) {
+    size /= 1024;
+    unit = units[index];
+  }
+  return `${size.toFixed(size >= 10 ? 0 : 1)} ${unit}`;
 }

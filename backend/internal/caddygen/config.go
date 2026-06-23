@@ -3,6 +3,8 @@ package caddygen
 import (
 	"encoding/json"
 	"fmt"
+	"path/filepath"
+	"sort"
 	"strconv"
 
 	"go-fiber-starter/internal/model/dnsprovider"
@@ -12,10 +14,21 @@ import (
 func Generate(sites []proxysite.ProxySite) ([]byte, error) {
 	httpRoutes := make([]map[string]any, 0)
 	httpsRoutes := make([]map[string]any, 0)
+	loggedDomains := make(map[string]struct{})
+	wildcardSubjects := make(map[string]struct{})
 	tlsPolicies := newTLSPolicyAccumulator()
 	for _, site := range sites {
 		if !site.Enabled {
 			continue
+		}
+		if site.EnableLog {
+			domains, err := decodeStringList(site.Domains)
+			if err != nil {
+				return nil, fmt.Errorf("解析站点 %q 日志域名失败: %w", site.Name, err)
+			}
+			for _, domain := range domains {
+				loggedDomains[domain] = struct{}{}
+			}
 		}
 		route, err := GenerateSiteRoute(site)
 		if err != nil {
@@ -41,24 +54,41 @@ func Generate(sites []proxysite.ProxySite) ([]byte, error) {
 				if err := tlsPolicies.Add(policy); err != nil {
 					return nil, fmt.Errorf("生成站点 %q TLS 配置失败: %w", site.Name, err)
 				}
+				if site.CertificateType == "wildcard" {
+					for _, subject := range policy["subjects"].([]string) {
+						wildcardSubjects[subject] = struct{}{}
+					}
+				}
 			}
 		}
 	}
 
 	servers := map[string]any{ManagementServerName: managementServer()}
 	if len(httpRoutes) > 0 {
-		servers["proxy-http"] = siteServer(":80", httpRoutes)
+		servers["proxy-http"] = siteServer(":80", httpRoutes, loggedDomains)
 	}
 	if len(httpsRoutes) > 0 {
-		servers["proxy-https"] = siteServer(":443", httpsRoutes)
+		servers["proxy-https"] = siteServer(":443", httpsRoutes, loggedDomains)
 	}
 	apps := map[string]any{"http": map[string]any{"servers": servers}}
 	if policies := tlsPolicies.Values(); len(policies) > 0 {
-		apps["tls"] = map[string]any{"automation": map[string]any{"policies": policies}}
+		tlsApp := map[string]any{"automation": map[string]any{"policies": policies}}
+		if len(wildcardSubjects) > 0 {
+			subjects := make([]string, 0, len(wildcardSubjects))
+			for subject := range wildcardSubjects {
+				subjects = append(subjects, subject)
+			}
+			sort.Strings(subjects)
+			tlsApp["certificates"] = map[string]any{"automate": subjects}
+		}
+		apps["tls"] = tlsApp
 	}
 	config := map[string]any{
 		"admin": localAdminConfig(),
 		"apps":  apps,
+	}
+	if len(loggedDomains) > 0 {
+		config["logging"] = accessLoggingConfig()
 	}
 	return json.MarshalIndent(config, "", "  ")
 }
@@ -98,7 +128,7 @@ func httpsRedirectLocation() (string, error) {
 	return location + "{http.request.uri}", nil
 }
 
-func siteServer(listen string, routes []map[string]any) map[string]any {
+func siteServer(listen string, routes []map[string]any, loggedDomains map[string]struct{}) map[string]any {
 	server := map[string]any{
 		"listen": []string{listen},
 		"routes": routes,
@@ -109,7 +139,37 @@ func siteServer(listen string, routes []map[string]any) map[string]any {
 	if listen == ":443" {
 		server["tls_connection_policies"] = []map[string]any{{}}
 	}
+	if len(loggedDomains) > 0 {
+		domains := make([]string, 0, len(loggedDomains))
+		for domain := range loggedDomains {
+			domains = append(domains, domain)
+		}
+		sort.Strings(domains)
+		loggerNames := make(map[string][]string, len(domains))
+		for _, domain := range domains {
+			loggerNames[domain] = []string{"sites"}
+		}
+		server["logs"] = map[string]any{"logger_names": loggerNames}
+	}
 	return server
+}
+
+func accessLoggingConfig() map[string]any {
+	return map[string]any{"logs": map[string]any{
+		"default": map[string]any{"exclude": []string{"http.log.access.sites"}},
+		"sites": map[string]any{
+			"include": []string{"http.log.access.sites"},
+			"encoder": map[string]any{"format": "json"},
+			"writer": map[string]any{
+				"output": "file", "filename": accessLogFilename(),
+				"roll_size_mb": 20, "roll_keep": 5, "roll_keep_days": 30,
+			},
+		},
+	}}
+}
+
+func accessLogFilename() string {
+	return filepath.ToSlash(filepath.Join(environmentValue("CADDYPILOT_LOG_DIR", filepath.Join("data", "logs")), "access.log"))
 }
 
 func siteTLSPolicy(site proxysite.ProxySite) (map[string]any, error) {

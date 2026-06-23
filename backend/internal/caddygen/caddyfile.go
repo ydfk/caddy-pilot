@@ -72,6 +72,11 @@ func writeProxySite(output *strings.Builder, site proxysite.ProxySite) error {
 	}
 	addresses := siteAddresses(domains, site.EnableHTTPS, site.ForceHTTPS)
 	fmt.Fprintf(output, "%s {\n", strings.Join(addresses, ", "))
+	if site.EnableLog {
+		output.WriteString("\tlog {\n")
+		fmt.Fprintf(output, "\t\toutput file %s\n", quoteCaddyfile(accessLogFilename()))
+		output.WriteString("\t\tformat json\n\t}\n")
+	}
 	if site.EnableGzip {
 		output.WriteString("\tencode gzip zstd\n")
 	}
@@ -178,7 +183,7 @@ func writeDNSIssuer(output *strings.Builder, site proxysite.ProxySite) {
 	output.WriteString("\t\t}\n")
 	output.WriteString("\t}\n")
 	if site.CertificateType == "wildcard" {
-		output.WriteString("\t# 通配符证书的 subjects 策略以 JSON 视图为准\n")
+		output.WriteString("\t# 通配符证书由 JSON 的 tls.certificates.automate 统一管理和复用\n")
 	}
 }
 
