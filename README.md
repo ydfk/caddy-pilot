@@ -11,7 +11,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go" alt="Go version">
   <img src="https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react" alt="React version">
-  <img src="https://img.shields.io/badge/Caddy-2.11.4-00B247?style=flat&logo=caddy" alt="Caddy">
+  <img src="https://img.shields.io/badge/Caddy-2.x-00B247?style=flat&logo=caddy" alt="Caddy">
   <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Docker-Compose-2496ED?style=flat&logo=docker" alt="Docker">
 </p>

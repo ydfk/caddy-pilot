@@ -13,6 +13,8 @@ docker compose up -d --build
 docker compose ps
 ```
 
+源码构建会主动拉取 `caddy:2-alpine` 与 `caddy:2-builder-alpine`，因此每次重新构建都会采用当时最新的稳定 Caddy 2.x。
+
 健康状态变为 `healthy` 后访问 <http://localhost:8080>。首次使用选择“初始化管理员”。
 
 默认 `docker-compose.yml` 可直接用于生产单机部署。用户只需要确认端口可用并持久化 `./data`，不需要声明容器内部地址、Admin API、数据库路径或密钥。
@@ -44,7 +46,7 @@ docker compose -f docker-compose.prod.yml up -d
 
 密钥保存到 `/data/.caddypilot-secrets`，文件权限为 `0600`。容器重建和镜像升级会继续使用原密钥，Compose 不需要也不应该重复声明这些内部配置。
 
-版本校验地址和下载地址不参与容器正常启动：镜像已经包含带阿里云 DNS 审计模块的 Caddy 2.11.4。国内网络无法访问 GitHub 时，只会影响“检查更新”和“在线更新”，不会影响已有站点运行。
+版本校验地址和下载地址不参与容器正常启动：镜像构建时会使用带阿里云 DNS 审计模块的最新稳定 Caddy 2.x。国内网络无法访问 GitHub 时，只会影响“检查更新”和“在线更新”，不会影响已有站点运行。
 
 这三个地址在“Caddy 管理 → 更新源设置”中修改并保存到 SQLite，不再使用 Docker 环境变量：
 

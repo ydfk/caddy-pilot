@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-ARG CADDY_VERSION=2.11.4
+ARG CADDY_VERSION=2
 ARG APP_VERSION=dev
 
 FROM node:22-alpine AS frontend-build
@@ -24,11 +24,10 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=1 GOOS=linux go build -trimpath -ldflags="-s -w -X go-fiber-starter/pkg/version.Current=${APP_VERSION}" -o /out/caddypilot ./cmd
 
 FROM caddy:${CADDY_VERSION}-builder-alpine AS caddy-build
-ARG CADDY_VERSION
 COPY caddy-modules/alidns /src/caddy-modules/alidns
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    xcaddy build v${CADDY_VERSION} \
+    xcaddy build \
       --with github.com/caddy-dns/alidns=/src/caddy-modules/alidns
 
 FROM caddy:${CADDY_VERSION}-alpine

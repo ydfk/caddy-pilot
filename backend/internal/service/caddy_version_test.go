@@ -34,6 +34,29 @@ func TestCaddyVersionServiceCheck(t *testing.T) {
 	}
 }
 
+func TestCaddyVersionServiceAcceptsGitHubAssetsArray(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+		_, _ = writer.Write([]byte(`{
+			"tag_name":"v2.12.0",
+			"html_url":"https://github.com/caddyserver/caddy/releases/tag/v2.12.0",
+			"assets":[{"name":"caddy_2.12.0_linux_amd64.tar.gz","browser_download_url":"https://example.com/caddy.tar.gz"}]
+		}`))
+	}))
+	defer server.Close()
+	service := NewCaddyVersionService()
+	service.ReleaseAPI = server.URL
+	service.HTTPClient = server.Client()
+	service.currentVersion = func(context.Context) (string, error) { return "2.11.0", nil }
+
+	info, err := service.Check(context.Background())
+	if err != nil || info.ErrorMessage != "" || info.LatestVersion != "2.12.0" {
+		t.Fatalf("GitHub Release 响应解析失败: %+v, %v", info, err)
+	}
+	if info.DownloadURL != DefaultCaddyDownloadURL {
+		t.Fatalf("GitHub Release 资产不应覆盖定制构建下载源: %s", info.DownloadURL)
+	}
+}
+
 func TestCaddyVersionServiceKeepsCurrentWhenReleaseUnavailable(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
 		http.Error(writer, "unavailable", http.StatusServiceUnavailable)

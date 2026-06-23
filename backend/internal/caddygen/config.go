@@ -12,7 +12,7 @@ import (
 func Generate(sites []proxysite.ProxySite) ([]byte, error) {
 	httpRoutes := make([]map[string]any, 0)
 	httpsRoutes := make([]map[string]any, 0)
-	tlsPolicies := make([]map[string]any, 0)
+	tlsPolicies := newTLSPolicyAccumulator()
 	for _, site := range sites {
 		if !site.Enabled {
 			continue
@@ -38,7 +38,9 @@ func Generate(sites []proxysite.ProxySite) ([]byte, error) {
 				return nil, fmt.Errorf("生成站点 %q TLS 配置失败: %w", site.Name, err)
 			}
 			if policy != nil {
-				tlsPolicies = append(tlsPolicies, policy)
+				if err := tlsPolicies.Add(policy); err != nil {
+					return nil, fmt.Errorf("生成站点 %q TLS 配置失败: %w", site.Name, err)
+				}
 			}
 		}
 	}
@@ -51,8 +53,8 @@ func Generate(sites []proxysite.ProxySite) ([]byte, error) {
 		servers["proxy-https"] = siteServer(":443", httpsRoutes)
 	}
 	apps := map[string]any{"http": map[string]any{"servers": servers}}
-	if len(tlsPolicies) > 0 {
-		apps["tls"] = map[string]any{"automation": map[string]any{"policies": tlsPolicies}}
+	if policies := tlsPolicies.Values(); len(policies) > 0 {
+		apps["tls"] = map[string]any{"automation": map[string]any{"policies": policies}}
 	}
 	config := map[string]any{
 		"admin": localAdminConfig(),

@@ -123,15 +123,13 @@ func (service *CaddyVersionService) readLatestRelease(ctx context.Context) (stri
 		return "", "", "", "", fmt.Errorf("读取 Caddy 版本响应失败: %w", err)
 	}
 	var release struct {
-		TagName    string `json:"tag_name"`
-		HTMLURL    string `json:"html_url"`
-		Version    string `json:"version"`
-		UpdateURL  string `json:"update_url"`
-		ReleaseTag string `json:"release_tag"`
-		SHA512URL  string `json:"sha512_url"`
-		Assets     map[string]struct {
-			URL string `json:"url"`
-		} `json:"assets"`
+		TagName    string          `json:"tag_name"`
+		HTMLURL    string          `json:"html_url"`
+		Version    string          `json:"version"`
+		UpdateURL  string          `json:"update_url"`
+		ReleaseTag string          `json:"release_tag"`
+		SHA512URL  string          `json:"sha512_url"`
+		Assets     json.RawMessage `json:"assets"`
 	}
 	if err := json.Unmarshal(body, &release); err != nil {
 		return "", "", "", "", fmt.Errorf("解析 Caddy 版本响应失败: %w", err)
@@ -150,8 +148,28 @@ func (service *CaddyVersionService) readLatestRelease(ctx context.Context) (stri
 	if strings.TrimSpace(version) == "" {
 		return "", "", "", "", fmt.Errorf("Caddy 最新版本为空")
 	}
-	asset := release.Assets[service.GOOS+"_"+service.GOARCH]
-	return normalizeVersion(version), updateURL, asset.URL, release.SHA512URL, nil
+	assetURL, err := runtimeManifestAssetURL(release.Assets, service.GOOS+"_"+service.GOARCH)
+	if err != nil {
+		return "", "", "", "", fmt.Errorf("解析 Caddy 版本响应失败: %w", err)
+	}
+	return normalizeVersion(version), updateURL, assetURL, release.SHA512URL, nil
+}
+
+func runtimeManifestAssetURL(payload json.RawMessage, platform string) (string, error) {
+	payload = json.RawMessage(strings.TrimSpace(string(payload)))
+	if len(payload) == 0 || string(payload) == "null" || payload[0] == '[' {
+		return "", nil
+	}
+	if payload[0] != '{' {
+		return "", fmt.Errorf("assets 必须是对象或数组")
+	}
+	var assets map[string]struct {
+		URL string `json:"url"`
+	}
+	if err := json.Unmarshal(payload, &assets); err != nil {
+		return "", err
+	}
+	return assets[platform].URL, nil
 }
 
 func normalizeVersion(version string) string {

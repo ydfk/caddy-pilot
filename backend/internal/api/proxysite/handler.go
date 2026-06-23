@@ -92,7 +92,7 @@ func Clone(_ context.Context, input *CloneSiteInput) (*SiteOutput, error) {
 	site.UpdatedAt = time.Time{}
 	site.DeletedAt = gorm.DeletedAt{}
 	site.Enabled = false
-	if input.Body.Name != nil {
+	if input.Body.Name != nil && strings.TrimSpace(*input.Body.Name) != "" {
 		site.Name = strings.TrimSpace(*input.Body.Name)
 	} else {
 		site.Name += " 副本"

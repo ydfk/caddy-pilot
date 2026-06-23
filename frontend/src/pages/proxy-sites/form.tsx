@@ -86,7 +86,7 @@ export default function ProxySiteFormPage() {
         saved = await updateProxySite(id, payload);
       } else if (id) {
         const cloned = await cloneProxySite(id, {
-          name: payload.name,
+          ...(payload.name ? { name: payload.name } : {}),
           domains: payload.domains,
           upstreams: payload.upstreams,
         });

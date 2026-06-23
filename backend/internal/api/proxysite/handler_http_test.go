@@ -62,6 +62,15 @@ func TestProxySiteLifecycle(t *testing.T) {
 		t.Fatalf("克隆站点未默认停用或复用了原 ID: %+v", cloned)
 	}
 
+	emptyNameCloneResponse := proxySiteRequest(t, app, http.MethodPost, "/api/proxy-sites/"+created.ID.String()+"/clone", map[string]any{"name": ""}, token)
+	if emptyNameCloneResponse.StatusCode != http.StatusCreated {
+		t.Fatalf("空名称克隆站点状态码为 %d", emptyNameCloneResponse.StatusCode)
+	}
+	emptyNameClone := decodeProxySiteResponse(t, emptyNameCloneResponse)
+	if emptyNameClone.Name != "更新站点 副本" {
+		t.Fatalf("空名称克隆未沿用默认名称: %+v", emptyNameClone)
+	}
+
 	previewResponse := proxySiteRequest(t, app, http.MethodPost, "/api/proxy-sites/"+created.ID.String()+"/preview", nil, token)
 	if previewResponse.StatusCode != http.StatusOK {
 		t.Fatalf("预览站点状态码为 %d", previewResponse.StatusCode)

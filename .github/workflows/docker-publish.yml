@@ -55,6 +55,7 @@ jobs:
         with:
           context: .
           build-args: APP_VERSION=${{ steps.version.outputs.version }}
+          pull: true
           push: true
           platforms: linux/amd64
           tags: ${{ steps.meta.outputs.tags }}

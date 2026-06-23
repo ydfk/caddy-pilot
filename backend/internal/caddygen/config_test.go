@@ -160,6 +160,47 @@ func TestGenerateSupportsAliDNSWildcardCertificate(t *testing.T) {
 	}
 }
 
+func TestGenerateMergesDuplicateWildcardTLSPolicies(t *testing.T) {
+	first := testSite(true, []string{"127.0.0.1:3000"})
+	first.Name = "站点一"
+	first.EnableHTTPS = true
+	first.CertificateType = "wildcard"
+	first.ACMEChallengeType = "dns"
+	first.ResolvedCertificateSubjects = mustJSON([]string{"*.example.com"})
+	second := first
+	second.Name = "站点二"
+	second.Domains = mustJSON([]string{"app.example.com"})
+
+	payload, err := Generate([]proxysite.ProxySite{first, second})
+	if err != nil {
+		t.Fatalf("合并重复 TLS 策略失败: %v", err)
+	}
+	if bytes.Count(payload, []byte(`"*.example.com"`)) != 1 {
+		t.Fatalf("通配符 TLS 策略未去重: %s", payload)
+	}
+}
+
+func TestGenerateRejectsConflictingWildcardTLSPolicies(t *testing.T) {
+	first := testSite(true, []string{"127.0.0.1:3000"})
+	first.Name = "站点一"
+	first.EnableHTTPS = true
+	first.CertificateType = "wildcard"
+	first.ACMEChallengeType = "dns"
+	first.ResolvedCertificateSubjects = mustJSON([]string{"*.example.com"})
+	firstProvider := uuid.MustParse("11111111-2222-3333-4444-555555555555")
+	first.DNSProviderID = &firstProvider
+	second := first
+	second.Name = "站点二"
+	second.Domains = mustJSON([]string{"app.example.com"})
+	secondProvider := uuid.MustParse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
+	second.DNSProviderID = &secondProvider
+
+	_, err := Generate([]proxysite.ProxySite{first, second})
+	if err == nil || !bytes.Contains([]byte(err.Error()), []byte("不同的 TLS 自动化策略")) {
+		t.Fatalf("应拒绝同域名的冲突 TLS 策略: %v", err)
+	}
+}
+
 func TestGenerateUsesStoredDNSProviderEnvironment(t *testing.T) {
 	site := testSite(true, []string{"127.0.0.1:3000"})
 	providerID := uuid.MustParse("11111111-2222-3333-4444-555555555555")

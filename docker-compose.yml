@@ -4,6 +4,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      pull: true
     container_name: caddypilot
     restart: unless-stopped
     ports:
