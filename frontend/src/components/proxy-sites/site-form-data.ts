@@ -12,9 +12,10 @@ export const siteFormSchema = z
   .object({
     description: z.string().max(2000),
     siteType: z.enum(["proxy", "static", "spa"]),
-    domains: z
-      .array(z.string())
-      .refine((value) => compactItems(value).length > 0, "至少填写一个域名"),
+    configMode: z.enum(["visual", "custom"]),
+    customFormat: z.enum(["json", "caddyfile"]),
+    customConfig: z.string(),
+    domains: z.array(z.string()),
     upstreams: z.array(z.string()),
     rootPath: z.string().max(1024),
     apiPath: z.string().max(256),
@@ -43,6 +44,21 @@ export const siteFormSchema = z
     advancedJSON: optionalJSON,
   })
   .superRefine((values, context) => {
+    if (values.configMode === "custom") {
+      if (!values.customConfig.trim()) {
+        context.addIssue({ code: "custom", path: ["customConfig"], message: "请输入自定义配置" });
+      } else if (values.customFormat === "json" && !isJSONObject(values.customConfig)) {
+        context.addIssue({
+          code: "custom",
+          path: ["customConfig"],
+          message: "请输入有效的 Caddy JSON 路由对象",
+        });
+      }
+      return;
+    }
+    if (compactItems(values.domains).length === 0) {
+      context.addIssue({ code: "custom", path: ["domains"], message: "至少填写一个域名" });
+    }
     if (values.siteType !== "static" && compactItems(values.upstreams).length === 0) {
       context.addIssue({ code: "custom", path: ["upstreams"], message: "至少填写一个上游" });
     }
@@ -73,6 +89,9 @@ export type SiteFormValues = z.infer<typeof siteFormSchema>;
 export const defaultSiteValues: SiteFormValues = {
   description: "",
   siteType: "proxy",
+  configMode: "visual",
+  customFormat: "caddyfile",
+  customConfig: "",
   domains: [""],
   upstreams: [""],
   rootPath: "",
@@ -106,6 +125,9 @@ export function formValuesFromSite(site: ProxySite, clone: boolean): SiteFormVal
   return {
     description: site.description,
     siteType: site.site_type || "proxy",
+    configMode: site.config_mode || "visual",
+    customFormat: site.custom_format === "json" ? "json" : "caddyfile",
+    customConfig: site.custom_config || "",
     domains: site.domains.length ? site.domains : [""],
     upstreams: site.upstreams.length ? site.upstreams : [""],
     rootPath: site.root_path,
@@ -141,6 +163,9 @@ export function payloadFromForm(values: SiteFormValues, forceDisabled = false): 
     name: "",
     description: values.description.trim(),
     site_type: values.siteType,
+    config_mode: values.configMode,
+    custom_format: values.configMode === "custom" ? values.customFormat : "",
+    custom_config: values.configMode === "custom" ? values.customConfig.trim() : "",
     domains: compactItems(values.domains),
     upstreams: compactItems(values.upstreams),
     root_path: values.rootPath.trim(),

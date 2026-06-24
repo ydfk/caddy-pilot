@@ -191,9 +191,7 @@ export default function ProxySitesPage() {
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
-        eyebrow="ROUTES / SITES"
         title="代理站点"
-        description="维护域名、上游与发布状态。修改不会自动推送到 Caddy。"
         actions={
           <>
             <ProxySitePublishActions
@@ -288,7 +286,7 @@ export default function ProxySitesPage() {
                     <TableRow key={site.id}>
                       <TableCell className="max-w-56">
                         <span className="block truncate font-mono text-xs">
-                          {site.domains.join(", ")}
+                          {site.config_mode === "custom" ? site.name : site.domains.join(", ")}
                         </span>
                         {site.description ? (
                           <span className="mt-1 block truncate text-xs text-muted-foreground">
@@ -297,15 +295,21 @@ export default function ProxySitesPage() {
                         ) : null}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">{siteTypeLabel(site.site_type)}</Badge>
+                        <Badge variant="outline">
+                          {site.config_mode === "custom"
+                            ? `自定义 ${site.custom_format.toUpperCase()}`
+                            : siteTypeLabel(site.site_type)}
+                        </Badge>
                       </TableCell>
                       <TableCell className="max-w-56">
                         <span className="block truncate font-mono text-xs">
-                          {site.site_type === "static"
-                            ? site.root_path
-                            : site.site_type === "spa"
-                              ? `${site.api_path} → ${site.upstreams.join(", ")}`
-                              : site.upstreams.join(", ")}
+                          {site.config_mode === "custom"
+                            ? "完全自定义"
+                            : site.site_type === "static"
+                              ? site.root_path
+                              : site.site_type === "spa"
+                                ? `${site.api_path} → ${site.upstreams.join(", ")}`
+                                : site.upstreams.join(", ")}
                         </span>
                       </TableCell>
                       <TableCell>

@@ -50,6 +50,7 @@ export default function ProxySiteFormPage() {
   const [pending, setPending] = useState(false);
   const [previewing, setPreviewing] = useState(false);
   const [preview, setPreview] = useState<ProxySitePreview | null>(null);
+  const [previewTab, setPreviewTab] = useState<"json" | "caddyfile">("json");
   const [credentials, setCredentials] = useState<BasicAuthCredential[]>([]);
   const [certificates, setCertificates] = useState<CertificateProfile[]>([]);
   const [dnsProviders, setDNSProviders] = useState<DNSProvider[]>([]);
@@ -140,8 +141,9 @@ export default function ProxySiteFormPage() {
     }
   }
 
-  async function showPreview(formValues: SiteFormValues) {
+  async function showPreview(formValues: SiteFormValues, tab: "json" | "caddyfile") {
     setPreviewing(true);
+    setPreviewTab(tab);
     try {
       const result = await previewProxySiteDraft(payloadFromForm(formValues, mode === "clone"));
       setPreview(result);
@@ -182,6 +184,7 @@ export default function ProxySiteFormPage() {
         onOpenChange={(open) => !open && setPreview(null)}
         title="站点草稿 · 配置预览"
         preview={preview}
+        initialTab={previewTab}
       />
     </>
   );

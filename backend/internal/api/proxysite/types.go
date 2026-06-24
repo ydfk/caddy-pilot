@@ -13,7 +13,10 @@ type SitePayload struct {
 	Name                          string            `json:"name,omitempty" maxLength:"128" doc:"兼容字段，留空时使用首个域名"`
 	Description                   string            `json:"description" maxLength:"2000" doc:"站点描述"`
 	SiteType                      string            `json:"site_type,omitempty" doc:"站点工作模式：proxy、static 或 spa"`
-	Domains                       []string          `json:"domains" minItems:"1" doc:"域名列表"`
+	ConfigMode                    string            `json:"config_mode,omitempty" doc:"配置模式：visual 或 custom"`
+	CustomFormat                  string            `json:"custom_format,omitempty" doc:"自定义配置格式：json 或 caddyfile"`
+	CustomConfig                  string            `json:"custom_config,omitempty" doc:"自定义站点配置"`
+	Domains                       []string          `json:"domains" doc:"域名列表"`
 	Upstreams                     []string          `json:"upstreams" doc:"上游地址列表"`
 	RootPath                      string            `json:"root_path,omitempty" maxLength:"1024" doc:"静态文件根目录"`
 	APIPath                       string            `json:"api_path,omitempty" maxLength:"256" doc:"SPA 的 API 路径匹配器"`
@@ -77,6 +80,9 @@ type SiteResponse struct {
 	Name                          string            `json:"name"`
 	Description                   string            `json:"description"`
 	SiteType                      string            `json:"site_type"`
+	ConfigMode                    string            `json:"config_mode"`
+	CustomFormat                  string            `json:"custom_format"`
+	CustomConfig                  string            `json:"custom_config"`
 	Domains                       []string          `json:"domains"`
 	Upstreams                     []string          `json:"upstreams"`
 	RootPath                      string            `json:"root_path"`
@@ -165,6 +171,9 @@ func newSiteResponse(site model.ProxySite) (SiteResponse, error) {
 		Name:                          site.Name,
 		Description:                   site.Description,
 		SiteType:                      normalizedSiteType(site.SiteType),
+		ConfigMode:                    defaultString(site.ConfigMode, "visual"),
+		CustomFormat:                  site.CustomFormat,
+		CustomConfig:                  site.CustomConfig,
 		RootPath:                      site.RootPath,
 		APIPath:                       defaultString(site.APIPath, "/api/*"),
 		EnableSecurityHeaders:         site.EnableSecurityHeaders,

@@ -198,8 +198,62 @@ func findSite(id string) (model.ProxySite, error) {
 }
 
 func siteFromPayload(payload SitePayload) (model.ProxySite, error) {
+	configMode := strings.TrimSpace(payload.ConfigMode)
+	if configMode == "" {
+		configMode = "visual"
+	}
+	if configMode != "visual" && configMode != "custom" {
+		return model.ProxySite{}, errors.New("配置模式无效")
+	}
+	customFormat := strings.TrimSpace(payload.CustomFormat)
+	customConfig := strings.TrimSpace(payload.CustomConfig)
+	customJSON := ""
+	if configMode == "custom" {
+		if customFormat != "json" && customFormat != "caddyfile" {
+			return model.ProxySite{}, errors.New("自定义配置格式无效")
+		}
+		if customConfig == "" {
+			return model.ProxySite{}, errors.New("自定义配置不能为空")
+		}
+		if customFormat == "json" {
+			var route map[string]any
+			if err := json.Unmarshal([]byte(customConfig), &route); err != nil {
+				return model.ProxySite{}, errors.New("自定义 JSON 必须是有效的 Caddy 路由对象")
+			}
+			customJSON = customConfig
+		} else {
+			adapted, err := service.AdaptCaddyfile(context.Background(), []byte(customConfig))
+			if err != nil {
+				return model.ProxySite{}, err
+			}
+			route, err := firstAdaptedRoute(adapted)
+			if err != nil {
+				return model.ProxySite{}, err
+			}
+			routeJSON, _ := json.Marshal(route)
+			customJSON = string(routeJSON)
+		}
+	}
 	domains := compactStrings(payload.Domains)
 	upstreams := compactStrings(payload.Upstreams)
+	if configMode == "custom" {
+		name := strings.TrimSpace(payload.Name)
+		if name == "" {
+			name = "自定义站点"
+		}
+		encodedDomains, _ := marshalJSON(domains)
+		encodedUpstreams, _ := marshalJSON(upstreams)
+		emptyObject, _ := marshalJSON(map[string]string{})
+		emptyList, _ := marshalJSON([]string{})
+		return model.ProxySite{
+			Name: name, Description: strings.TrimSpace(payload.Description), SiteType: "proxy",
+			ConfigMode: configMode, CustomFormat: customFormat, CustomConfig: customConfig, CustomJSON: customJSON,
+			Domains: encodedDomains, Upstreams: encodedUpstreams, APIPath: "/api/*", UpstreamType: "http",
+			EnableHTTPS: true, CertificateType: "single", ACMEChallengeType: "http", EnableGzip: true, EnableLog: true,
+			RequestHeaders: emptyObject, ResponseHeaders: emptyObject, BasicAuthUsers: emptyObject,
+			BasicAuthCredentialIDs: emptyList, AllowedIPs: emptyList, Enabled: payload.Enabled,
+		}, nil
+	}
 	if len(domains) == 0 {
 		return model.ProxySite{}, errors.New("域名不能为空")
 	}
@@ -273,6 +327,10 @@ func siteFromPayload(payload SitePayload) (model.ProxySite, error) {
 		Name:                          name,
 		Description:                   strings.TrimSpace(payload.Description),
 		SiteType:                      siteType,
+		ConfigMode:                    configMode,
+		CustomFormat:                  customFormat,
+		CustomConfig:                  customConfig,
+		CustomJSON:                    customJSON,
 		Domains:                       encodedDomains,
 		Upstreams:                     encodedUpstreams,
 		RootPath:                      rootPath,
@@ -302,6 +360,27 @@ func siteFromPayload(payload SitePayload) (model.ProxySite, error) {
 		AdvancedJSON:                  strings.TrimSpace(payload.AdvancedJSON),
 		Enabled:                       payload.Enabled,
 	}, nil
+}
+
+func firstAdaptedRoute(payload []byte) (map[string]any, error) {
+	var config struct {
+		Apps struct {
+			HTTP struct {
+				Servers map[string]struct {
+					Routes []map[string]any `json:"routes"`
+				} `json:"servers"`
+			} `json:"http"`
+		} `json:"apps"`
+	}
+	if err := json.Unmarshal(payload, &config); err != nil {
+		return nil, errors.New("解析 Caddyfile 适配结果失败")
+	}
+	for _, server := range config.Apps.HTTP.Servers {
+		if len(server.Routes) > 0 {
+			return server.Routes[0], nil
+		}
+	}
+	return nil, errors.New("Caddyfile 中没有可用的站点路由")
 }
 
 func validUpstreamType(value string) bool {

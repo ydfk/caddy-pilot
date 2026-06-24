@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Braces, Save, Send, X } from "lucide-react";
+import { Braces, FileCode2, Save, Send, X } from "lucide-react";
 import { useEffect } from "react";
 import { Controller, useForm, type UseFormRegisterReturn } from "react-hook-form";
 import { Link } from "react-router-dom";
@@ -15,7 +15,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
@@ -27,6 +27,7 @@ import { UpstreamOptions, UpstreamTLSOptions } from "./upstream-options";
 import { CredentialSelector } from "./credential-selector";
 import { CertificateOptions } from "./certificate-options";
 import { StringListField } from "./string-list-field";
+import { ConfigModeEditor } from "./config-mode-editor";
 
 type SiteFormProps = {
   mode: "new" | "edit" | "clone";
@@ -40,7 +41,7 @@ type SiteFormProps = {
   onCreateDNSProvider: (payload: DNSProviderPayload) => Promise<DNSProvider>;
   onCreateCredential: (payload: BasicAuthCredentialPayload) => Promise<BasicAuthCredential>;
   onSave: (values: SiteFormValues, publish: boolean) => Promise<void>;
-  onPreview: (values: SiteFormValues) => Promise<void>;
+  onPreview: (values: SiteFormValues, tab: "json" | "caddyfile") => Promise<void>;
 };
 
 export function SiteForm({
@@ -62,6 +63,8 @@ export function SiteForm({
   const cloneMode = mode === "clone";
   const basicAuthEnabled = form.watch("basicAuthEnabled");
   const siteType = form.watch("siteType");
+  const configMode = form.watch("configMode");
+  const customFormat = form.watch("customFormat");
   const upstreamType = form.watch("upstreamType");
   const enableHTTPS = form.watch("enableHTTPS");
   const certificateType = form.watch("certificateType");
@@ -89,194 +92,194 @@ export function SiteForm({
 
   return (
     <form className="mx-auto flex w-full max-w-6xl flex-col gap-4">
-      <PageHeader eyebrow="ROUTES / EDITOR" title={title} description={description} />
+      <PageHeader title={title} description={cloneMode ? description : undefined} />
 
       <Card className="border-primary/20 shadow-sm">
-        <CardHeader>
+        <CardHeader className="pb-3">
           <CardTitle>核心配置</CardTitle>
-          <CardDescription>选择站点处理方式，再配置域名、目录或上游。</CardDescription>
         </CardHeader>
-        <CardContent>
-          <FieldGroup className="gap-5">
-            <SiteModeOptions control={form.control} errors={errors} siteType={siteType} />
-            {siteType !== "static" ? <UpstreamOptions control={form.control} /> : null}
-            <div className="grid gap-4 md:grid-cols-2">
-              <Controller
-                control={form.control}
-                name="domains"
-                render={({ field }) => (
-                  <StringListField
-                    id="domains"
-                    label="域名"
-                    value={field.value}
-                    onChange={field.onChange}
-                    placeholder="example.com"
-                    addLabel="添加域名"
-                    description="多个域名共用这一套代理和访问控制配置。"
-                    error={errors.domains?.message}
-                  />
-                )}
-              />
-              {siteType !== "static" ? (
+        <CardContent className="space-y-4">
+          <ConfigModeEditor
+            control={form.control}
+            errors={errors}
+            mode={configMode}
+            format={customFormat}
+          />
+          {configMode === "visual" ? (
+            <FieldGroup className="gap-4">
+              <SiteModeOptions control={form.control} errors={errors} siteType={siteType} />
+              {siteType !== "static" ? <UpstreamOptions control={form.control} /> : null}
+              <div className="grid gap-4 md:grid-cols-2">
                 <Controller
                   control={form.control}
-                  name="upstreams"
+                  name="domains"
                   render={({ field }) => (
                     <StringListField
-                      id="upstreams"
-                      label={siteType === "spa" ? "API 上游地址" : "上游地址"}
+                      id="domains"
+                      label="域名"
                       value={field.value}
                       onChange={field.onChange}
-                      placeholder={upstreamType === "unix" ? "/run/app.sock" : "127.0.0.1:3000"}
-                      addLabel="添加上游"
-                      description={
-                        upstreamType === "unix"
-                          ? "每项一个套接字路径。"
-                          : "多个上游由 Caddy 自动负载分配。每项填写 host:port。"
-                      }
-                      error={errors.upstreams?.message}
+                      placeholder="example.com"
+                      addLabel="添加域名"
+                      error={errors.domains?.message}
                     />
                   )}
                 />
-              ) : null}
-            </div>
+                {siteType !== "static" ? (
+                  <Controller
+                    control={form.control}
+                    name="upstreams"
+                    render={({ field }) => (
+                      <StringListField
+                        id="upstreams"
+                        label={siteType === "spa" ? "API 上游地址" : "上游地址"}
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder={upstreamType === "unix" ? "/run/app.sock" : "127.0.0.1:3000"}
+                        addLabel="添加上游"
+                        error={errors.upstreams?.message}
+                      />
+                    )}
+                  />
+                ) : null}
+              </div>
 
-            <Field data-invalid={Boolean(errors.description) || undefined}>
-              <FieldLabel htmlFor="description">备注说明</FieldLabel>
-              <Textarea
-                id="description"
-                rows={2}
-                placeholder="可选，例如用途、维护人或部署位置"
-                {...form.register("description")}
-              />
-              <FieldDescription>仅用于管理展示，不会写入 Caddy 配置。</FieldDescription>
-              <FieldError>{errors.description?.message}</FieldError>
-            </Field>
-
-            {siteType !== "static" && upstreamType === "https" ? (
-              <UpstreamTLSOptions control={form.control} />
-            ) : null}
-
-            <SiteCoreOptions control={form.control} cloneMode={cloneMode} />
-            {enableHTTPS ? (
-              <CertificateOptions
-                control={form.control}
-                errors={errors}
-                certificateType={certificateType}
-                challengeType={acmeChallengeType}
-                profiles={certificates}
-                providers={dnsProviders}
-                onCreateCertificate={async (payload) => {
-                  const created = await onCreateCertificate(payload);
-                  form.setValue("certificateProfileID", created.id, { shouldValidate: true });
-                  return created;
-                }}
-                onCreateDNSProvider={onCreateDNSProvider}
-              />
-            ) : null}
-          </FieldGroup>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>传输与日志</CardTitle>
-            <CardDescription>
-              WebSocket 由 Caddy 自动支持，这里只保留需要显式控制的能力。
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <SiteOptions control={form.control} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>访问控制</CardTitle>
-            <CardDescription>限制来源地址或为站点添加基础认证。</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <FieldGroup>
-              <Field>
-                <FieldLabel htmlFor="allowedIPs">IP 白名单</FieldLabel>
+              <Field data-invalid={Boolean(errors.description) || undefined}>
+                <FieldLabel htmlFor="description">备注说明</FieldLabel>
                 <Textarea
-                  id="allowedIPs"
-                  rows={3}
-                  className="font-mono"
-                  placeholder={"127.0.0.1\n10.0.0.0/8"}
-                  {...form.register("allowedIPs")}
+                  id="description"
+                  rows={2}
+                  placeholder="可选，例如用途、维护人或部署位置"
+                  {...form.register("description")}
                 />
-                <FieldDescription>留空表示不限制来源地址。</FieldDescription>
+                <FieldError>{errors.description?.message}</FieldError>
               </Field>
-              <Controller
-                control={form.control}
-                name="basicAuthEnabled"
-                render={({ field }) => (
-                  <Field orientation="horizontal">
-                    <div className="flex-1">
-                      <FieldLabel htmlFor="basicAuthEnabled">Basic Auth</FieldLabel>
-                      <FieldDescription>从统一密码本选择允许登录的账号。</FieldDescription>
-                    </div>
-                    <Switch
-                      id="basicAuthEnabled"
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </Field>
-                )}
-              />
-              {basicAuthEnabled ? (
-                <Controller
+
+              {siteType !== "static" && upstreamType === "https" ? (
+                <UpstreamTLSOptions control={form.control} />
+              ) : null}
+
+              <SiteCoreOptions control={form.control} cloneMode={cloneMode} />
+              {enableHTTPS ? (
+                <CertificateOptions
                   control={form.control}
-                  name="basicAuthCredentialIDs"
-                  render={({ field }) => (
-                    <CredentialSelector
-                      credentials={credentials}
-                      selected={field.value}
-                      onChange={field.onChange}
-                      onCreate={onCreateCredential}
-                    />
-                  )}
+                  errors={errors}
+                  certificateType={certificateType}
+                  challengeType={acmeChallengeType}
+                  profiles={certificates}
+                  providers={dnsProviders}
+                  onCreateCertificate={async (payload) => {
+                    const created = await onCreateCertificate(payload);
+                    form.setValue("certificateProfileID", created.id, { shouldValidate: true });
+                    return created;
+                  }}
+                  onCreateDNSProvider={onCreateDNSProvider}
                 />
               ) : null}
             </FieldGroup>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <Accordion type="single" collapsible>
-          <AccordionItem value="advanced" className="border-0 px-6">
-            <AccordionTrigger>高级配置 · Header 与扩展 JSON</AccordionTrigger>
-            <AccordionContent>
-              <FieldGroup>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <JSONField
-                    id="requestHeaders"
-                    label="请求头 JSON"
-                    error={errors.requestHeaders?.message}
-                    register={form.register("requestHeaders")}
-                  />
-                  <JSONField
-                    id="responseHeaders"
-                    label="响应头 JSON"
-                    error={errors.responseHeaders?.message}
-                    register={form.register("responseHeaders")}
-                  />
-                </div>
-                <JSONField
-                  id="advancedJSON"
-                  label="扩展 JSON"
-                  error={errors.advancedJSON?.message}
-                  register={form.register("advancedJSON")}
-                />
-                <FieldDescription>扩展 JSON 当前仅保存，不合并到生成配置。</FieldDescription>
-              </FieldGroup>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
+          ) : null}
+        </CardContent>
       </Card>
+
+      {configMode === "visual" ? (
+        <>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>传输与日志</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <SiteOptions control={form.control} />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>访问控制</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <FieldGroup>
+                  <Field>
+                    <FieldLabel htmlFor="allowedIPs">IP 白名单</FieldLabel>
+                    <Textarea
+                      id="allowedIPs"
+                      rows={3}
+                      className="font-mono"
+                      placeholder={"127.0.0.1\n10.0.0.0/8"}
+                      {...form.register("allowedIPs")}
+                    />
+                    <FieldDescription>留空表示不限制来源地址。</FieldDescription>
+                  </Field>
+                  <Controller
+                    control={form.control}
+                    name="basicAuthEnabled"
+                    render={({ field }) => (
+                      <Field orientation="horizontal">
+                        <div className="flex-1">
+                          <FieldLabel htmlFor="basicAuthEnabled">Basic Auth</FieldLabel>
+                          <FieldDescription>从统一密码本选择允许登录的账号。</FieldDescription>
+                        </div>
+                        <Switch
+                          id="basicAuthEnabled"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </Field>
+                    )}
+                  />
+                  {basicAuthEnabled ? (
+                    <Controller
+                      control={form.control}
+                      name="basicAuthCredentialIDs"
+                      render={({ field }) => (
+                        <CredentialSelector
+                          credentials={credentials}
+                          selected={field.value}
+                          onChange={field.onChange}
+                          onCreate={onCreateCredential}
+                        />
+                      )}
+                    />
+                  ) : null}
+                </FieldGroup>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <Accordion type="single" collapsible>
+              <AccordionItem value="advanced" className="border-0 px-6">
+                <AccordionTrigger>高级配置 · Header 与扩展 JSON</AccordionTrigger>
+                <AccordionContent>
+                  <FieldGroup>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <JSONField
+                        id="requestHeaders"
+                        label="请求头 JSON"
+                        error={errors.requestHeaders?.message}
+                        register={form.register("requestHeaders")}
+                      />
+                      <JSONField
+                        id="responseHeaders"
+                        label="响应头 JSON"
+                        error={errors.responseHeaders?.message}
+                        register={form.register("responseHeaders")}
+                      />
+                    </div>
+                    <JSONField
+                      id="advancedJSON"
+                      label="扩展 JSON"
+                      error={errors.advancedJSON?.message}
+                      register={form.register("advancedJSON")}
+                    />
+                    <FieldDescription>扩展 JSON 当前仅保存，不合并到生成配置。</FieldDescription>
+                  </FieldGroup>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </Card>
+        </>
+      ) : null}
 
       <div className="sticky bottom-2 flex flex-wrap justify-end gap-2 rounded-xl border bg-background/95 p-2 shadow-lg backdrop-blur">
         <Button type="button" variant="ghost" asChild>
@@ -288,10 +291,23 @@ export function SiteForm({
           type="button"
           variant="outline"
           disabled={previewing}
-          onClick={form.handleSubmit((data) => void onPreview(data))}
+          onClick={form.handleSubmit((data) => void onPreview(data, "json"))}
         >
           {previewing ? <Spinner data-icon="inline-start" /> : <Braces data-icon="inline-start" />}
-          预览配置
+          预览 JSON
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={previewing}
+          onClick={form.handleSubmit((data) => void onPreview(data, "caddyfile"))}
+        >
+          {previewing ? (
+            <Spinner data-icon="inline-start" />
+          ) : (
+            <FileCode2 data-icon="inline-start" />
+          )}
+          查看 Caddyfile
         </Button>
         <Button
           type="button"

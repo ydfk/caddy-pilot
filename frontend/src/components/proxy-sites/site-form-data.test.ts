@@ -71,6 +71,18 @@ describe("代理站点表单转换", () => {
     });
     expect(spaResult.success).toBe(true);
   });
+
+  test("自定义模式不要求预设域名和上游", () => {
+    const result = siteFormSchema.safeParse({
+      ...defaultSiteValues,
+      configMode: "custom",
+      customFormat: "caddyfile",
+      customConfig: "example.com {\n  respond 200\n}",
+      domains: [],
+      upstreams: [],
+    });
+    expect(result.success).toBe(true);
+  });
 });
 
 function sampleCertificate(id: string, subjects: string[]): CertificateProfile {
@@ -96,6 +108,9 @@ function sampleSite(): ProxySite {
     name: "示例站点",
     description: "",
     site_type: "proxy",
+    config_mode: "visual",
+    custom_format: "",
+    custom_config: "",
     domains: ["example.com"],
     upstreams: ["127.0.0.1:3000"],
     root_path: "",

@@ -4,6 +4,9 @@ export type ProxySitePayload = {
   name: string;
   description: string;
   site_type: "proxy" | "static" | "spa";
+  config_mode: "visual" | "custom";
+  custom_format: "json" | "caddyfile" | "";
+  custom_config: string;
   domains: string[];
   upstreams: string[];
   root_path: string;

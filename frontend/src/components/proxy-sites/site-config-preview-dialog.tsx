@@ -17,9 +17,16 @@ type Props = {
   onOpenChange: (open: boolean) => void;
   title: string;
   preview: ProxySitePreview | null;
+  initialTab?: "json" | "caddyfile";
 };
 
-export function SiteConfigPreviewDialog({ open, onOpenChange, title, preview }: Props) {
+export function SiteConfigPreviewDialog({
+  open,
+  onOpenChange,
+  title,
+  preview,
+  initialTab = "json",
+}: Props) {
   function downloadCaddyfile() {
     if (!preview) return;
     const url = URL.createObjectURL(
@@ -38,10 +45,10 @@ export function SiteConfigPreviewDialog({ open, onOpenChange, title, preview }: 
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
-            JSON 与 Caddyfile 由同一站点模型完整生成；Caddyfile 会再适配为 JSON 校验语义。
+            可视化模式同时生成两种格式；自定义 Caddyfile 通过 Caddy 官方适配器生成 JSON。
           </DialogDescription>
         </DialogHeader>
-        <Tabs defaultValue="json" className="min-h-0">
+        <Tabs key={initialTab} defaultValue={initialTab} className="min-h-0">
           <TabsList>
             <TabsTrigger value="json">Caddy JSON</TabsTrigger>
             <TabsTrigger value="caddyfile">Caddyfile</TabsTrigger>

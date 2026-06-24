@@ -60,8 +60,8 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-svh items-center justify-center p-4 sm:p-6">
       <Card className="w-full max-w-3xl overflow-hidden border-border/70 shadow-xl shadow-foreground/5">
-        <div className="grid md:grid-cols-[minmax(15rem,0.8fr)_minmax(22rem,1.2fr)]">
-          <section className="relative flex flex-col justify-between overflow-hidden border-b bg-sidebar p-6 md:border-r md:border-b-0">
+        <div className="grid md:grid-cols-[minmax(18rem,1fr)_minmax(22rem,1.1fr)]">
+          <section className="relative flex min-h-64 flex-col overflow-hidden border-b bg-sidebar p-7 md:min-h-[30rem] md:border-r md:border-b-0">
             <div className="absolute inset-0 opacity-50 [background-image:linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] [background-size:34px_34px]" />
             <div className="relative flex items-center gap-3">
               <BrandLogo className="size-10 shadow-md shadow-primary/15" eager />
@@ -69,16 +69,20 @@ export default function LoginPage() {
                 <p className="font-mono text-sm font-semibold tracking-[0.16em]">CADDYPILOT</p>
               </div>
             </div>
-            <div className="relative mt-8 md:mt-20">
-              <p className="font-mono text-[0.65rem] tracking-[0.18em] text-muted-foreground">
-                {isSetup ? "FIRST RUN / SETUP" : "ROUTE / LOAD / ROLLBACK"}
-              </p>
-              <h1 className="mt-2 text-2xl font-semibold leading-tight tracking-tight">
-                {isSetup ? "创建唯一管理员" : "Caddy 管理控制台"}
+            <div className="relative my-auto max-w-sm py-8">
+              <h1 className="text-3xl font-semibold leading-tight tracking-tight">
+                可视化管理 Caddy，
+                <br />
+                从站点到证书一次完成。
               </h1>
-              <p className="mt-2 text-sm text-muted-foreground">
-                {isSetup ? "初始化完成后注册入口会自动关闭。" : "配置、校验、发布与回滚集中管理。"}
+              <p className="mt-4 text-sm leading-6 text-muted-foreground">
+                CaddyPilot 集中管理反向代理、静态站点、证书、DNS Provider、配置发布与回滚。
               </p>
+              <div className="mt-6 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                <span className="rounded-full border bg-background/50 px-3 py-1">配置预览</span>
+                <span className="rounded-full border bg-background/50 px-3 py-1">安全发布</span>
+                <span className="rounded-full border bg-background/50 px-3 py-1">版本回滚</span>
+              </div>
             </div>
           </section>
 

@@ -12,6 +12,10 @@ type ProxySite struct {
 	Name                          string         `gorm:"size:128;not null" json:"name"`
 	Description                   string         `gorm:"type:text" json:"description"`
 	SiteType                      string         `gorm:"size:16;not null;default:proxy" json:"site_type"`
+	ConfigMode                    string         `gorm:"size:16;not null;default:visual" json:"config_mode"`
+	CustomFormat                  string         `gorm:"size:16" json:"custom_format"`
+	CustomConfig                  string         `gorm:"type:text" json:"custom_config"`
+	CustomJSON                    string         `gorm:"type:text" json:"-"`
 	Domains                       string         `gorm:"type:text;not null" json:"domains"`
 	Upstreams                     string         `gorm:"type:text;not null" json:"upstreams"`
 	RootPath                      string         `gorm:"size:1024" json:"root_path"`

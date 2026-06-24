@@ -43,6 +43,11 @@
 - `static`：从 `root_path` 提供静态文件，不要求 `upstreams`。
 - `spa`：`api_path` 匹配的请求反代到 `upstreams`，其余请求从 `root_path` 提供并 fallback 到 `index.html`。
 
+配置编辑模式：
+
+- `config_mode=visual`：使用站点类型、上游、证书等可视化字段生成配置。
+- `config_mode=custom`：不使用预设字段，`custom_format` 可选 `caddyfile` 或 `json`，内容写入 `custom_config`。JSON 内容为完整的 Caddy 路由对象。
+
 静态和 SPA 模式可通过 `enable_security_headers` 与 `enable_asset_cache` 开启常用安全头和静态资源缓存策略。
 
 ## Basic Auth 密码本

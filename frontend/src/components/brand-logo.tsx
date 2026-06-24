@@ -10,7 +10,7 @@ export function BrandLogo({ className, eager = false }: BrandLogoProps) {
     <img
       src="/caddypilot-logo.png"
       alt="CaddyPilot"
-      className={cn("rounded-lg object-cover", className)}
+      className={cn("aspect-square rounded-lg object-contain", className)}
       loading={eager ? "eager" : "lazy"}
       fetchPriority={eager ? "high" : "auto"}
     />

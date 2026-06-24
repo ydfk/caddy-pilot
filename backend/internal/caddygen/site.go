@@ -10,6 +10,17 @@ import (
 )
 
 func GenerateSiteRoute(site proxysite.ProxySite) (map[string]any, error) {
+	if site.ConfigMode == "custom" {
+		var route map[string]any
+		payload := site.CustomJSON
+		if payload == "" {
+			payload = site.CustomConfig
+		}
+		if err := json.Unmarshal([]byte(payload), &route); err != nil {
+			return nil, fmt.Errorf("解析自定义 Caddy JSON 失败: %w", err)
+		}
+		return route, nil
+	}
 	domains, upstreamValues, allowedIPs, err := decodeSiteLists(site)
 	if err != nil {
 		return nil, err

@@ -39,11 +39,7 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader
-        eyebrow="CONTROL / OVERVIEW"
-        title="仪表盘"
-        description="代理站点与配置发布状态的即时概览。"
-      />
+      <PageHeader title="仪表盘" />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {metrics.map((metric) => (

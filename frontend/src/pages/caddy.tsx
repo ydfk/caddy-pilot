@@ -64,7 +64,9 @@ export default function CaddyPage() {
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      getCaddyStatus().then(setStatus).catch(() => undefined);
+      getCaddyStatus()
+        .then(setStatus)
+        .catch(() => undefined);
     }, 10000);
     return () => window.clearInterval(timer);
   }, []);
@@ -150,11 +152,7 @@ export default function CaddyPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
-      <PageHeader
-        eyebrow="CADDY / CONTROL DESK"
-        title="Caddy 管理"
-        description="运行状态、发布流程、更新源与配置版本集中在一个工作台。"
-      />
+      <PageHeader title="Caddy 管理" />
 
       {status?.error_message ? (
         <Alert variant="destructive">

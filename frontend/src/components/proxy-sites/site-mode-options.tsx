@@ -21,7 +21,7 @@ type Props = {
 
 export function SiteModeOptions({ control, errors, siteType }: Props) {
   return (
-    <div className="grid gap-4 rounded-lg border bg-muted/20 p-4 md:grid-cols-2">
+    <div className="grid gap-3 md:grid-cols-3">
       <Controller
         control={control}
         name="siteType"
@@ -40,7 +40,6 @@ export function SiteModeOptions({ control, errors, siteType }: Props) {
                 </SelectGroup>
               </SelectContent>
             </Select>
-            <FieldDescription>站点类型决定请求由上游服务还是本地文件处理。</FieldDescription>
           </Field>
         )}
       />
@@ -59,7 +58,6 @@ export function SiteModeOptions({ control, errors, siteType }: Props) {
                 {...field}
                 aria-invalid={Boolean(errors.rootPath)}
               />
-              <FieldDescription>填写 Caddy 容器内可访问的绝对路径。</FieldDescription>
               <FieldError errors={[errors.rootPath]} />
             </Field>
           )}
@@ -74,7 +72,6 @@ export function SiteModeOptions({ control, errors, siteType }: Props) {
             <Field data-invalid={Boolean(errors.apiPath) || undefined}>
               <FieldLabel htmlFor="apiPath">API 路径</FieldLabel>
               <Input id="apiPath" className="font-mono" placeholder="/api/*" {...field} />
-              <FieldDescription>匹配的请求交给上游，其余请求使用 SPA fallback。</FieldDescription>
               <FieldError errors={[errors.apiPath]} />
             </Field>
           )}
@@ -82,7 +79,7 @@ export function SiteModeOptions({ control, errors, siteType }: Props) {
       ) : null}
 
       {siteType !== "proxy" ? (
-        <div className="grid gap-2 md:col-span-2 md:grid-cols-2">
+        <div className="grid gap-2 md:col-span-3 md:grid-cols-2">
           <ModeSwitch
             control={control}
             name="enableSecurityHeaders"

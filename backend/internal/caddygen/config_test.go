@@ -33,6 +33,22 @@ func TestGenerateSiteContainsHostAndReverseProxy(t *testing.T) {
 	}
 }
 
+func TestGenerateCustomJSONRoute(t *testing.T) {
+	site := proxysite.ProxySite{
+		ConfigMode:   "custom",
+		CustomFormat: "json",
+		CustomConfig: `{"match":[{"host":["custom.example.com"]}],"handle":[{"handler":"static_response","body":"ok"}]}`,
+	}
+	route, err := GenerateSiteRoute(site)
+	if err != nil {
+		t.Fatalf("生成自定义 JSON 路由失败: %v", err)
+	}
+	match := route["match"].([]any)
+	if len(match) != 1 {
+		t.Fatalf("自定义路由匹配器数量错误: %#v", match)
+	}
+}
+
 func TestGenerateSkipsDisabledSite(t *testing.T) {
 	payload, err := Generate([]proxysite.ProxySite{testSite(false, []string{"127.0.0.1:3000"})})
 	if err != nil {

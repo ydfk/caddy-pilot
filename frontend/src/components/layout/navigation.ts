@@ -15,7 +15,7 @@ export type NavigationItem = { title: string; url: string; icon: LucideIcon };
 export const primaryNavigation: NavigationItem[] = [
   { title: "仪表盘", url: "/dashboard", icon: Gauge },
   { title: "代理站点", url: "/proxy-sites", icon: Route },
-  { title: "Caddy 管理", url: "/caddy", icon: ServerCog },
+  { title: "Caddy", url: "/caddy", icon: ServerCog },
 ];
 
 export const trailingNavigation: NavigationItem[] = [
@@ -44,7 +44,7 @@ export function getRouteMeta(pathname: string) {
   if (pathname === "/proxy-sites/new") return { section: "代理站点", title: "新增站点" };
   if (pathname.endsWith("/clone")) return { section: "代理站点", title: "克隆站点" };
   if (pathname.startsWith("/proxy-sites/")) return { section: "代理站点", title: "编辑站点" };
-  if (pathname.startsWith("/config-versions/")) return { section: "Caddy 管理", title: "版本详情" };
+  if (pathname.startsWith("/config-versions/")) return { section: "Caddy", title: "版本详情" };
   const group = navigationGroups.find((item) =>
     item.children.some((child) => pathname.startsWith(child.url))
   );

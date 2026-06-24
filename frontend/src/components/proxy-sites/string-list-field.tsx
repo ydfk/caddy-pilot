@@ -9,15 +9,24 @@ type Props = {
   label: string;
   value: string[];
   placeholder: string;
-  description: string;
+  description?: string;
   addLabel: string;
   error?: string;
   onChange: (value: string[]) => void;
 };
 
-export function StringListField({ id, label, value, placeholder, description, addLabel, error, onChange }: Props) {
+export function StringListField({
+  id,
+  label,
+  value,
+  placeholder,
+  description,
+  addLabel,
+  error,
+  onChange,
+}: Props) {
   function update(index: number, nextValue: string) {
-    onChange(value.map((item, itemIndex) => itemIndex === index ? nextValue : item));
+    onChange(value.map((item, itemIndex) => (itemIndex === index ? nextValue : item)));
   }
 
   return (
@@ -34,15 +43,24 @@ export function StringListField({ id, label, value, placeholder, description, ad
               aria-invalid={Boolean(error)}
               onChange={(event) => update(index, event.target.value)}
             />
-            <Button type="button" variant="ghost" size="icon" disabled={value.length === 1} onClick={() => onChange(value.filter((_, itemIndex) => itemIndex !== index))}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              disabled={value.length === 1}
+              onClick={() => onChange(value.filter((_, itemIndex) => itemIndex !== index))}
+            >
               <Trash2 />
             </Button>
           </div>
         ))}
       </div>
       <div className="flex items-center justify-between gap-3">
-        <FieldDescription>{description}</FieldDescription>
-        <Button type="button" variant="outline" size="sm" onClick={() => onChange([...value, ""])}><Plus data-icon="inline-start" />{addLabel}</Button>
+        {description ? <FieldDescription>{description}</FieldDescription> : <span />}
+        <Button type="button" variant="outline" size="sm" onClick={() => onChange([...value, ""])}>
+          <Plus data-icon="inline-start" />
+          {addLabel}
+        </Button>
       </div>
       <FieldError>{error}</FieldError>
     </Field>

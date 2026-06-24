@@ -16,7 +16,7 @@ test("展示 CaddyPilot 管理导航", () => {
   for (const item of [
     "仪表盘",
     "代理站点",
-    "Caddy 管理",
+    "Caddy",
     "证书与访问",
     "证书",
     "DNS Provider",

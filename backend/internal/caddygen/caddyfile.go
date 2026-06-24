@@ -61,6 +61,15 @@ func writeManagementSite(output *strings.Builder) {
 }
 
 func writeProxySite(output *strings.Builder, site proxysite.ProxySite) error {
+	if site.ConfigMode == "custom" {
+		if site.CustomFormat != "caddyfile" {
+			fmt.Fprintf(output, "# 站点 %s 使用自定义 JSON，无法无损转换为 Caddyfile\n\n", quoteCaddyfile(site.Name))
+			return nil
+		}
+		output.WriteString(strings.TrimSpace(site.CustomConfig))
+		output.WriteString("\n\n")
+		return nil
+	}
 	domains, upstreams, allowedIPs, err := decodeSiteLists(site)
 	if err != nil {
 		return err
