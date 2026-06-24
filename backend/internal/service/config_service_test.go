@@ -133,6 +133,24 @@ func TestConfigServiceChangeStatus(t *testing.T) {
 		t.Fatalf("发布后不应存在未发布变更: %+v, %v", status, err)
 	}
 
+	var stored configversion.ConfigVersion
+	if err := database.First(&stored, published.ID).Error; err != nil {
+		t.Fatal(err)
+	}
+	var historical []map[string]any
+	if err := json.Unmarshal([]byte(stored.BusinessConfig), &historical); err != nil {
+		t.Fatal(err)
+	}
+	delete(historical[0], "config_mode")
+	legacyPayload, _ := json.Marshal(historical)
+	if err := database.Model(&stored).Update("business_config", string(legacyPayload)).Error; err != nil {
+		t.Fatal(err)
+	}
+	status, err = service.ChangeStatus(context.Background())
+	if err != nil || status.Dirty {
+		t.Fatalf("旧版本缺少新增默认字段时不应误报未发布: %+v, %v", status, err)
+	}
+
 	if err := database.Model(&proxysite.ProxySite{}).Where("enabled = ?", true).Update("description", "已修改").Error; err != nil {
 		t.Fatalf("修改站点失败: %v", err)
 	}

@@ -73,7 +73,7 @@ func (service *ConfigService) ChangeStatus(ctx context.Context) (ConfigChangeSta
 	if err != nil {
 		return ConfigChangeStatus{}, err
 	}
-	current, err := json.Marshal(sites)
+	current, err := encodeBusinessConfig(sites)
 	if err != nil {
 		return ConfigChangeStatus{}, fmt.Errorf("编码业务配置失败: %w", err)
 	}
@@ -131,7 +131,7 @@ func (service *ConfigService) Publish(ctx context.Context, reason string) (confi
 	if err != nil {
 		return configversion.ConfigVersion{}, err
 	}
-	businessConfig, err := json.Marshal(sites)
+	businessConfig, err := encodeBusinessConfig(sites)
 	if err != nil {
 		return configversion.ConfigVersion{}, fmt.Errorf("编码业务配置失败: %w", err)
 	}
@@ -283,7 +283,49 @@ func defaultReason(value, fallback string) string {
 	return fallback
 }
 
+func encodeBusinessConfig(sites []proxysite.ProxySite) ([]byte, error) {
+	normalized := append([]proxysite.ProxySite(nil), sites...)
+	for index := range normalized {
+		site := &normalized[index]
+		site.CreatedAt = time.Time{}
+		site.UpdatedAt = time.Time{}
+		if site.SiteType == "" {
+			site.SiteType = "proxy"
+		}
+		if site.ConfigMode == "" {
+			site.ConfigMode = "visual"
+		}
+		if site.APIPath == "" {
+			site.APIPath = "/api/*"
+		}
+		if site.UpstreamType == "" {
+			site.UpstreamType = "http"
+		}
+		if site.CertificateType == "" {
+			site.CertificateType = "single"
+		}
+		if site.ACMEChallengeType == "" {
+			site.ACMEChallengeType = "http"
+		}
+	}
+	return json.Marshal(normalized)
+}
+
+func normalizeStoredBusinessConfig(payload []byte) []byte {
+	var sites []proxysite.ProxySite
+	if json.Unmarshal(payload, &sites) != nil {
+		return payload
+	}
+	normalized, err := encodeBusinessConfig(sites)
+	if err != nil {
+		return payload
+	}
+	return normalized
+}
+
 func sameJSON(left, right []byte) bool {
+	left = normalizeStoredBusinessConfig(left)
+	right = normalizeStoredBusinessConfig(right)
 	var leftValue, rightValue any
 	if json.Unmarshal(left, &leftValue) != nil || json.Unmarshal(right, &rightValue) != nil {
 		return bytes.Equal(bytes.TrimSpace(left), bytes.TrimSpace(right))

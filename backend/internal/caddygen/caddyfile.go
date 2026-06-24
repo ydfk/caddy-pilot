@@ -222,6 +222,10 @@ func writeReverseProxy(output *strings.Builder, site proxysite.ProxySite, upstre
 }
 
 func writeDNSIssuer(output *strings.Builder, site proxysite.ProxySite) {
+	if site.CertificateType == "wildcard" {
+		output.WriteString("\t# 通配符证书由 JSON 的 tls.certificates.automate 统一管理和复用\n")
+		return
+	}
 	idName, secretName, regionName := "ALIYUN_ACCESS_KEY_ID", "ALIYUN_ACCESS_KEY_SECRET", ""
 	if site.DNSProviderID != nil {
 		idName, secretName, regionName = dnsprovider.EnvNames(*site.DNSProviderID)
@@ -235,9 +239,6 @@ func writeDNSIssuer(output *strings.Builder, site proxysite.ProxySite) {
 	}
 	output.WriteString("\t\t}\n")
 	output.WriteString("\t}\n")
-	if site.CertificateType == "wildcard" {
-		output.WriteString("\t# 通配符证书由 JSON 的 tls.certificates.automate 统一管理和复用\n")
-	}
 }
 
 func siteAddresses(domains []string, https, forceHTTPS bool) []string {

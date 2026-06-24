@@ -104,6 +104,7 @@ export function SiteForm({
             errors={errors}
             mode={configMode}
             format={customFormat}
+            locked={mode !== "new"}
           />
           {configMode === "visual" ? (
             <FieldGroup className="gap-4">

@@ -71,3 +71,22 @@ func TestGenerateCaddyfileIncludesStaticAndSPAContent(t *testing.T) {
 		}
 	}
 }
+
+func TestWildcardCaddyfileDoesNotRepeatDNSIssuer(t *testing.T) {
+	site := testSite(true, []string{"127.0.0.1:3000"})
+	site.EnableHTTPS = true
+	site.ACMEChallengeType = "dns"
+	site.CertificateType = "wildcard"
+
+	payload, err := GenerateCaddyfile([]proxysite.ProxySite{site})
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(payload)
+	if strings.Contains(text, "\ttls {") || strings.Contains(text, "dns alidns") {
+		t.Fatalf("通配符站点不应重复生成 TLS DNS issuer:\n%s", text)
+	}
+	if !strings.Contains(text, "tls.certificates.automate") {
+		t.Fatalf("通配符证书说明缺失:\n%s", text)
+	}
+}

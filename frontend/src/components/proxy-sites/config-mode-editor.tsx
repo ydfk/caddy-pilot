@@ -13,9 +13,10 @@ type Props = {
   errors: FieldErrors<SiteFormValues>;
   mode: SiteFormValues["configMode"];
   format: SiteFormValues["customFormat"];
+  locked: boolean;
 };
 
-export function ConfigModeEditor({ control, errors, mode, format }: Props) {
+export function ConfigModeEditor({ control, errors, mode, format, locked }: Props) {
   return (
     <div className="space-y-3">
       <Controller
@@ -23,15 +24,26 @@ export function ConfigModeEditor({ control, errors, mode, format }: Props) {
         name="configMode"
         render={({ field }) => (
           <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted p-1">
-            <ModeButton active={field.value === "visual"} onClick={() => field.onChange("visual")}>
+            <ModeButton
+              active={field.value === "visual"}
+              disabled={locked && field.value !== "visual"}
+              onClick={() => field.onChange("visual")}
+            >
               <SlidersHorizontal /> 可视化配置
             </ModeButton>
-            <ModeButton active={field.value === "custom"} onClick={() => field.onChange("custom")}>
+            <ModeButton
+              active={field.value === "custom"}
+              disabled={locked && field.value !== "custom"}
+              onClick={() => field.onChange("custom")}
+            >
               <Braces /> 自定义配置
             </ModeButton>
           </div>
         )}
       />
+      {locked ? (
+        <p className="px-1 text-xs text-muted-foreground">已有站点不能转换配置模式。</p>
+      ) : null}
 
       {mode === "custom" ? (
         <Controller
@@ -80,10 +92,12 @@ export function ConfigModeEditor({ control, errors, mode, format }: Props) {
 
 function ModeButton({
   active,
+  disabled,
   onClick,
   children,
 }: {
   active: boolean;
+  disabled: boolean;
   onClick: () => void;
   children: React.ReactNode;
 }) {
@@ -92,6 +106,7 @@ function ModeButton({
       type="button"
       variant="ghost"
       className={cn("h-9 gap-2", active && "bg-background shadow-sm hover:bg-background")}
+      disabled={disabled}
       onClick={onClick}
     >
       {children}

@@ -2,7 +2,9 @@ package proxysite
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -24,6 +26,26 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
+
+func TestCustomSiteSaveRunsCaddyValidation(t *testing.T) {
+	original := validateCaddyConfig
+	defer func() { validateCaddyConfig = original }()
+	called := false
+	validateCaddyConfig = func(_ context.Context, _ []byte) error {
+		called = true
+		return errors.New("模块配置无效")
+	}
+
+	site := model.ProxySite{
+		ConfigMode: "custom", CustomFormat: "json",
+		CustomConfig: `{"match":[{"host":["example.com"]}],"handle":[]}`,
+		EnableHTTPS:  true,
+	}
+	err := validateCustomSite(context.Background(), site)
+	if !called || err == nil || !strings.Contains(err.Error(), "模块配置无效") {
+		t.Fatalf("自定义站点保存应执行 Caddy 校验: called=%v err=%v", called, err)
+	}
+}
 
 func TestProxySiteLifecycle(t *testing.T) {
 	app, token := setupProxySiteTestApp(t)

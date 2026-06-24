@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math"
 	"strings"
 	"time"
@@ -18,6 +19,8 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"gorm.io/gorm"
 )
+
+var validateCaddyConfig = service.ValidateCaddyConfig
 
 func List(_ context.Context, input *SiteListInput) (*SiteListOutput, error) {
 	page, pageSize := input.Page, input.PageSize
@@ -50,9 +53,12 @@ func List(_ context.Context, input *SiteListInput) (*SiteListOutput, error) {
 	}}, nil
 }
 
-func Create(_ context.Context, input *SiteInput) (*SiteOutput, error) {
+func Create(ctx context.Context, input *SiteInput) (*SiteOutput, error) {
 	site, err := siteFromPayload(input.Body)
 	if err != nil {
+		return nil, huma.Error400BadRequest(err.Error())
+	}
+	if err := validateCustomSite(ctx, site); err != nil {
 		return nil, huma.Error400BadRequest(err.Error())
 	}
 	if err := db.DB.Create(&site).Error; err != nil {
@@ -69,13 +75,16 @@ func Get(_ context.Context, input *SiteIDInput) (*SiteOutput, error) {
 	return outputOrServerError(site)
 }
 
-func Update(_ context.Context, input *UpdateSiteInput) (*SiteOutput, error) {
+func Update(ctx context.Context, input *UpdateSiteInput) (*SiteOutput, error) {
 	site, err := findSite(input.ID)
 	if err != nil {
 		return nil, err
 	}
 	updated, err := siteFromPayload(input.Body)
 	if err != nil {
+		return nil, huma.Error400BadRequest(err.Error())
+	}
+	if err := validateCustomSite(ctx, updated); err != nil {
 		return nil, huma.Error400BadRequest(err.Error())
 	}
 	updated.Id = site.Id
@@ -97,7 +106,7 @@ func Delete(_ context.Context, input *SiteIDInput) (*struct{}, error) {
 	return nil, nil
 }
 
-func Clone(_ context.Context, input *CloneSiteInput) (*SiteOutput, error) {
+func Clone(ctx context.Context, input *CloneSiteInput) (*SiteOutput, error) {
 	site, err := findSite(input.ID)
 	if err != nil {
 		return nil, err
@@ -120,6 +129,9 @@ func Clone(_ context.Context, input *CloneSiteInput) (*SiteOutput, error) {
 	}
 	if site.Name == "" {
 		return nil, huma.Error400BadRequest("站点名称不能为空")
+	}
+	if err := validateCustomSite(ctx, site); err != nil {
+		return nil, huma.Error400BadRequest(err.Error())
 	}
 	if err := db.DB.Create(&site).Error; err != nil {
 		return nil, huma.Error500InternalServerError("克隆代理站点失败")
@@ -172,6 +184,18 @@ func previewSite(ctx context.Context, site model.ProxySite) (*PreviewOutput, err
 		return nil, huma.Error500InternalServerError("生成站点 Caddyfile 失败")
 	}
 	return &PreviewOutput{Body: PreviewResponse{CaddyJSON: payload, Caddyfile: string(caddyfile)}}, nil
+}
+
+func validateCustomSite(ctx context.Context, site model.ProxySite) error {
+	if site.ConfigMode != "custom" {
+		return nil
+	}
+	site.Enabled = true
+	payload, err := caddygen.Generate([]model.ProxySite{site})
+	if err != nil {
+		return fmt.Errorf("生成自定义站点校验配置失败: %w", err)
+	}
+	return validateCaddyConfig(ctx, payload)
 }
 
 func setEnabled(_ context.Context, input *SiteIDInput, enabled bool) (*SiteOutput, error) {
