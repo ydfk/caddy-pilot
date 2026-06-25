@@ -2,7 +2,7 @@
   <img src="frontend/public/caddypilot-logo.png" width="128" alt="CaddyPilot logo">
   <h1 align="center">CaddyPilot</h1>
   <p align="center">
-    A lightweight, self-contained web dashboard for managing the <a href="https://caddyserver.com">Caddy</a> bundled with CaddyPilot.
+    A lightweight, self-contained web dashboard for managing the <a href="https://caddyserver.com">Caddy</a> web server.
     <br />
     Manage proxy sites, preview configs, publish with one click, and roll back safely — all from a single Docker image.
   </p>
@@ -18,32 +18,30 @@
 
 ---
 
-## What is CaddyPilot?
+## Overview
 
 CaddyPilot wraps your Caddy server with a clean web UI so you never edit JSON configs by hand. It bundles a React frontend, Go API, and Caddy into **one Docker image** — deploy, log in, add sites, and publish.
 
 All configuration changes are versioned. If a publish fails, your previous working config stays live. If you need to go back, rollback is one click away.
 
-### Feature highlights
+### Features
 
 - **Proxy site management** — create, edit, clone, soft-delete, enable/disable reverse proxy sites
 - **Typed upstreams** — HTTP, HTTPS, h2c, and Unix Socket with type-specific settings
 - **Access & certificates** — reusable Basic Auth password vault plus single-domain or wildcard certificates with Aliyun DNS-01
 - **Config preview & publish** — publish protected JSON while previewing and exporting a validated, read-only Caddyfile view
 - **Nginx migration** — import common server, upstream, proxy_pass, TLS listener, and HTTPS redirect patterns as reviewable disabled sites
-- **Version history & rollback** — every publish is recorded; diff, inspect, or rollback to any previous version
+- **Version history & rollback** — every publish is recorded; diff, inspect, or roll back to any previous version
 - **Dashboard** — at-a-glance status: site counts, Caddy health, last publish time
-- **Unified Caddy workbench** — runtime health, validate/publish flow, config history, and Caddy updates in one place
-- **System identity** — the global sidebar shows the CaddyPilot version embedded from the release Tag
-- **Runtime observability** — inspect certificate issuance state and follow system, Caddy, or credential-safe DNS Provider audit logs online
+- **Caddy workbench** — runtime health, validate/publish flow, config history, and Caddy updates in one place
+- **System identity** — global sidebar shows the CaddyPilot version embedded from the release tag
+- **Runtime observability** — inspect certificate issuance state and follow system, Caddy, or credential-safe DNS provider audit logs online
 - **Self-protecting** — the management port (`:8080`) is never removed from generated configs, so the UI always stays reachable
 - **Single system** — Caddy + Go API + React ship together; users never install or start Caddy separately
 
 ### What it does NOT do
 
-MVP scope is intentionally narrow. CaddyPilot does **not** handle:
-
-Multi-node clusters, role-based access, editable Caddyfile import, DNS providers other than Aliyun, Layer 4 routing, automatic container discovery, advanced log analytics, or full Caddy config visualization.
+MVP scope is intentionally narrow. CaddyPilot does **not** handle multi-node clusters, role-based access, editable Caddyfile import, DNS providers other than Aliyun, Layer 4 routing, automatic container discovery, advanced log analytics, or full Caddy config visualization.
 
 ---
 
@@ -77,6 +75,12 @@ Detailed design: [docs/design.md](docs/design.md)
 
 ## Quick start
 
+### Prerequisites
+
+- Docker Engine with Docker Compose v2
+
+### Start with Docker
+
 ```bash
 # Clone the repo
 git clone https://github.com/ydfk/caddy-pilot.git
@@ -91,54 +95,43 @@ docker compose up -d --build
 
 On first launch, the login page shows an admin initialization form. Create your admin account and you're in.
 
-Stop everything:
-
 ```bash
+# Stop everything
 docker compose down
 ```
 
-For a production host that pulls the published Docker Hub image:
+### Production deployment
+
+For a production host pulling the published Docker Hub image:
 
 ```bash
 docker compose -f docker-compose.prod.yml up -d
 ```
 
+> **Tip:** Pin a specific version in production. Set `CADDYPILOT_VERSION` in your environment to a stable tag (e.g., `1.2.3`) and update only after testing. The default `latest` tag tracks the most recent stable release.
+
 ---
 
-## Docker Compose configuration
+## Configuration
 
-```yaml
-services:
-  caddypilot:
-    image: caddypilot:latest
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: caddypilot
-    restart: unless-stopped
-    environment:
-      CADDYPILOT_HTTPS_PORT: "${CADDYPILOT_HTTPS_PORT:-443}"
-    ports:
-      - "8080:8080"   # management UI
-      - "${CADDYPILOT_HTTP_PORT:-80}:80"
-      - "${CADDYPILOT_HTTPS_PORT:-443}:443"
-    volumes:
-      - ./data:/data
+### Port mapping
+
+| Environment variable | Default host port | Container port | Purpose |
+|---------------------|-------------------|----------------|---------|
+| `CADDYPILOT_HTTP_PORT` | 80 | 80 | HTTP proxy sites |
+| `CADDYPILOT_HTTPS_PORT` | 443 | 443 | HTTPS proxy sites and global redirect target |
+| — | 8080 | 8080 | Management UI |
+
+To use non-standard host ports, create a `.env` file in the project root:
+
+```dotenv
+CADDYPILOT_HTTP_PORT=18080
+CADDYPILOT_HTTPS_PORT=18443
 ```
 
-The default Compose file is production-oriented. Internal addresses, Caddy Admin API settings, and cryptographic secrets are owned by the image and do not need to be declared by users.
+> **Note:** Avoid port `10080` — Chromium-based browsers consider it unsafe and return `ERR_UNSAFE_PORT`.
 
-Host HTTP/HTTPS ports are configured once through `CADDYPILOT_HTTP_PORT` and `CADDYPILOT_HTTPS_PORT`. The HTTPS value is also used for every Force HTTPS redirect.
-
-## Security
-
-**Do not expose port 2019 to the host or the internet.** The Caddy Admin API listens on `127.0.0.1:2019` inside the container only. The default compose file does not map it. The UI never proxies it to the browser.
-
-On first start, the container generates independent random JWT and credential-encryption keys. They are stored with mode `0600` under `/data/.caddypilot-secrets` and reused after restart or image upgrade.
-
----
-
-## Data
+### Data persistence
 
 All persistent data lives under `./data/`:
 
@@ -152,11 +145,17 @@ All persistent data lives under `./data/`:
 
 Back up the entire directory when migrating or upgrading. Losing `.caddypilot-secrets` makes existing encrypted DNS credentials unreadable. The `data/` directory is git-ignored.
 
+### Security
+
+**Do not expose port 2019 to the host or the internet.** The Caddy Admin API listens on `127.0.0.1:2019` inside the container only. The default Compose file does not map it. The UI never proxies it to the browser.
+
+On first start, the container generates independent random JWT and credential-encryption keys. They are stored with mode `0600` under `/data/.caddypilot-secrets` and reused after restart or image upgrade.
+
 ---
 
 ## Development
 
-**One-click start (Windows):**
+### One-click start (Windows)
 
 Double-click `scripts\dev.cmd` or run in PowerShell:
 
@@ -166,7 +165,7 @@ Double-click `scripts\dev.cmd` or run in PowerShell:
 
 This starts Vite and the Go backend natively (no Docker). The backend automatically downloads a private Caddy runtime when needed, starts it, and exposes the complete system at `http://localhost:8080`. No system-wide Caddy installation is required.
 
-**Manual start:**
+### Manual start
 
 ```bash
 # Backend (terminal 1)
@@ -182,16 +181,14 @@ pnpm dev
 
 Do not start Caddy manually. The backend owns its lifecycle in both Docker and native environments; if no bundled runtime exists, it downloads the configured version into `data/runtime/`.
 
-Environment variables for development:
+### Environment variables
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `CADDY_VERSION` | `2.11.4` | Native development bootstrap version |
 | `VITE_PROXY_HOST` | `http://127.0.0.1:25610` | Vite dev proxy target |
 
-Caddy version-check, download, and optional SHA-512 checksum URLs are managed from **Caddy 管理 → 更新源** and stored in SQLite. Defaults use the official Caddy GitHub Release API and the official custom-build service with the AliDNS module. Downloads resume after interruption, retry up to three times, and persist task details under `data/runtime/caddy/update-task.json`. Docker environment variables are not required.
-
-Project-level Windows commands are centralized under `scripts/`:
+### Available scripts
 
 | Command | Purpose |
 | --- | --- |
@@ -201,9 +198,16 @@ Project-level Windows commands are centralized under `scripts/`:
 | `scripts\build.cmd` | Build frontend and backend |
 | `scripts\test.cmd` | Run frontend and backend tests |
 
+---
+
 ## Docker image releases
 
-Pushing a semantic version tag such as `v1.2.3` builds and publishes the Linux amd64 image to Docker Hub, then creates a GitHub Release containing only the production Compose file. Configure repository secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` first. Stable tags update `latest` and create a formal Release; tags such as `v1.2.3-rc.1` create a Prerelease.
+Pushing a semantic version tag such as `v1.2.3` builds and publishes the Linux amd64 image to Docker Hub, then creates a GitHub Release containing only the production Compose file. Configure repository secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` first.
+
+- Stable tags (e.g., `v1.2.3`) update `latest` and create a formal Release.
+- Pre-release tags (e.g., `v1.2.3-rc.1`) create a Prerelease and do **not** overwrite `latest`.
+
+The system sidebar displays the CaddyPilot version from the same tag. For example, `v1.2.3` publishes Docker image `ydfk/caddy-pilot:1.2.3` and the dashboard shows version `1.2.3`.
 
 ---
 
@@ -212,7 +216,24 @@ Pushing a semantic version tag such as `v1.2.3` builds and publishes the Linux a
 - [Design & security boundaries](docs/design.md)
 - [API reference](docs/api.md)
 - [Caddy JSON generation](docs/caddy-json.md)
-- [Deployment guide](docs/deployment.md)
+- [Deployment guide](docs/deployment.md) (Chinese)
+
+---
+
+## Troubleshooting
+
+| Symptom | Likely cause & action |
+|---------|----------------------|
+| Management page unreachable | Check container health and Caddy logs with `docker compose logs --tail 100`. |
+| API returns 401 | Session expired — re-login. The browser cleans stale tokens automatically. |
+| Publish returns 502 | Check the Caddy status page and the failed version's `error_message`. |
+| Site unreachable after publish | Verify DNS resolution, firewall rules for ports 80/443, upstream address, and the active Caddy JSON. |
+| Container restarts repeatedly | A managed Caddy crash or backend panic triggers a full restart. Inspect logs just before the restart for the root cause. |
+| Caddy update fails | Downloads support resume and retry up to three times. Check `data/runtime/caddy/update-task.json` for details. |
+
+### After restart
+
+Since Caddy config persistence is intentionally disabled, the system boots with a backend-generated protected management config that keeps the UI reachable. Business proxy sites need to be re-published from the Caddy status page. Automatic restoration of the last successful config is on the roadmap.
 
 ---
 
@@ -220,7 +241,13 @@ Pushing a semantic version tag such as `v1.2.3` builds and publishes the Linux a
 
 - Merge `advanced_json` into generated configs via a controlled allowlist (currently saved but not applied)
 - Add DNS providers beyond Aliyun
-- Auto-restore the last successful business config on restart (currently boots with a backend-generated protected management config)
+- Auto-restore the last successful business config on restart
+
+---
+
+## Contributing
+
+Contributions are welcome! Please read our [contributing guidelines](CONTRIBUTING.md) to get started.
 
 ---
 
