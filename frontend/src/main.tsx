@@ -20,6 +20,7 @@ const BasicAuthPage = lazy(() => import("./pages/basic-auth"));
 const CertificatesPage = lazy(() => import("./pages/certificates"));
 const DNSProvidersPage = lazy(() => import("./pages/dns-providers"));
 const LogsPage = lazy(() => import("./pages/logs"));
+const AccountSecurityPage = lazy(() => import("./pages/account-security"));
 
 const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
@@ -78,6 +79,10 @@ const router = createBrowserRouter([
           {
             path: "logs",
             element: <LogsPage />,
+          },
+          {
+            path: "account-security",
+            element: <AccountSecurityPage />,
           },
         ],
       },

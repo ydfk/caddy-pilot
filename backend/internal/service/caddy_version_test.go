@@ -2,11 +2,20 @@ package service
 
 import (
 	"context"
+	"errors"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 )
+
+func TestCaddyVersionRequestErrorExplainsContainerDNS(t *testing.T) {
+	err := caddyVersionRequestError("api.github.com", &net.DNSError{Name: "api.github.com", Err: "server misbehaving"})
+	if !errors.As(err, new(*net.DNSError)) || !strings.Contains(err.Error(), "CADDYPILOT_DNS_SERVER") {
+		t.Fatalf("DNS 错误提示不完整: %v", err)
+	}
+}
 
 func TestCaddyVersionServiceCheck(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {

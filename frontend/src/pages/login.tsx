@@ -1,8 +1,15 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { AlertCircle, ArrowRight } from "lucide-react";
+import { AlertCircle, ArrowRight, Fingerprint } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 
-import { getSetupStatus, login, register } from "@/api/auth";
+import {
+  beginPasskeyLogin,
+  finishPasskeyLogin,
+  getPasskeyStatus,
+  getSetupStatus,
+  login,
+  register,
+} from "@/api/auth";
 import { BrandLogo } from "@/components/brand-logo";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -10,6 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
+import { getPasskey, isPasskeySupported, passkeyErrorMessage } from "@/lib/passkey";
 import { useAuthStore } from "@/store/auth-store";
 
 export default function LoginPage() {
@@ -19,14 +27,22 @@ export default function LoginPage() {
   const [screen, setScreen] = useState<"loading" | "setup" | "login">("loading");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [pending, setPending] = useState(false);
+  const [pending, setPending] = useState<"password" | "passkey" | null>(null);
+  const [passkeyAvailable, setPasskeyAvailable] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     let active = true;
-    getSetupStatus()
-      .then(({ initialized }) => {
-        if (active) setScreen(initialized ? "login" : "setup");
+    Promise.all([getSetupStatus(), getPasskeyStatus().catch(() => null)])
+      .then(([{ initialized }, passkeyStatus]) => {
+        if (!active) return;
+        setScreen(initialized ? "login" : "setup");
+        setPasskeyAvailable(
+          initialized &&
+            passkeyStatus?.configured === true &&
+            passkeyStatus.available &&
+            isPasskeySupported()
+        );
       })
       .catch((reason) => {
         if (!active) return;
@@ -40,7 +56,7 @@ export default function LoginPage() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setPending(true);
+    setPending("password");
     setError("");
     try {
       if (screen === "setup") await register({ username, password });
@@ -51,7 +67,24 @@ export default function LoginPage() {
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "操作失败，请稍后重试");
     } finally {
-      setPending(false);
+      setPending(null);
+    }
+  }
+
+  async function submitPasskey() {
+    setPending("passkey");
+    setError("");
+    try {
+      const challenge = await beginPasskeyLogin();
+      const credential = await getPasskey(challenge.options.publicKey);
+      const result = await finishPasskeyLogin(challenge.session_id, credential);
+      setToken(result.token);
+      const from = (location.state as { from?: string } | null)?.from;
+      navigate(from || "/dashboard", { replace: true });
+    } catch (reason) {
+      setError(passkeyErrorMessage(reason));
+    } finally {
+      setPending(null);
     }
   }
 
@@ -144,17 +177,39 @@ export default function LoginPage() {
                       <FieldDescription>至少 6 个字符。</FieldDescription>
                     </Field>
                   </FieldGroup>
-                  <Button type="submit" disabled={pending}>
-                    {pending ? <Spinner data-icon="inline-start" /> : null}
-                    {pending
+                  <Button type="submit" disabled={pending !== null}>
+                    {pending === "password" ? <Spinner data-icon="inline-start" /> : null}
+                    {pending === "password"
                       ? isSetup
                         ? "正在初始化"
                         : "正在验证"
                       : isSetup
                         ? "创建管理员并登录"
                         : "登录"}
-                    {!pending ? <ArrowRight data-icon="inline-end" /> : null}
+                    {pending === null ? <ArrowRight data-icon="inline-end" /> : null}
                   </Button>
+                  {!isSetup && passkeyAvailable ? (
+                    <>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <span className="h-px flex-1 bg-border" />
+                        或
+                        <span className="h-px flex-1 bg-border" />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        disabled={pending !== null}
+                        onClick={() => void submitPasskey()}
+                      >
+                        {pending === "passkey" ? (
+                          <Spinner data-icon="inline-start" />
+                        ) : (
+                          <Fingerprint data-icon="inline-start" />
+                        )}
+                        {pending === "passkey" ? "正在验证 Passkey" : "使用 Passkey 登录"}
+                      </Button>
+                    </>
+                  ) : null}
                 </form>
               )}
             </CardContent>

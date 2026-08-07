@@ -9,3 +9,8 @@ database:
   driver: "sqlite"
   path: "data/db.sqlite"
   dsn: ""
+passkey:
+  rp_id: "localhost"
+  display_name: "CaddyPilot"
+  origins:
+    - "http://localhost:8080"

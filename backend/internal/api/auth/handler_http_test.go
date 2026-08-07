@@ -16,6 +16,7 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
+	passkeymodel "go-fiber-starter/internal/model/passkey"
 	model "go-fiber-starter/internal/model/user"
 	"go-fiber-starter/pkg/config"
 	"go-fiber-starter/pkg/db"
@@ -30,6 +31,9 @@ func setupTestApp(t *testing.T) *fiber.App {
 	config.Current.App.Env = "test"
 	config.Current.App.Port = "0"
 	config.Current.Database.Path = ""
+	config.Current.Passkey = config.PasskeyConfig{
+		RPID: "localhost", DisplayName: "CaddyPilot Test", Origins: []string{"http://localhost:8080"},
+	}
 	config.IsProduction = false
 
 	prevDB := db.DB
@@ -38,7 +42,7 @@ func setupTestApp(t *testing.T) *fiber.App {
 	if err != nil {
 		t.Fatalf("open db: %v", err)
 	}
-	if err := gormDB.AutoMigrate(&model.User{}); err != nil {
+	if err := gormDB.AutoMigrate(&model.User{}, &passkeymodel.Credential{}); err != nil {
 		t.Fatalf("auto migrate: %v", err)
 	}
 	closeSQLDB(t, gormDB)
@@ -182,6 +186,18 @@ func TestProfileRequiresAuth(t *testing.T) {
 	}
 }
 
+func TestPasskeyStatusWithoutCredentials(t *testing.T) {
+	app := setupTestApp(t)
+	resp := doJSONRequest(t, app, http.MethodGet, "/api/auth/passkeys/status", nil, nil)
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("passkey status: %d", resp.StatusCode)
+	}
+	status := decodeJSON[PasskeyStatusResponse](t, resp)
+	if !status.Configured || status.Available {
+		t.Fatalf("unexpected passkey status: %+v", status)
+	}
+}
+
 func TestOpenAPI31AndDocs(t *testing.T) {
 	app := setupTestApp(t)
 
@@ -199,6 +215,8 @@ func TestOpenAPI31AndDocs(t *testing.T) {
 		"/api/auth/setup-status:",
 		"/api/auth/register:",
 		"/api/auth/login:",
+		"/api/auth/passkeys/login/options:",
+		"/api/auth/passkeys/register/options:",
 		"/api/auth/profile:",
 		"bearerAuth:",
 	} {

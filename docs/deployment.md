@@ -44,6 +44,8 @@ CADDYPILOT_HTTPS_PORT=18443
 
 随后访问 `http://主机:18080`，强制 HTTPS 会统一跳转到 `https://主机:18443`。不要使用 `10080`：Chromium 系浏览器将其列为不安全端口并直接返回 `ERR_UNSAFE_PORT`，Caddy 无法覆盖浏览器的限制。
 
+代理站点列表点击域名时也使用这两个外部端口：80/443 自动省略，非标准端口显式附加。
+
 2019 没有宿主机映射。**不要将 Caddy Admin API 2019 端口暴露到公网。** 使用 HTTP-01 签发证书时，公网仍需能访问标准 80 端口；非标准映射更适合 DNS-01 或由上层网关转发 80/443 的部署。
 
 静态目录或 SPA 站点的 `root_path` 是容器内路径，需要在 Compose 中额外挂载只读目录，例如：
@@ -61,7 +63,33 @@ volumes:
 - JWT 签名密钥。
 - DNS Provider 凭据加密密钥。
 
-密钥保存到 `/data/.caddypilot-secrets`，文件权限为 `0600`。容器重建和镜像升级会继续使用原密钥，Compose 不需要也不应该重复声明这些内部配置。
+密钥保存到 `/data/.caddypilot-secrets`，文件权限为 `0600`。容器重建和镜像升级会继续使用原密钥，Compose 不需要也不应该重复声明这些内部配置。Passkey 凭据内容也使用凭据加密密钥加密后写入数据库。
+
+## Passkey 登录
+
+系统保留密码登录，并允许在“账户安全”中登记多个 Passkey。默认配置仅用于 `http://localhost:8080` 本地开发；远程部署必须为管理后台提供 HTTPS，并在 `.env` 中配置实际地址：
+
+```dotenv
+CADDYPILOT_PASSKEY_RP_ID=pilot.example.com
+CADDYPILOT_PASSKEY_RP_NAME=CaddyPilot
+CADDYPILOT_PASSKEY_ORIGINS=https://pilot.example.com
+```
+
+- `CADDYPILOT_PASSKEY_RP_ID`：管理域名，不包含协议和端口。
+- `CADDYPILOT_PASSKEY_RP_NAME`：浏览器展示的服务名称。
+- `CADDYPILOT_PASSKEY_ORIGINS`：允许发起 Passkey 操作的完整 Origin，多个地址使用逗号分隔。
+
+RP ID 或 Origin 不匹配时，后端会拒绝注册或登录，不会退化为跳过 Origin 校验。
+
+## 容器 DNS
+
+Compose 默认使用阿里公共 DNS `223.5.5.5`，避免 Docker 内置 DNS `127.0.0.11` 的上游异常导致 GitHub 更新检查失败。需要使用局域网 DNS 或其他公共 DNS 时可覆盖：
+
+```dotenv
+CADDYPILOT_DNS_SERVER=1.1.1.1
+```
+
+修改后运行 `docker compose up -d --force-recreate`。更新检查的 DNS 错误会直接提示 `CADDYPILOT_DNS_SERVER`，已有 Caddy 运行和站点访问不受版本检查失败影响。
 
 版本校验地址和下载地址不参与容器正常启动：镜像构建时会使用带阿里云 DNS 审计模块的最新稳定 Caddy 2.x。国内网络无法访问 GitHub 时，只会影响“检查更新”和“在线更新”，不会影响已有站点运行。
 

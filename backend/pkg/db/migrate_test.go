@@ -23,7 +23,7 @@ func TestAutoMigrateCreatesBusinessTables(t *testing.T) {
 		t.Fatalf("执行数据库迁移失败: %v", err)
 	}
 
-	for _, table := range []string{"users", "proxy_sites", "config_versions", "credentials", "settings"} {
+	for _, table := range []string{"users", "proxy_sites", "config_versions", "credentials", "passkey_credentials", "settings"} {
 		if !database.Migrator().HasTable(table) {
 			t.Fatalf("缺少数据表 %s", table)
 		}

@@ -29,6 +29,7 @@ All configuration changes are versioned. If a publish fails, your previous worki
 - **Proxy site management** — create, edit, clone, soft-delete, enable/disable reverse proxy sites
 - **Typed upstreams** — HTTP, HTTPS, h2c, and Unix Socket with type-specific settings
 - **Access & certificates** — reusable Basic Auth password vault plus single-domain or wildcard certificates with Aliyun DNS-01
+- **Password or Passkey login** — keep password recovery while registering multiple encrypted Passkey credentials
 - **Config preview & publish** — publish protected JSON while previewing and exporting a validated, read-only Caddyfile view
 - **Nginx migration** — import common server, upstream, proxy_pass, TLS listener, and HTTPS redirect patterns as reviewable disabled sites
 - **Version history & rollback** — every publish is recorded; diff, inspect, or roll back to any previous version
@@ -131,13 +132,33 @@ CADDYPILOT_HTTPS_PORT=18443
 
 > **Note:** Avoid port `10080` — Chromium-based browsers consider it unsafe and return `ERR_UNSAFE_PORT`.
 
+The proxy-site list uses these two values when opening a domain. Standard ports are omitted from the URL; non-standard ports are included.
+
+### Passkey and container DNS
+
+Passkey keeps password login enabled and stores credential material encrypted in the database. The default `localhost` configuration supports local development. For a deployed management domain, configure the exact HTTPS origin in `.env`:
+
+```dotenv
+CADDYPILOT_PASSKEY_RP_ID=pilot.example.com
+CADDYPILOT_PASSKEY_RP_NAME=CaddyPilot
+CADDYPILOT_PASSKEY_ORIGINS=https://pilot.example.com
+```
+
+`CADDYPILOT_PASSKEY_ORIGINS` accepts a comma-separated list. The RP ID must be the management domain without scheme or port. Browsers require HTTPS for Passkey outside `localhost`.
+
+Compose uses `223.5.5.5` by default to avoid Docker embedded-DNS failures while checking GitHub releases. Override it when your network requires another resolver:
+
+```dotenv
+CADDYPILOT_DNS_SERVER=1.1.1.1
+```
+
 ### Data persistence
 
 All persistent data lives under `./data/`:
 
 | Path | Content |
 |------|---------|
-| `/data/caddypilot.db` | Users, proxy sites, config versions |
+| `/data/caddypilot.db` | Users, encrypted Passkeys, proxy sites, config versions |
 | `/data/caddy/` | Caddy certificates and runtime state |
 | `/data/runtime/caddy/` | Managed Caddy binaries, selected version, and active JSON |
 | `/data/logs/` | Rotated CaddyPilot and Caddy process logs |
@@ -229,7 +250,8 @@ The system sidebar displays the CaddyPilot version from the same tag. For exampl
 | Publish returns 502 | Check the Caddy status page and the failed version's `error_message`. |
 | Site unreachable after publish | Verify DNS resolution, firewall rules for ports 80/443, upstream address, and the active Caddy JSON. |
 | Container restarts repeatedly | A managed Caddy crash or backend panic triggers a full restart. Inspect logs just before the restart for the root cause. |
-| Caddy update fails | Downloads support resume and retry up to three times. Check `data/runtime/caddy/update-task.json` for details. |
+| Caddy update fails with `127.0.0.11:53` | Docker DNS cannot resolve the update host. Set `CADDYPILOT_DNS_SERVER` and recreate the container. |
+| Caddy update download fails | Downloads support resume and retry up to three times. Check `data/runtime/caddy/update-task.json` for details. |
 
 ### After restart
 

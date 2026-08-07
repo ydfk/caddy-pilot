@@ -4,6 +4,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Copy,
+  ExternalLink,
   FileUp,
   Pencil,
   Plus,
@@ -23,9 +24,11 @@ import {
   type ProxySitePreview,
 } from "@/api/proxy-sites";
 import { getCaddyChangeStatus, publishCaddyConfig, validateCaddyConfig } from "@/api/caddy";
+import { getSystemInfo } from "@/api/system";
 import { NginxImportDialog } from "@/components/proxy-sites/nginx-import-dialog";
 import { ProxySitePublishActions } from "@/components/proxy-sites/proxy-site-publish-actions";
 import { SiteConfigPreviewDialog } from "@/components/proxy-sites/site-config-preview-dialog";
+import { publicSiteURL, type PublicSitePorts } from "@/components/proxy-sites/site-url";
 import { PageHeader } from "@/components/page-header";
 import {
   AlertDialog,
@@ -73,15 +76,21 @@ export default function ProxySitesPage() {
   const [hasChanges, setHasChanges] = useState(false);
   const [validating, setValidating] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [publicPorts, setPublicPorts] = useState<PublicSitePorts>({ http: 80, https: 443 });
 
   const loadSites = useCallback(async () => {
     setLoading(true);
     try {
-      const [sitePage, status] = await Promise.all([listProxySites(page), getCaddyChangeStatus()]);
+      const [sitePage, status, systemInfo] = await Promise.all([
+        listProxySites(page),
+        getCaddyChangeStatus(),
+        getSystemInfo(),
+      ]);
       setSites(sitePage.items);
       setTotal(sitePage.total);
       setTotalPages(sitePage.total_pages);
       setHasChanges(status.dirty);
+      setPublicPorts({ http: systemInfo.http_port, https: systemInfo.https_port });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "读取代理站点失败");
     } finally {
@@ -285,9 +294,35 @@ export default function ProxySitesPage() {
                   {sites.map((site) => (
                     <TableRow key={site.id}>
                       <TableCell className="max-w-56">
-                        <span className="block truncate font-mono text-xs">
-                          {site.config_mode === "custom" ? site.name : site.domains.join(", ")}
-                        </span>
+                        {site.config_mode === "custom" ? (
+                          <span className="block truncate font-mono text-xs">{site.name}</span>
+                        ) : (
+                          <div className="flex max-w-56 flex-wrap gap-x-2 gap-y-1">
+                            {site.domains.map((domain, index) => {
+                              const href = publicSiteURL(domain, site.enable_https, publicPorts);
+                              return href ? (
+                                <a
+                                  key={`${domain}-${index}`}
+                                  href={href}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex min-w-0 items-center gap-1 font-mono text-xs text-primary hover:underline"
+                                  title={href}
+                                >
+                                  <span className="truncate">{domain}</span>
+                                  <ExternalLink className="size-3 shrink-0" aria-hidden="true" />
+                                </a>
+                              ) : (
+                                <span
+                                  key={`${domain}-${index}`}
+                                  className="truncate font-mono text-xs"
+                                >
+                                  {domain}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
                         {site.description ? (
                           <span className="mt-1 block truncate text-xs text-muted-foreground">
                             {site.description}

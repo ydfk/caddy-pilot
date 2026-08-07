@@ -7,8 +7,14 @@ services:
       pull: true
     container_name: caddypilot
     restart: unless-stopped
+    dns:
+      - "${CADDYPILOT_DNS_SERVER:-223.5.5.5}"
     environment:
+      CADDYPILOT_HTTP_PORT: "${CADDYPILOT_HTTP_PORT:-80}"
       CADDYPILOT_HTTPS_PORT: "${CADDYPILOT_HTTPS_PORT:-443}"
+      CADDYPILOT_PASSKEY_RP_ID: "${CADDYPILOT_PASSKEY_RP_ID:-localhost}"
+      CADDYPILOT_PASSKEY_RP_NAME: "${CADDYPILOT_PASSKEY_RP_NAME:-CaddyPilot}"
+      CADDYPILOT_PASSKEY_ORIGINS: "${CADDYPILOT_PASSKEY_ORIGINS:-http://localhost:8080}"
     ports:
       - "8080:8080"
       - "${CADDYPILOT_HTTP_PORT:-80}:80"

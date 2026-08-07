@@ -3,8 +3,10 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -111,7 +113,7 @@ func (service *CaddyVersionService) readLatestRelease(ctx context.Context) (stri
 
 	response, err := service.HTTPClient.Do(request)
 	if err != nil {
-		return "", "", "", "", fmt.Errorf("检查 Caddy 更新失败: %w", err)
+		return "", "", "", "", caddyVersionRequestError(request.URL.Hostname(), err)
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
@@ -153,6 +155,14 @@ func (service *CaddyVersionService) readLatestRelease(ctx context.Context) (stri
 		return "", "", "", "", fmt.Errorf("解析 Caddy 版本响应失败: %w", err)
 	}
 	return normalizeVersion(version), updateURL, assetURL, release.SHA512URL, nil
+}
+
+func caddyVersionRequestError(host string, err error) error {
+	var dnsError *net.DNSError
+	if errors.As(err, &dnsError) {
+		return fmt.Errorf("检查 Caddy 更新失败: DNS 解析 %s 失败，请检查容器 DNS 或 CADDYPILOT_DNS_SERVER: %w", host, err)
+	}
+	return fmt.Errorf("检查 Caddy 更新失败: %w", err)
 }
 
 func runtimeManifestAssetURL(payload json.RawMessage, platform string) (string, error) {

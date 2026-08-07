@@ -3,6 +3,7 @@ import {
   BadgeCheck,
   CloudCog,
   Gauge,
+  Fingerprint,
   KeyRound,
   Route,
   ScrollText,
@@ -19,6 +20,7 @@ export const primaryNavigation: NavigationItem[] = [
 ];
 
 export const trailingNavigation: NavigationItem[] = [
+  { title: "账户安全", url: "/account-security", icon: Fingerprint },
   { title: "日志", url: "/logs", icon: ScrollText },
 ];
 

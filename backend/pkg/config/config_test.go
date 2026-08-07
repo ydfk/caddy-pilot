@@ -21,6 +21,11 @@ database:
   driver: "sqlite"
   path: "data/db.sqlite"
   dsn: ""
+passkey:
+  rp_id: "localhost"
+  display_name: "CaddyPilot"
+  origins:
+    - "http://localhost:8080"
 `)
 
 	config, err := loadConfig(configDir)
@@ -33,6 +38,9 @@ database:
 	}
 	if config.Jwt.Secret != "base" {
 		t.Fatalf("config.Jwt.Secret %s != base", config.Jwt.Secret)
+	}
+	if config.Passkey.RPID != "localhost" || len(config.Passkey.Origins) != 1 {
+		t.Fatalf("Passkey 配置读取失败: %+v", config.Passkey)
 	}
 }
 
@@ -92,6 +100,9 @@ func TestEnvironmentOverrides(t *testing.T) {
 	t.Setenv("JWT_SECRET", "environment-secret")
 	t.Setenv("DATABASE_DSN", "/data/caddypilot.db")
 	t.Setenv("CADDYPILOT_BACKEND_ADDR", "127.0.0.1:25610")
+	t.Setenv("CADDYPILOT_PASSKEY_RP_ID", "pilot.example.com")
+	t.Setenv("CADDYPILOT_PASSKEY_RP_NAME", "My Pilot")
+	t.Setenv("CADDYPILOT_PASSKEY_ORIGINS", "https://pilot.example.com, https://backup.example.com")
 	config := Config{Database: DatabaseConfig{Driver: "sqlite", Path: "data/db.sqlite"}}
 
 	applyEnvironmentOverrides(&config)
@@ -104,6 +115,12 @@ func TestEnvironmentOverrides(t *testing.T) {
 	}
 	if config.App.ListenAddress() != "127.0.0.1:25610" {
 		t.Fatalf("后端监听地址覆盖失败: %s", config.App.ListenAddress())
+	}
+	if config.Passkey.RPID != "pilot.example.com" || config.Passkey.DisplayName != "My Pilot" {
+		t.Fatalf("Passkey 环境变量覆盖失败: %+v", config.Passkey)
+	}
+	if len(config.Passkey.Origins) != 2 || config.Passkey.Origins[1] != "https://backup.example.com" {
+		t.Fatalf("Passkey Origin 解析失败: %+v", config.Passkey.Origins)
 	}
 }
 

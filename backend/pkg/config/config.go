@@ -15,6 +15,7 @@ type Config struct {
 	App      AppConfig
 	Jwt      JwtConfig
 	Database DatabaseConfig
+	Passkey  PasskeyConfig
 }
 
 type AppConfig struct {
@@ -43,6 +44,12 @@ type DatabaseConfig struct {
 	Driver string `mapstructure:"driver"`
 	Path   string `mapstructure:"path"`
 	DSN    string `mapstructure:"dsn"`
+}
+
+type PasskeyConfig struct {
+	RPID        string   `mapstructure:"rp_id"`
+	DisplayName string   `mapstructure:"display_name"`
+	Origins     []string `mapstructure:"origins"`
 }
 
 func (c DatabaseConfig) DriverName() string {
@@ -92,6 +99,26 @@ func applyEnvironmentOverrides(config *Config) {
 			config.Database.DSN = value
 		}
 	}
+	if value := strings.TrimSpace(os.Getenv("CADDYPILOT_PASSKEY_RP_ID")); value != "" {
+		config.Passkey.RPID = value
+	}
+	if value := strings.TrimSpace(os.Getenv("CADDYPILOT_PASSKEY_RP_NAME")); value != "" {
+		config.Passkey.DisplayName = value
+	}
+	if value := strings.TrimSpace(os.Getenv("CADDYPILOT_PASSKEY_ORIGINS")); value != "" {
+		config.Passkey.Origins = splitCommaSeparated(value)
+	}
+}
+
+func splitCommaSeparated(value string) []string {
+	parts := strings.Split(value, ",")
+	result := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if normalized := strings.TrimSpace(part); normalized != "" {
+			result = append(result, normalized)
+		}
+	}
+	return result
 }
 
 func loadConfig(configDir string) (Config, error) {
