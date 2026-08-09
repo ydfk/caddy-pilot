@@ -29,6 +29,7 @@ import { NginxImportDialog } from "@/components/proxy-sites/nginx-import-dialog"
 import { ProxySitePublishActions } from "@/components/proxy-sites/proxy-site-publish-actions";
 import { SiteConfigPreviewDialog } from "@/components/proxy-sites/site-config-preview-dialog";
 import { publicSiteURL, type PublicSitePorts } from "@/components/proxy-sites/site-url";
+import { UpstreamTarget } from "@/components/proxy-sites/upstream-target";
 import { PageHeader } from "@/components/page-header";
 import {
   AlertDialog,
@@ -337,15 +338,7 @@ export default function ProxySitesPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="max-w-56">
-                        <span className="block truncate font-mono text-xs">
-                          {site.config_mode === "custom"
-                            ? "完全自定义"
-                            : site.site_type === "static"
-                              ? site.root_path
-                              : site.site_type === "spa"
-                                ? `${site.api_path} → ${site.upstreams.join(", ")}`
-                                : site.upstreams.join(", ")}
-                        </span>
+                        <UpstreamTarget site={site} />
                       </TableCell>
                       <TableCell>
                         <Badge variant={site.enable_https ? "secondary" : "outline"}>
